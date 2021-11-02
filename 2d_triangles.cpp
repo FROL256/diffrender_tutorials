@@ -3,10 +3,20 @@
 #include <random>
 #include <set>
 #include <vector>
+#include <algorithm>
 
-using namespace std;
+using std::for_each;
+using std::upper_bound;
+using std::vector;
+using std::string;
+using std::uniform_real_distribution;
+using std::min;
+using std::max;
+using std::set;
+using std::fstream;
+using std::mt19937;
+
 using Real = float;
-
 uniform_real_distribution<Real> uni_dist(0, 1);
 
 // some basic vector operations
@@ -132,7 +142,7 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
 
 void save_img(const Img &img, const string &filename, bool flip = false) {
     fstream fs(filename.c_str(), fstream::out);
-    fs << "P3" << endl << img.width << " " << img.height << " 255" << endl;
+    fs << "P3" << std::endl << img.width << " " << img.height << " 255" << std::endl;
     for (int i = 0; i < img.width * img.height; i++) {
         auto tonemap = [](Real x) {
             return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5));};
