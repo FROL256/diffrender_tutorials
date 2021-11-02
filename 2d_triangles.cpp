@@ -1,9 +1,10 @@
-// Compile: g++ -O3 -std=c++11 2d_triangles.cpp
 #include <fstream>
 #include <random>
 #include <set>
 #include <vector>
 #include <algorithm>
+
+#include "Bitmap.h"
 
 using std::for_each;
 using std::upper_bound;
@@ -59,9 +60,9 @@ T clamp(T v, T l, T u) {
 
 // data structures for rendering
 struct TriangleMesh {
-    vector<Vec2f> vertices;
-    vector<Vec3i> indices;
-    vector<Vec3f> colors; // defined for each face
+    vector<Vec2f>      vertices;
+    vector<unsigned>   indices;
+    vector<Vec3f>      colors; // defined for each face
 };
 
 struct DTriangleMesh {
@@ -87,7 +88,8 @@ struct Edge {
 
 // for sampling edges with inverse transform sampling
 struct Sampler {
-    vector<Real> pmf, cdf;
+    vector<Real> pmf; // probability mass function
+    vector<Real> cdf;
 };
 
 struct Img {
@@ -132,50 +134,90 @@ int sample(const Sampler &sampler, const Real u) {
 // given a triangle mesh, collect all edges.
 vector<Edge> collect_edges(const TriangleMesh &mesh) {
     set<Edge> edges;
-    for (auto index : mesh.indices) {
-        edges.insert(Edge(index.x, index.y));
-        edges.insert(Edge(index.y, index.z));
-        edges.insert(Edge(index.z, index.x));
+    for (size_t i=0; i<mesh.indices.size();i+=3) 
+    {
+      auto A = mesh.indices[i+0];
+      auto B = mesh.indices[i+1];
+      auto C = mesh.indices[i+2];  
+      edges.insert(Edge(A, B));
+      edges.insert(Edge(B, C));
+      edges.insert(Edge(C, A));
     }
     return vector<Edge>(edges.begin(), edges.end());
 }
 
-void save_img(const Img &img, const string &filename, bool flip = false) {
-    fstream fs(filename.c_str(), fstream::out);
-    fs << "P3" << std::endl << img.width << " " << img.height << " 255" << std::endl;
-    for (int i = 0; i < img.width * img.height; i++) {
-        auto tonemap = [](Real x) {
-            return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5));};
-        auto c = flip ? -img.color[i] : img.color[i];
-        fs << tonemap(c.x) << " " << tonemap(c.y) << " " << tonemap(c.z) << " ";
-    }
+static inline unsigned RealColorToUint32(Real r, Real g, Real b)
+{
+  const unsigned red   = unsigned(r*255.0f);
+  const unsigned green = unsigned(g*255.0f);
+  const unsigned blue  = unsigned(b*255.0f);
+
+  return red | (green << 8) | (blue << 16) | 0xFF000000;
+}
+
+void save_img(const Img &img, const string &filename, bool flip = false) 
+{
+  auto tonemap = [](Real x) { return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5));};
+  
+  //std::vector<unsigned> colors(img.width * img.height);
+  //for (int y = 0; y < img.height; y++)
+  //{
+  //  for(int x =0; x < img.width; x++)
+  //  {
+  //    int i = (img.height - y -1)*img.width + x;
+  //    auto c = flip ? -img.color[i] : img.color[i];
+  //    colors[i] = RealColorToUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
+  //  }
+  //}
+  //
+  //SaveBMP(filename.c_str(), colors.data(), img.width, img.height);
+
+  fstream fs(filename.c_str(), fstream::out);
+  fs << "P3" << std::endl << img.width << " " << img.height << " 255" << std::endl;
+  for (int i = 0; i < img.width * img.height; i++) 
+  {
+    auto c = flip ? -img.color[i] : img.color[i];
+    fs << tonemap(c.x) << " " << tonemap(c.y) << " " << tonemap(c.z) << " ";
+  }
+  fs.close();
 }
 
 // trace a single ray at screen_pos, intersect with the triangle mesh.
 Vec3f raytrace(const TriangleMesh &mesh,
                const Vec2f &screen_pos,
-               int *hit_index = nullptr) {
+               unsigned *out_faceIndex = nullptr) {
     // loop over all triangles in a mesh, return the first one that hits
-    for (int i = 0; i < (int)mesh.indices.size(); i++) {
-        // retrieve the three vertices of a triangle
-        auto index = mesh.indices[i];
-        auto v0 = mesh.vertices[index.x], v1 = mesh.vertices[index.y], v2 = mesh.vertices[index.z];
-        // form three half-planes: v1-v0, v2-v1, v0-v2
-        // if a point is on the same side of all three half-planes, it's inside the triangle.
-        auto n01 = normal(v1 - v0), n12 = normal(v2 - v1), n20 = normal(v0 - v2);
-        auto side01 = dot(screen_pos - v0, n01) > 0;
-        auto side12 = dot(screen_pos - v1, n12) > 0;
-        auto side20 = dot(screen_pos - v2, n20) > 0;
-        if ((side01 && side12 && side20) || (!side01 && !side12 && !side20)) {
-            if (hit_index != nullptr) {
-                *hit_index = i;
-            }
-            return mesh.colors[i];
-        }
+    for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
+    {
+      // retrieve the three vertices of a triangle
+      auto A = mesh.indices[i+0];
+      auto B = mesh.indices[i+1];
+      auto C = mesh.indices[i+2];
+      
+      auto v0 = mesh.vertices[A];
+      auto v1 = mesh.vertices[B];
+      auto v2 = mesh.vertices[C];
+
+      // form three half-planes: v1-v0, v2-v1, v0-v2
+      // if a point is on the same side of all three half-planes, it's inside the triangle.
+      auto n01 = normal(v1 - v0);
+      auto n12 = normal(v2 - v1);
+      auto n20 = normal(v0 - v2);
+      
+      auto side01 = dot(screen_pos - v0, n01) > 0;
+      auto side12 = dot(screen_pos - v1, n12) > 0;
+      auto side20 = dot(screen_pos - v2, n20) > 0;
+
+      if ((side01 && side12 && side20) || (!side01 && !side12 && !side20)) {
+          if (out_faceIndex != nullptr) {
+              *out_faceIndex = i/3; // because we store face id here
+          }
+          return mesh.colors[i/3];
+      }
     }
     // return background
-    if (hit_index != nullptr) {
-        *hit_index = -1;
+    if (out_faceIndex != nullptr) {
+        *out_faceIndex = unsigned(-1);
     }
     return Vec3f{0, 0, 0};
 }
@@ -215,12 +257,11 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
                     auto screen_pos = Vec2f{x + xoff, y + yoff};
-                    int hit_index = -1;
-                    raytrace(mesh, screen_pos, &hit_index);
-                    if (hit_index != -1) {
+                    unsigned faceIndex = unsigned(-1);
+                    raytrace(mesh, screen_pos, &faceIndex);
+                    if (faceIndex != unsigned(-1)) {
                         // if running in parallel, use atomic add here.
-                        d_colors[hit_index] += 
-                            adjoint.color[y * adjoint.width + x] / samples_per_pixel;
+                        d_colors[faceIndex] += adjoint.color[y * adjoint.width + x] / samples_per_pixel;
                     }
                 }
             }
@@ -302,10 +343,12 @@ int main(int argc, char *argv[]) {
         {{50.0, 25.0}, {200.0, 200.0}, {15.0, 150.0},
          {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
         // indices
-        {{0, 1, 2}, {3, 4, 5}},
+        {0, 1, 2, 
+         3, 4, 5},
         // color
         {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
     };
+
     Img img(256, 256);
     mt19937 rng(1234);
     render(mesh, 4 /* samples_per_pixel */, rng, img);
