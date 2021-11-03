@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "Bitmap.h"
+#include "LiteMath.h"
 
 #ifdef WIN32
   #include <direct.h>     // for windows mkdir
@@ -23,63 +24,37 @@ using std::max;
 using std::set;
 using std::fstream;
 using std::mt19937;
+uniform_real_distribution<float> uni_dist(0, 1);
 
-using Real = float;
-uniform_real_distribution<Real> uni_dist(0, 1);
+using LiteMath::float2;
+using LiteMath::float3;
+using LiteMath::float4;
+using LiteMath::int2;
 
-// some basic vector operations
-template <typename T>
-struct Vec2 {
-    T x, y;
-    Vec2(T x = 0, T y = 0) : x(x), y(y) {}
-};
-template <typename T>
-struct Vec3 {
-    T x, y, z;
-    Vec3(T x = 0, T y = 0, T z = 0) : x(x), y(y), z(z) {}
-};
-using Vec2f = Vec2<Real>;
-using Vec3i = Vec3<int>;
-using Vec3f = Vec3<Real>;
-Vec2f operator+(const Vec2f &v0, const Vec2f &v1) {return Vec2f{v0.x+v1.x, v0.y+v1.y};}
-Vec2f& operator+=(Vec2f &v0, const Vec2f &v1) {v0.x += v1.x; v0.y += v1.y; return v0;}
-Vec2f operator-(const Vec2f &v0, const Vec2f &v1) {return Vec2f{v0.x-v1.x, v0.y-v1.y};}
-Vec2f operator*(Real s, const Vec2f &v) {return Vec2f{v.x * s, v.y * s};}
-Vec2f operator*(const Vec2f &v, Real s) {return Vec2f{v.x * s, v.y * s};}
-Vec2f operator/(const Vec2f &v, Real s) {return Vec2f{v.x / s, v.y / s};}
-Real dot(const Vec2f &v0, const Vec2f &v1) {return v0.x * v1.x + v0.y * v1.y;}
-Real length(const Vec2f &v) {return sqrt(dot(v, v));}
-Vec2f normal(const Vec2f &v) {return Vec2f{-v.y, v.x};}
-Vec3f& operator+=(Vec3f &v0, const Vec3f &v1) {v0.x += v1.x; v0.y += v1.y; v0.z += v1.z; return v0;}
-Vec3f operator-(const Vec3f &v0, const Vec3f &v1) {return Vec3f{v0.x-v1.x, v0.y-v1.y, v0.z-v1.z};}
-Vec3f operator-(const Vec3f &v) {return Vec3f{-v.x, -v.y, -v.z};}
-Vec3f operator*(const Vec3f &v, Real s) {return Vec3f{v.x*s, v.y*s, v.z*s};}
-Vec3f operator*(Real s, const Vec3f &v) {return Vec3f{v.x*s, v.y*s, v.z*s};}
-Vec3f operator/(const Vec3f &v, Real s) {return Vec3f{v.x/s, v.y/s, v.z/s};}
-Real dot(const Vec3f &v0, const Vec3f &v1) {return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z;}
+using LiteMath::clamp;
+using LiteMath::normalize;
 
-template <typename T>
-T clamp(T v, T l, T u) {
-    if (v < l) return l;
-    else if (v > u) return u;
-    return v;
-}
+float2 normal(const float2 &v) {return float2{-v.y, v.x};} // Vec2f normal(const Vec2f &v) {return Vec2f{-v.y, v.x};}
+
+/////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
 
 // data structures for rendering
 struct TriangleMesh {
-    vector<Vec2f>      vertices;
+    vector<float2>     vertices;
     vector<unsigned>   indices;
-    vector<Vec3f>      colors; // defined for each face
+    vector<float3>     colors; // defined for each face
 };
 
 struct DTriangleMesh {
     DTriangleMesh(int num_vertices, int num_colors) {
-        vertices.resize(num_vertices, Vec2f{0, 0});
-        colors.resize(num_colors, Vec3f{0, 0, 0});
+        vertices.resize(num_vertices, float2{0, 0});
+        colors.resize(num_colors, float3{0, 0, 0});
     }
 
-    vector<Vec2f> vertices;
-    vector<Vec3f> colors;
+    vector<float2> vertices;
+    vector<float3> colors;
 };
 
 struct Edge {
@@ -95,17 +70,17 @@ struct Edge {
 
 // for sampling edges with inverse transform sampling
 struct Sampler {
-    vector<Real> pmf; // probability mass function
-    vector<Real> cdf;
+    vector<float> pmf; // probability mass function
+    vector<float> cdf;
 };
 
 struct Img {
-    Img(int width, int height, const Vec3f &val = Vec3f{0, 0, 0}) :
+    Img(int width, int height, const float3 &val = float3{0, 0, 0}) :
             width(width), height(height) {
         color.resize(width * height, val);
     }
 
-    vector<Vec3f> color;
+    vector<float3> color;
     int width;
     int height;
 };
@@ -113,8 +88,8 @@ struct Img {
 // build a discrete CDF using edge length
 Sampler build_edge_sampler(const TriangleMesh &mesh,
                            const vector<Edge> &edges) {
-    vector<Real> pmf;
-    vector<Real> cdf;
+    vector<float> pmf;
+    vector<float> cdf;
     pmf.reserve(edges.size());
     cdf.reserve(edges.size() + 1);
     cdf.push_back(0);
@@ -125,15 +100,15 @@ Sampler build_edge_sampler(const TriangleMesh &mesh,
         cdf.push_back(pmf.back() + cdf.back());
     }
     auto length_sum = cdf.back();
-    for_each(pmf.begin(), pmf.end(), [&](Real &p) {p /= length_sum;});
-    for_each(cdf.begin(), cdf.end(), [&](Real &p) {p /= length_sum;});
+    for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
+    for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
     return Sampler{pmf, cdf};
 }
 
 // binary search for inverting the CDF in the sampler
-int sample(const Sampler &sampler, const Real u) {
+int sample(const Sampler &sampler, const float u) {
     auto cdf = sampler.cdf;
-    return clamp<int>(upper_bound(
+    return clamp(upper_bound(
         cdf.begin(), cdf.end(), u) - cdf.begin() - 1,
         0, cdf.size() - 2);
 }
@@ -158,7 +133,7 @@ static inline unsigned IntColorUint32(int r, int g, int b)
   return unsigned(r | (g << 8) | (b << 16) | 0xFF000000);
 }
 
-static inline int tonemap(Real x) { return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5)); }
+static inline int tonemap(float x) { return int(pow(clamp(x, float(0), float(1)), float(1/2.2))*255 + float(.5)); }
 
 void save_img(const Img &img, const string &filename, bool flip = false) 
 {
@@ -169,7 +144,7 @@ void save_img(const Img &img, const string &filename, bool flip = false)
     const int offset2 = y*img.width;
     for(int x =0; x < img.width; x++)
     {
-      auto c = flip ? -img.color[offset1 + x] : img.color[offset1 + x];
+      auto c = flip ? (-1.0f)*img.color[offset1 + x] : img.color[offset1 + x];
       colors[offset2+x] = IntColorUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
     }
   }
@@ -178,8 +153,8 @@ void save_img(const Img &img, const string &filename, bool flip = false)
 }
 
 // trace a single ray at screen_pos, intersect with the triangle mesh.
-Vec3f raytrace(const TriangleMesh &mesh,
-               const Vec2f &screen_pos,
+float3 raytrace(const TriangleMesh &mesh,
+               const float2 &screen_pos,
                unsigned *out_faceIndex = nullptr) {
     // loop over all triangles in a mesh, return the first one that hits
     for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
@@ -214,14 +189,14 @@ Vec3f raytrace(const TriangleMesh &mesh,
     if (out_faceIndex != nullptr) {
         *out_faceIndex = unsigned(-1);
     }
-    return Vec3f{0, 0, 0};
+    return float3{0, 0, 0};
 }
 
 void render(const TriangleMesh &mesh,
             int samples_per_pixel,
             mt19937 &rng,
             Img &img) {
-    auto sqrt_num_samples = (int)sqrt((Real)samples_per_pixel);
+    auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     for (int y = 0; y < img.height; y++) { // for each pixel
         for (int x = 0; x < img.width; x++) {
@@ -229,7 +204,7 @@ void render(const TriangleMesh &mesh,
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
-                    auto screen_pos = Vec2f{x + xoff, y + yoff};
+                    auto screen_pos = float2{x + xoff, y + yoff};
                     auto color = raytrace(mesh, screen_pos);
                     img.color[y * img.width + x] += color / samples_per_pixel;
                 }
@@ -242,8 +217,8 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
                                   mt19937 &rng,
-                                  vector<Vec3f> &d_colors) {
-    auto sqrt_num_samples = (int)sqrt((Real)samples_per_pixel);
+                                  vector<float3> &d_colors) {
+    auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     for (int y = 0; y < adjoint.height; y++) { // for each pixel
         for (int x = 0; x < adjoint.width; x++) {
@@ -251,7 +226,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
-                    auto screen_pos = Vec2f{x + xoff, y + yoff};
+                    auto screen_pos = float2{x + xoff, y + yoff};
                     unsigned faceIndex = unsigned(-1);
                     raytrace(mesh, screen_pos, &faceIndex);
                     if (faceIndex != unsigned(-1)) {
@@ -273,7 +248,7 @@ void compute_edge_derivatives(
         mt19937 &rng,
         Img &screen_dx,
         Img &screen_dy,
-        vector<Vec2f> &d_vertices) {
+        vector<float2> &d_vertices) {
     for (int i = 0; i < num_edge_samples; i++) {
         // pick an edge
         auto edge_id = sample(edge_sampler, uni_dist(rng));
@@ -295,15 +270,15 @@ void compute_edge_derivatives(
         // get corresponding adjoint from the adjoint image,
         // multiply with the color difference and divide by the pdf & number of samples.
         auto pdf = pmf / (length(v1 - v0));
-        auto weight = Real(1 / (pdf * Real(num_edge_samples)));
+        auto weight = float(1 / (pdf * float(num_edge_samples)));
         auto adj = dot(color_in - color_out, adjoint.color[yi * adjoint.width + xi]);
         // the boundary point is p = v0 + t * (v1 - v0)
         // according to Reynolds transport theorem,
         // the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
         // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
         // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
-        auto d_v0 = Vec2f{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-        auto d_v1 = Vec2f{     t  * n.x,      t  * n.y} * adj * weight;
+        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
+        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
         // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
         // the screen space derivatives are the negation of this
         auto dx = -n.x * (color_in - color_out) * weight;
@@ -356,7 +331,7 @@ int main(int argc, char *argv[])
   render(mesh, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered/render.bmp");
 
-  Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
+  Img adjoint(img.width, img.height, float3{1, 1, 1});
   Img dx(img.width, img.height), dy(img.width, img.height);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
