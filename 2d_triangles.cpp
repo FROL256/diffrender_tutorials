@@ -146,40 +146,29 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
     return vector<Edge>(edges.begin(), edges.end());
 }
 
-static inline unsigned RealColorToUint32(Real r, Real g, Real b)
+static inline unsigned IntColorUint32(int r, int g, int b)
 {
-  const unsigned red   = unsigned(r*255.0f);
-  const unsigned green = unsigned(g*255.0f);
-  const unsigned blue  = unsigned(b*255.0f);
-
-  return red | (green << 8) | (blue << 16) | 0xFF000000;
+  return unsigned(r | (g << 8) | (b << 16) | 0xFF000000);
 }
+
+static inline int tonemap(Real x) { return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5)); }
 
 void save_img(const Img &img, const string &filename, bool flip = false) 
 {
-  auto tonemap = [](Real x) { return int(pow(clamp(x, Real(0), Real(1)), Real(1/2.2))*255 + Real(.5));};
-  
-  //std::vector<unsigned> colors(img.width * img.height);
-  //for (int y = 0; y < img.height; y++)
-  //{
-  //  for(int x =0; x < img.width; x++)
-  //  {
-  //    int i = (img.height - y -1)*img.width + x;
-  //    auto c = flip ? -img.color[i] : img.color[i];
-  //    colors[i] = RealColorToUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
-  //  }
-  //}
-  //
-  //SaveBMP(filename.c_str(), colors.data(), img.width, img.height);
 
-  fstream fs(filename.c_str(), fstream::out);
-  fs << "P3" << std::endl << img.width << " " << img.height << " 255" << std::endl;
-  for (int i = 0; i < img.width * img.height; i++) 
+  std::vector<unsigned> colors(img.width * img.height);
+  for (int y = 0; y < img.height; y++)
   {
-    auto c = flip ? -img.color[i] : img.color[i];
-    fs << tonemap(c.x) << " " << tonemap(c.y) << " " << tonemap(c.z) << " ";
+    const int offset1 = (img.height - y - 1)*img.width;
+    const int offset2 = y*img.width;
+    for(int x =0; x < img.width; x++)
+    {
+      auto c = flip ? -img.color[offset1 + x] : img.color[offset1 + x];
+      colors[offset2+x] = IntColorUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
+    }
   }
-  fs.close();
+  
+  SaveBMP(filename.c_str(), colors.data(), img.width, img.height);
 }
 
 // trace a single ray at screen_pos, intersect with the triangle mesh.
@@ -352,14 +341,14 @@ int main(int argc, char *argv[]) {
     Img img(256, 256);
     mt19937 rng(1234);
     render(mesh, 4 /* samples_per_pixel */, rng, img);
-    save_img(img, "render.ppm");
+    save_img(img, "render.bmp");
 
     Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
     Img dx(img.width, img.height), dy(img.width, img.height);
     DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
     d_render(mesh, adjoint, 4 /* interior_samples_per_pixel */,
              img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
-    save_img(dx, "dx_pos.ppm", false /*flip*/); save_img(dx, "dx_neg.ppm", true /*flip*/);
-    save_img(dy, "dy_pos.ppm", false /*flip*/); save_img(dy, "dy_neg.ppm", true /*flip*/);
+    save_img(dx, "dx_pos.bmp", false /*flip*/); save_img(dx, "dx_neg.bmp", true /*flip*/);
+    save_img(dy, "dy_pos.bmp", false /*flip*/); save_img(dy, "dy_neg.bmp", true /*flip*/);
     return 0;
 }

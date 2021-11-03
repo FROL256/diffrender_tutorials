@@ -1,1 +1,1 @@
-This is differentiable raster sandbox for get be familiar with the basics of differentiable rendering  
+This is differentiable raster sandbox for get familiar with the basics of differentiable rendering  
