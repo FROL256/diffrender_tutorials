@@ -6,6 +6,13 @@
 
 #include "Bitmap.h"
 
+#ifdef WIN32
+  #include <direct.h>     // for windows mkdir
+#else
+  #include <sys/stat.h>   // for linux mkdir
+  #include <sys/types.h>
+#endif
+
 using std::for_each;
 using std::upper_bound;
 using std::vector;
@@ -325,29 +332,38 @@ void d_render(const TriangleMesh &mesh,
                              rng, screen_dx, screen_dy, d_mesh.vertices);
 }
 
-int main(int argc, char *argv[]) {
-    TriangleMesh mesh{
-        // vertices
-        {{50.0, 25.0}, {200.0, 200.0}, {15.0, 150.0},
-         {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
-        // indices
-        {0, 1, 2, 
-         3, 4, 5},
-        // color
-        {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
-    };
+int main(int argc, char *argv[]) 
+{
+  #ifdef WIN32
+  mkdir("rendered");
+  #else
+  mkdir("rendered", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  #endif
 
-    Img img(256, 256);
-    mt19937 rng(1234);
-    render(mesh, 4 /* samples_per_pixel */, rng, img);
-    save_img(img, "render.bmp");
+  TriangleMesh mesh{
+      // vertices
+      {{50.0, 25.0}, {200.0, 200.0}, {15.0, 150.0},
+       {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
+      // indices
+      {0, 1, 2, 
+       3, 4, 5},
+      // color
+      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
+  };
 
-    Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
-    Img dx(img.width, img.height), dy(img.width, img.height);
-    DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-    d_render(mesh, adjoint, 4 /* interior_samples_per_pixel */,
-             img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
-    save_img(dx, "dx_pos.bmp", false /*flip*/); save_img(dx, "dx_neg.bmp", true /*flip*/);
-    save_img(dy, "dy_pos.bmp", false /*flip*/); save_img(dy, "dy_neg.bmp", true /*flip*/);
-    return 0;
+  Img img(256, 256);
+  mt19937 rng(1234);
+  render(mesh, 4 /* samples_per_pixel */, rng, img);
+  save_img(img, "rendered/render.bmp");
+
+  Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
+  Img dx(img.width, img.height), dy(img.width, img.height);
+  
+  DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
+  d_render(mesh, adjoint, 4 /* interior_samples_per_pixel */,
+           img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
+  save_img(dx, "rendered/dx_pos.bmp", false /*flip*/); save_img(dx, "rendered/dx_neg.bmp", true /*flip*/);
+  save_img(dy, "rendered/dy_pos.bmp", false /*flip*/); save_img(dy, "rendered/dy_neg.bmp", true /*flip*/);
+  
+  return 0;
 }

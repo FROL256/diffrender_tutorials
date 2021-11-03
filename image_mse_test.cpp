@@ -41,12 +41,12 @@ float MSE_RGB_LDR(const std::vector<unsigned>& image1, const std::vector<unsigne
 
 int main(int argc, const char** argv)
 {
-  for (const auto & entry : fs::directory_iterator("."))
+  for (const auto & entry : fs::directory_iterator("rendered"))
   {
     std::string path = entry.path();
     if(path.substr(path.find_last_of(".") + 1) == "bmp")
     {  
-      std::string path2 = "./reference/" + path.substr(2); 
+      std::string path2 = "reference/" + path.substr(std::string("rendered").size()+1); 
       std::cout << path.c_str() << " -- " << path2.c_str();
 
       int w,h,w2,h2;
