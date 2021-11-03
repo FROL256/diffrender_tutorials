@@ -155,7 +155,6 @@ static inline int tonemap(Real x) { return int(pow(clamp(x, Real(0), Real(1)), R
 
 void save_img(const Img &img, const string &filename, bool flip = false) 
 {
-
   std::vector<unsigned> colors(img.width * img.height);
   for (int y = 0; y < img.height; y++)
   {

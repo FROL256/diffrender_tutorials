@@ -22,7 +22,26 @@
                     "ignoreFailures": true
                 }
             ]
-        }
+        },
+        {
+            "name"   : "RunMSETests",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/z_mse_test",
+            "args"   : ["aaa", "bbb"],
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
 
     ]
 }
