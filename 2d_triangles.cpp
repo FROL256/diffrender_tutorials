@@ -1,3 +1,4 @@
+#include <iostream>
 #include <fstream>
 #include <random>
 #include <set>
@@ -13,6 +14,8 @@
   #include <sys/stat.h>   // for linux mkdir
   #include <sys/types.h>
 #endif
+
+#include <cassert>
 
 using std::for_each;
 using std::upper_bound;
@@ -79,6 +82,8 @@ struct Img {
             width(width), height(height) {
         color.resize(width * height, val);
     }
+
+    void clear() { memset(color.data(), 0, color.size()*sizeof(float3)); }
 
     vector<float3> color;
     int width;
@@ -153,9 +158,8 @@ void save_img(const Img &img, const string &filename, bool flip = false)
 }
 
 // trace a single ray at screen_pos, intersect with the triangle mesh.
-float3 raytrace(const TriangleMesh &mesh,
-               const float2 &screen_pos,
-               unsigned *out_faceIndex = nullptr) {
+float3 raytrace(const TriangleMesh &mesh, const float2 &screen_pos,
+                unsigned *out_faceIndex = nullptr) {
     // loop over all triangles in a mesh, return the first one that hits
     for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
     {
@@ -307,6 +311,43 @@ void d_render(const TriangleMesh &mesh,
                              rng, screen_dx, screen_dy, d_mesh.vertices);
 }
 
+void PrintMesh(const DTriangleMesh& a_mesh)
+{
+  for(size_t i=0; i<a_mesh.vertices.size();i++)
+    std::cout << "ver[" << i << "]: " << a_mesh.vertices[i].x << ", " << a_mesh.vertices[i].y << std::endl;  
+  std::cout << std::endl;
+  for(size_t i=0; i<a_mesh.colors.size();i++)
+    std::cout << "col[" << i << "]: " << a_mesh.colors[i].x << ", " << a_mesh.colors[i].y << ", " << a_mesh.colors[i].z << std::endl;
+  std::cout << std::endl;
+}
+
+float3 accumDiff3(const Img& b, const Img& a)
+{
+  assert(a.width*a.height == b.width*b.height);
+  double accum[3] = {0,0,0};
+  const size_t imgSize = a.width*a.height;
+  for(size_t i=0;i<imgSize;i++)
+  {
+    accum[0] += double(b.color[i].x - a.color[i].x);
+    accum[1] += double(b.color[i].y - a.color[i].y);
+    accum[2] += double(b.color[i].z - a.color[i].z);
+  }
+  return float3(accum[0], accum[1], accum[2]);
+}
+
+float accumDiff(const Img& b, const Img& a)
+{
+  assert(a.width*a.height == b.width*b.height);
+  double accum = 0.0f;
+  const size_t imgSize = a.width*a.height;
+  for(size_t i=0;i<imgSize;i++)
+  {
+    const float3 diffVec = b.color[i] - a.color[i];
+    accum += double(diffVec.x + diffVec.y + diffVec.z);
+  }
+  return float(accum);
+}
+
 int main(int argc, char *argv[]) 
 {
   #ifdef WIN32
@@ -340,5 +381,42 @@ int main(int argc, char *argv[])
   save_img(dx, "rendered/dx_pos.bmp", false /*flip*/); save_img(dx, "rendered/dx_neg.bmp", true /*flip*/);
   save_img(dy, "rendered/dy_pos.bmp", false /*flip*/); save_img(dy, "rendered/dy_neg.bmp", true /*flip*/);
   
+  std::cout << "gradients(1):" << std::endl;
+  PrintMesh(d_mesh);
+
+  // check differentials with brute force numerical approach
+  //
+  DTriangleMesh testMesh(mesh.vertices.size(), mesh.colors.size());
+  Img           tempImg(256, 256); 
+  const float   dEpsilon = 2.0f;
+
+  for(size_t vertId=0; vertId< mesh.vertices.size(); vertId++)
+  {
+    TriangleMesh tmpMesh = mesh;
+    tmpMesh.vertices[vertId].x += dEpsilon;
+    tempImg.clear();
+    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
+    testMesh.vertices[vertId].x += accumDiff(tempImg, img)/dEpsilon;
+  
+    tmpMesh = mesh;
+    tmpMesh.vertices[vertId].y += dEpsilon;
+    tempImg.clear();
+    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
+    testMesh.vertices[vertId].y += accumDiff(tempImg, img)/dEpsilon;
+  }
+  
+  for(size_t faceId=0; faceId < mesh.colors.size(); faceId++)
+  {
+    TriangleMesh tmpMesh = mesh;
+    tmpMesh.colors[faceId] += float3(dEpsilon, dEpsilon, dEpsilon);
+    tempImg.clear();
+    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
+    testMesh.colors[faceId] += accumDiff3(tempImg, img)/dEpsilon;
+  }
+
+  std::cout << std::endl;
+  std::cout << "gradients(2):" << std::endl;
+  PrintMesh(testMesh);
+
   return 0;
 }
