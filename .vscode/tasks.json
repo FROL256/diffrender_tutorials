@@ -6,7 +6,7 @@
         {
             "label": "BuildRelease",
             "type": "shell",
-            "command": "g++ -O3 -std=c++11 2d_triangles.cpp Bitmap.cpp",
+            "command": "g++ -O3 -std=c++14 2d_triangles.cpp Bitmap.cpp -Iinclude -I/usr/local/include/eigen3",
             "group": "build",
             "problemMatcher": [
                 "$gcc"
@@ -15,7 +15,7 @@
         {
             "label": "BuildDebug",
             "type": "shell",
-            "command": "g++ -std=c++11 2d_triangles.cpp Bitmap.cpp -g",
+            "command": "g++ -std=c++14 2d_triangles.cpp Bitmap.cpp -g -Iinclude -I/usr/local/include/eigen3",
             "group": "build",
             "problemMatcher": [
                 "$gcc"
@@ -24,7 +24,7 @@
         {
             "label": "BuildMSETest",
             "type": "shell",
-            "command": "g++ -O3 -std=c++17 image_mse_test.cpp Bitmap.cpp -o z_mse_test",
+            "command": "g++ -O3 -std=c++14 image_mse_test.cpp Bitmap.cpp -o z_mse_test",
             "group": "build",
             "problemMatcher": [
                 "$gcc"

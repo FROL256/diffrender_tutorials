@@ -8,6 +8,10 @@
 #include "Bitmap.h"
 #include "LiteMath.h"
 
+#include <Eigen/Dense>              // optimization methods
+#define OPTIM_ENABLE_EIGEN_WRAPPERS // optimization methods
+#include "optim.hpp"                // optimization methods
+
 #ifdef WIN32
   #include <direct.h>     // for windows mkdir
 #else
@@ -16,6 +20,7 @@
 #endif
 
 #include <cassert>
+
 
 using std::for_each;
 using std::upper_bound;
@@ -347,6 +352,43 @@ float accumDiff(const Img& b, const Img& a)
   }
   return float(accum);
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef Eigen::Matrix<float, Eigen::Dynamic, 1> EVector;
+
+float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
+{
+  // TriangleMesh mesh = MeshFromVector(vals_inp);
+  
+  // Render (mesh) ==> image 
+  // diff1 = MSE2(targetImage, image) // real MSE
+  // diff2 = MSE1(targetImage, image) // differential of MSE
+
+  // DTriangleMesh d_mesh;
+  // d_render(mesh ==> d_mesh)
+
+  // (*grad_out) = VectorFromDMesh(d_mesh)
+  // return diff;
+
+  //vals_inp.size();
+  //const double x = vals_inp(0);
+  //const double y = vals_inp(1);
+  //const double pi = arma::datum::pi;
+  //double obj_val = -20*std::exp( -0.2*std::sqrt(0.5*(x*x + y*y)) ) - std::exp( 0.5*(std::cos(2*pi*x) + std::cos(2*pi*y)) ) + 22.718282L;
+  //return obj_val;
+  
+  return 0.0f;
+}
+
+//bool success = optim::de(x,ackley_fn,nullptr);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 int main(int argc, char *argv[]) 
 {
