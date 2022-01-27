@@ -357,33 +357,119 @@ float accumDiff(const Img& b, const Img& a)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef Eigen::Matrix<float, Eigen::Dynamic, 1> EVector;
+TriangleMesh g_mesh; ///<! global mesh optimized mesh
+Img          g_targetImage(256,256);
+
+void optInit(const TriangleMesh& a_mesh, const Img& a_image) { g_mesh = a_mesh; g_targetImage = a_image; }
+
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
+
+EVector VectorFromMesh(const TriangleMesh& a_mesh)
+{
+  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
+  size_t currPos = 0;
+  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
+  {
+    result[currPos+0] = a_mesh.vertices[vertId].x;
+    result[currPos+1] = a_mesh.vertices[vertId].y;
+  }
+  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
+  {
+   result[currPos+0] = a_mesh.colors[faceId].x;
+   result[currPos+1] = a_mesh.colors[faceId].y;
+   result[currPos+2] = a_mesh.colors[faceId].z;
+  }
+  return result;
+}
+
+EVector VectorFromDMesh(const DTriangleMesh& a_mesh, const float a_mult = 1.0f)
+{
+  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
+  size_t currPos = 0;
+  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
+  {
+    result[currPos+0] = a_mesh.vertices[vertId].x*a_mult;
+    result[currPos+1] = a_mesh.vertices[vertId].y*a_mult;
+  }
+  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
+  {
+   result[currPos+0] = a_mesh.colors[faceId].x*a_mult;
+   result[currPos+1] = a_mesh.colors[faceId].y*a_mult;
+   result[currPos+2] = a_mesh.colors[faceId].z*a_mult;
+  }
+  return result;
+}
+
+TriangleMesh MeshFromVector(const EVector& a_vec)
+{
+  TriangleMesh result = g_mesh;
+  size_t currPos = 0;
+  for(size_t vertId=0; vertId< result.vertices.size(); vertId++, currPos+=2)
+  {
+    result.vertices[vertId].x = a_vec[currPos+0];
+    result.vertices[vertId].y = a_vec[currPos+1];
+  }
+  for(size_t faceId=0; faceId < result.colors.size(); faceId++, currPos+=3)
+  {
+    result.colors[faceId].x = a_vec[currPos+0];
+    result.colors[faceId].y = a_vec[currPos+1];
+    result.colors[faceId].z = a_vec[currPos+2];
+  }
+  return result;
+}
+
+float2 MSEAndDiff(const Img& b, const Img& a)
+{
+  assert(a.width*a.height == b.width*b.height);
+  
+  double accumMSE = 0.0f;
+  double accumDIF = 0.0f;
+
+  const size_t imgSize = a.width*a.height;
+  for(size_t i=0;i<imgSize;i++)
+  {
+    const float3 diffVec = b.color[i] - a.color[i];
+    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
+    accumDIF += double(diffVec.x + diffVec.y + diffVec.z); // (I[x,y] - I_target[x,y])    // dirrerential of the losss function without 2.0f coeff
+  }
+  
+  return float2(accumMSE, 2.0*accumDIF);
+}
 
 float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
 {
-  // TriangleMesh mesh = MeshFromVector(vals_inp);
+  TriangleMesh mesh = MeshFromVector(vals_inp);
   
-  // Render (mesh) ==> image 
-  // diff1 = MSE2(targetImage, image) // real MSE
-  // diff2 = MSE1(targetImage, image) // differential of MSE
+  constexpr int samples_per_pixel = 4;
 
-  // DTriangleMesh d_mesh;
-  // d_render(mesh ==> d_mesh)
+  Img img(256, 256);
+  mt19937 rng(1234);
+  render(mesh, samples_per_pixel, rng, img);
 
-  // (*grad_out) = VectorFromDMesh(d_mesh)
-  // return diff;
-
-  //vals_inp.size();
-  //const double x = vals_inp(0);
-  //const double y = vals_inp(1);
-  //const double pi = arma::datum::pi;
-  //double obj_val = -20*std::exp( -0.2*std::sqrt(0.5*(x*x + y*y)) ) - std::exp( 0.5*(std::cos(2*pi*x) + std::cos(2*pi*y)) ) + 22.718282L;
-  //return obj_val;
+  float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
   
-  return 0.0f;
+  Img adjoint(img.width, img.height, float3{1, 1, 1});
+  Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
+  
+  DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
+  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
+
+  (*grad_out) = VectorFromDMesh(d_mesh, 2.0f*mseAndDiff.y); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
+  return mseAndDiff.x;
 }
 
-//bool success = optim::de(x,ackley_fn,nullptr);
+TriangleMesh optRun(size_t a_numIters) 
+{ 
+  optim::algo_settings_t settings;
+  settings.iter_max = a_numIters;
+  settings.gd_settings.method = 0;   // 0 for simple gradient descend, 6 ADAM
+  //settings.gd_settings.par_step_size = 0.1; // initialization for ADAM
+  
+  EVector x = VectorFromMesh(g_mesh);
+  bool success = optim::gd(x, &EvalFunction, nullptr, settings);
+  return MeshFromVector(x);
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
