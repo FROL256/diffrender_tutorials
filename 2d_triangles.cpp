@@ -20,6 +20,7 @@
 #endif
 
 #include <cassert>
+#include <iomanip>
 
 
 using std::for_each;
@@ -359,8 +360,10 @@ float accumDiff(const Img& b, const Img& a)
 
 TriangleMesh g_mesh; ///<! global mesh optimized mesh
 Img          g_targetImage(256,256);
+size_t       g_iter = 0;
 
-void optInit(const TriangleMesh& a_mesh, const Img& a_image) { g_mesh = a_mesh; g_targetImage = a_image; }
+
+void optInit(const TriangleMesh& a_mesh, const Img& a_image) { g_mesh = a_mesh; g_targetImage = a_image; g_iter = 0; }
 
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
@@ -446,9 +449,12 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   Img img(256, 256);
   mt19937 rng(1234);
   render(mesh, samples_per_pixel, rng, img);
+  
+  std::stringstream strOut;
+  strOut << std::setw(4) << "rendered_opt/render_" << g_iter << ".bmp";
+  save_img(img, strOut.str());
 
   float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
-  
   Img adjoint(img.width, img.height, float3{1, 1, 1});
   Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
   
@@ -456,6 +462,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   d_render(mesh, adjoint, samples_per_pixel, img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
 
   (*grad_out) = VectorFromDMesh(d_mesh, 2.0f*mseAndDiff.y); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
+  g_iter++;
   return mseAndDiff.x;
 }
 
@@ -468,6 +475,12 @@ TriangleMesh optRun(size_t a_numIters)
   
   EVector x = VectorFromMesh(g_mesh);
   bool success = optim::gd(x, &EvalFunction, nullptr, settings);
+
+  if(success)
+    std::cout << "omptimization SUCCEDED!" << std::endl;
+  else
+    std::cout << "omptimization FAILED!" << std::endl;
+
   return MeshFromVector(x);
 }
 
@@ -480,8 +493,10 @@ int main(int argc, char *argv[])
 {
   #ifdef WIN32
   mkdir("rendered");
+  mkdir("rendered_opt");
   #else
   mkdir("rendered", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
 
   TriangleMesh mesh{
@@ -545,6 +560,31 @@ int main(int argc, char *argv[])
   std::cout << std::endl;
   std::cout << "gradients(2):" << std::endl;
   PrintMesh(testMesh);
+
+  // try optimization
+  //
+  
+  TriangleMesh mesh2{
+      // vertices
+      {{50.0, 25.0+100.0}, {200.0, 200.0+100.0}, {15.0, 150.0+100.0},
+       {200.0-20.0, 15.0}, {150.0-20.0, 250.0}, {50.0-20.0, 100.0}},
+      // indices
+      {0, 1, 2, 
+       3, 4, 5},
+      // color
+      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
+  };
+  
+  img.clear();
+  render(mesh2, 4 /* samples_per_pixel */, rng, img);
+  save_img(img, "rendered_opt/z_target.bmp");
+
+  optInit(mesh, img); // set different terget image
+
+  TriangleMesh mesh3 = optRun(100);
+  img.clear();
+  render(mesh3, 4 /* samples_per_pixel */, rng, img);
+  save_img(img, "rendered_opt/z_target2.bmp");
 
   return 0;
 }
