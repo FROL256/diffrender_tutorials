@@ -350,26 +350,19 @@ float accumDiff(const Img& b, const Img& a)
   return float(accum);
 }
 
-float2 MSEAndDiff(const Img& b, const Img& a)
+float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 {
   assert(a.width*a.height == b.width*b.height);
-  
   double accumMSE = 0.0f;
-  double accumDIF[3] = {0.0f, 0.0f, 0.0f};
-
   const size_t imgSize = a.width*a.height;
   for(size_t i=0;i<imgSize;i++)
   {
     const float3 diffVec = b.color[i] - a.color[i];
+    a_outDiff.color[i] = 2.0f*diffVec;                     // (I[x,y] - I_target[x,y])  // dirrerential of the loss function 
     accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
-    accumDIF[0] += diffVec.x; // (I[x,y] - I_target[x,y])  // dirrerential of the losss function without 2.0f coeff
-    accumDIF[1] += diffVec.y;
-    accumDIF[2] += diffVec.z;
   }
-  
-  return float2(accumMSE, 2.0*(accumDIF[0] + accumDIF[1] + accumDIF[2]));
+  return float(accumMSE);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -454,7 +447,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   render(mesh, samples_per_pixel, rng, img);
   
   std::stringstream strOut;
-  strOut << std::setw(4) << "rendered_opt/render_" << g_iter << ".bmp";
+  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << g_iter << ".bmp";
   save_img(img, strOut.str());
 
   float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
@@ -498,43 +491,43 @@ float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   render(mesh, samples_per_pixel, rng, img);
   
   std::stringstream strOut;
-  strOut << std::setw(4) << "rendered_opt/render_" << g_iter << ".bmp";
+  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << g_iter << ".bmp";
   save_img(img, strOut.str());
 
-  float2 mseAndDiff = MSEAndDiff(img, g_targetImage) / float(g_targetImage.width*g_targetImage.height);
   Img adjoint(img.width, img.height, float3{1, 1, 1});
+  float mse = MSEAndDiff(img, g_targetImage, adjoint) / float(g_targetImage.width*g_targetImage.height);
   Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
   
   memset(gradMesh.colors.data(),   0, gradMesh.colors.size()*sizeof(float3));
   memset(gradMesh.vertices.data(), 0, gradMesh.vertices.size()*sizeof(float2));
 
   d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, gradMesh);
-  for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
-    gradMesh.vertices[vertId] *= mseAndDiff.y;
-  for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
-    gradMesh.colors[faceId] *= mseAndDiff.y;
 
   g_iter++;
-  return mseAndDiff.x;
+  return mse;
 }
 
 
 TriangleMesh optRun(size_t a_numIters) 
 { 
+  const size_t eachPassDescreasStep = a_numIters/8; 
+
   DTriangleMesh gradMesh(g_mesh.vertices.size(), g_mesh.colors.size());
   //float currError = 1e38f;
-  float alpha = 1.0f;
+  float alpha = 0.1f;
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(g_mesh, gradMesh);
     std::cout << "iter " << iter << ", error = " << error << std::endl;
    
     PrintMesh(gradMesh);
-
     for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
       g_mesh.vertices[vertId] -= gradMesh.vertices[vertId]*alpha;
     //for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
     //  g_mesh.colors[faceId] -= gradMesh.colors[faceId]*alpha;
+
+    if(iter % eachPassDescreasStep == 0)
+      alpha = alpha*0.75f;
   }
 
   return g_mesh;
@@ -619,18 +612,16 @@ int main(int argc, char *argv[])
 
   // try optimization
   //
-  auto mesh2 = mesh;
-  mesh2.vertices[0].x += 10.0f; 
-  //TriangleMesh mesh2{
-  //    // vertices
-  //    {{50.0, 25.0+10.0}, {200.0, 200.0+10.0}, {15.0, 150.0+10.0},
-  //     {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
-  //    // indices
-  //    {0, 1, 2, 
-  //     3, 4, 5},
-  //    // color
-  //    {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
-  //};
+  TriangleMesh mesh2{
+      // vertices
+      {{50.0, 25.0+10.0}, {200.0, 200.0+10.0}, {15.0, 150.0+10.0},
+       {200.0-10.0 + 50.0, 15.0+5.0}, {150.0+50.0+50.0, 250.0-25.0}, {80.0, 100.0-25.0}},
+      // indices
+      {0, 1, 2, 
+       3, 4, 5},
+      // color
+      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
+  };
   
   img.clear();
   render(mesh2, 4 /* samples_per_pixel */, rng, img);
@@ -638,7 +629,7 @@ int main(int argc, char *argv[])
 
   optInit(mesh, img); // set different terget image
 
-  TriangleMesh mesh3 = optRun(20);
+  TriangleMesh mesh3 = optRun(200);
   img.clear();
   render(mesh3, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target2.bmp");

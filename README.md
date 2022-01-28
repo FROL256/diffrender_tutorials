@@ -1,6 +1,6 @@
 This is differentiable raster sandbox for get familiar with the basics of differentiable rendering  
 
-# Installation
+# Installation of opt. tools (optional!)
 
 Sorry for this sh*t, we need Eigen for optimisation methods for a while
 
