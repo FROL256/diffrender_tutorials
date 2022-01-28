@@ -498,7 +498,7 @@ float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   strOut << std::setw(4) << "rendered_opt/render_" << g_iter << ".bmp";
   save_img(img, strOut.str());
 
-  float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
+  float2 mseAndDiff = MSEAndDiff(img, g_targetImage) / float(g_targetImage.width*g_targetImage.height);
   Img adjoint(img.width, img.height, float3{1, 1, 1});
   Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
   
@@ -506,6 +506,11 @@ float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   memset(gradMesh.vertices.data(), 0, gradMesh.vertices.size()*sizeof(float2));
 
   d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, gradMesh);
+  for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
+    gradMesh.vertices[vertId] *= mseAndDiff.y;
+  for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
+    gradMesh.colors[faceId] *= mseAndDiff.y;
+
   g_iter++;
   return mseAndDiff.x;
 }
@@ -515,7 +520,7 @@ TriangleMesh optRun(size_t a_numIters)
 { 
   DTriangleMesh gradMesh(g_mesh.vertices.size(), g_mesh.colors.size());
   //float currError = 1e38f;
-  float alpha = 0.1f;
+  float alpha = 1.0f;
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(g_mesh, gradMesh);
