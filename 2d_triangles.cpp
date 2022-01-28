@@ -8,10 +8,6 @@
 #include "Bitmap.h"
 #include "LiteMath.h"
 
-#include <Eigen/Dense>              // optimization methods
-#define OPTIM_ENABLE_EIGEN_WRAPPERS // optimization methods
-#include "optim.hpp"                // optimization methods
-
 #ifdef WIN32
   #include <direct.h>     // for windows mkdir
 #else
@@ -354,6 +350,25 @@ float accumDiff(const Img& b, const Img& a)
   return float(accum);
 }
 
+float2 MSEAndDiff(const Img& b, const Img& a)
+{
+  assert(a.width*a.height == b.width*b.height);
+  
+  double accumMSE = 0.0f;
+  double accumDIF = 0.0f;
+
+  const size_t imgSize = a.width*a.height;
+  for(size_t i=0;i<imgSize;i++)
+  {
+    const float3 diffVec = b.color[i] - a.color[i];
+    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
+    accumDIF += double(diffVec.x + diffVec.y + diffVec.z); // (I[x,y] - I_target[x,y])    // dirrerential of the losss function without 2.0f coeff
+  }
+  
+  return float2(accumMSE, 2.0*accumDIF);
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,6 +380,10 @@ size_t       g_iter = 0;
 
 void optInit(const TriangleMesh& a_mesh, const Img& a_image) { g_mesh = a_mesh; g_targetImage = a_image; g_iter = 0; }
 
+/*
+#include <Eigen/Dense>              // optimization methods
+#define OPTIM_ENABLE_EIGEN_WRAPPERS // optimization methods
+#include "optim.hpp"                // optimization methods
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
 
@@ -422,24 +441,6 @@ TriangleMesh MeshFromVector(const EVector& a_vec)
   return result;
 }
 
-float2 MSEAndDiff(const Img& b, const Img& a)
-{
-  assert(a.width*a.height == b.width*b.height);
-  
-  double accumMSE = 0.0f;
-  double accumDIF = 0.0f;
-
-  const size_t imgSize = a.width*a.height;
-  for(size_t i=0;i<imgSize;i++)
-  {
-    const float3 diffVec = b.color[i] - a.color[i];
-    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
-    accumDIF += double(diffVec.x + diffVec.y + diffVec.z); // (I[x,y] - I_target[x,y])    // dirrerential of the losss function without 2.0f coeff
-  }
-  
-  return float2(accumMSE, 2.0*accumDIF);
-}
-
 float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
 {
   TriangleMesh mesh = MeshFromVector(vals_inp);
@@ -459,7 +460,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
+  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, d_mesh);
 
   (*grad_out) = VectorFromDMesh(d_mesh, 2.0f*mseAndDiff.y); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
   g_iter++;
@@ -482,6 +483,53 @@ TriangleMesh optRun(size_t a_numIters)
     std::cout << "omptimization FAILED!" << std::endl;
 
   return MeshFromVector(x);
+}*/
+
+
+float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
+{
+  constexpr int samples_per_pixel = 4;
+
+  Img img(256, 256);
+  mt19937 rng(1234);
+  render(mesh, samples_per_pixel, rng, img);
+  
+  std::stringstream strOut;
+  strOut << std::setw(4) << "rendered_opt/render_" << g_iter << ".bmp";
+  save_img(img, strOut.str());
+
+  float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
+  Img adjoint(img.width, img.height, float3{1, 1, 1});
+  Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
+  
+  memset(gradMesh.colors.data(),   0, gradMesh.colors.size()*sizeof(float3));
+  memset(gradMesh.vertices.data(), 0, gradMesh.vertices.size()*sizeof(float2));
+
+  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, gradMesh);
+  g_iter++;
+  return mseAndDiff.x;
+}
+
+
+TriangleMesh optRun(size_t a_numIters) 
+{ 
+  DTriangleMesh gradMesh(g_mesh.vertices.size(), g_mesh.colors.size());
+  //float currError = 1e38f;
+  float alpha = 0.1f;
+  for(size_t iter=0; iter < a_numIters; iter++)
+  {
+    float error = EvalFunction(g_mesh, gradMesh);
+    std::cout << "iter " << iter << ", error = " << error << std::endl;
+   
+    PrintMesh(gradMesh);
+
+    for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
+      g_mesh.vertices[vertId] -= gradMesh.vertices[vertId]*alpha;
+    //for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
+    //  g_mesh.colors[faceId] -= gradMesh.colors[faceId]*alpha;
+  }
+
+  return g_mesh;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -566,8 +614,8 @@ int main(int argc, char *argv[])
   
   TriangleMesh mesh2{
       // vertices
-      {{50.0, 25.0+100.0}, {200.0, 200.0+100.0}, {15.0, 150.0+100.0},
-       {200.0-20.0, 15.0}, {150.0-20.0, 250.0}, {50.0-20.0, 100.0}},
+      {{50.0, 25.0+50.0}, {200.0, 200.0+50.0}, {15.0, 150.0+50.0},
+       {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
       // indices
       {0, 1, 2, 
        3, 4, 5},
@@ -581,7 +629,7 @@ int main(int argc, char *argv[])
 
   optInit(mesh, img); // set different terget image
 
-  TriangleMesh mesh3 = optRun(100);
+  TriangleMesh mesh3 = optRun(20);
   img.clear();
   render(mesh3, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target2.bmp");
