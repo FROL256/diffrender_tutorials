@@ -469,6 +469,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   return mseAndDiff.x;
 }
 
+
 TriangleMesh optRun(size_t a_numIters) 
 { 
   optim::algo_settings_t settings;
@@ -485,8 +486,8 @@ TriangleMesh optRun(size_t a_numIters)
     std::cout << "omptimization FAILED!" << std::endl;
 
   return MeshFromVector(x);
-}*/
-
+}
+*/
 
 float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 {
