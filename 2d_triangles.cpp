@@ -355,17 +355,19 @@ float2 MSEAndDiff(const Img& b, const Img& a)
   assert(a.width*a.height == b.width*b.height);
   
   double accumMSE = 0.0f;
-  double accumDIF = 0.0f;
+  double accumDIF[3] = {0.0f, 0.0f, 0.0f};
 
   const size_t imgSize = a.width*a.height;
   for(size_t i=0;i<imgSize;i++)
   {
     const float3 diffVec = b.color[i] - a.color[i];
     accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
-    accumDIF += double(diffVec.x + diffVec.y + diffVec.z); // (I[x,y] - I_target[x,y])    // dirrerential of the losss function without 2.0f coeff
+    accumDIF[0] += diffVec.x; // (I[x,y] - I_target[x,y])  // dirrerential of the losss function without 2.0f coeff
+    accumDIF[1] += diffVec.y;
+    accumDIF[2] += diffVec.z;
   }
   
-  return float2(accumMSE, 2.0*accumDIF);
+  return float2(accumMSE, 2.0*(accumDIF[0] + accumDIF[1] + accumDIF[2]));
 }
 
 
@@ -616,17 +618,18 @@ int main(int argc, char *argv[])
 
   // try optimization
   //
-  
-  TriangleMesh mesh2{
-      // vertices
-      {{50.0, 25.0+50.0}, {200.0, 200.0+50.0}, {15.0, 150.0+50.0},
-       {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
-      // indices
-      {0, 1, 2, 
-       3, 4, 5},
-      // color
-      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
-  };
+  auto mesh2 = mesh;
+  mesh2.vertices[0].x += 10.0f; 
+  //TriangleMesh mesh2{
+  //    // vertices
+  //    {{50.0, 25.0+10.0}, {200.0, 200.0+10.0}, {15.0, 150.0+10.0},
+  //     {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
+  //    // indices
+  //    {0, 1, 2, 
+  //     3, 4, 5},
+  //    // color
+  //    {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
+  //};
   
   img.clear();
   render(mesh2, 4 /* samples_per_pixel */, rng, img);
