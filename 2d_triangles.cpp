@@ -286,6 +286,10 @@ void d_render(const TriangleMesh &mesh,
                              rng, screen_dx, screen_dy, d_mesh.vertices);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void PrintMesh(const DTriangleMesh& a_mesh)
 {
   for(size_t i=0; i<a_mesh.vertices.size();i++)
@@ -341,118 +345,8 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-#include <Eigen/Dense>              // optimization methods
-#define OPTIM_ENABLE_EIGEN_WRAPPERS // optimization methods
-#include "optim.hpp"                // optimization methods
-
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
-
-EVector VectorFromMesh(const TriangleMesh& a_mesh)
-{
-  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
-  size_t currPos = 0;
-  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
-  {
-    result[currPos+0] = a_mesh.vertices[vertId].x;
-    result[currPos+1] = a_mesh.vertices[vertId].y;
-  }
-  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
-  {
-   result[currPos+0] = a_mesh.colors[faceId].x;
-   result[currPos+1] = a_mesh.colors[faceId].y;
-   result[currPos+2] = a_mesh.colors[faceId].z;
-  }
-  return result;
-}
-
-EVector VectorFromDMesh(const DTriangleMesh& a_mesh, const float a_mult = 1.0f)
-{
-  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
-  size_t currPos = 0;
-  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
-  {
-    result[currPos+0] = a_mesh.vertices[vertId].x*a_mult;
-    result[currPos+1] = a_mesh.vertices[vertId].y*a_mult;
-  }
-  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
-  {
-   result[currPos+0] = a_mesh.colors[faceId].x*a_mult;
-   result[currPos+1] = a_mesh.colors[faceId].y*a_mult;
-   result[currPos+2] = a_mesh.colors[faceId].z*a_mult;
-  }
-  return result;
-}
-
-TriangleMesh MeshFromVector(const EVector& a_vec)
-{
-  TriangleMesh result = g_mesh;
-  size_t currPos = 0;
-  for(size_t vertId=0; vertId< result.vertices.size(); vertId++, currPos+=2)
-  {
-    result.vertices[vertId].x = a_vec[currPos+0];
-    result.vertices[vertId].y = a_vec[currPos+1];
-  }
-  for(size_t faceId=0; faceId < result.colors.size(); faceId++, currPos+=3)
-  {
-    result.colors[faceId].x = a_vec[currPos+0];
-    result.colors[faceId].y = a_vec[currPos+1];
-    result.colors[faceId].z = a_vec[currPos+2];
-  }
-  return result;
-}
-
-float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
-{
-  TriangleMesh mesh = MeshFromVector(vals_inp);
-  
-  constexpr int samples_per_pixel = 4;
-
-  Img img(256, 256);
-  mt19937 rng(1234);
-  render(mesh, samples_per_pixel, rng, img);
-  
-  std::stringstream strOut;
-  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << g_iter << ".bmp";
-  save_img(img, strOut.str());
-
-  float2 mseAndDiff = MSEAndDiff(img, g_targetImage);
-  Img adjoint(img.width, img.height, float3{1, 1, 1});
-  Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
-  
-  DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, d_mesh);
-
-  (*grad_out) = VectorFromDMesh(d_mesh, 2.0f*mseAndDiff.y); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
-  g_iter++;
-  return mseAndDiff.x;
-}
-
-
-TriangleMesh optRun(size_t a_numIters) 
-{ 
-  optim::algo_settings_t settings;
-  settings.iter_max = a_numIters;
-  settings.gd_settings.method = 0;   // 0 for simple gradient descend, 6 ADAM
-  //settings.gd_settings.par_step_size = 0.1; // initialization for ADAM
-  
-  EVector x = VectorFromMesh(g_mesh);
-  bool success = optim::gd(x, &EvalFunction, nullptr, settings);
-
-  if(success)
-    std::cout << "omptimization SUCCEDED!" << std::endl;
-  else
-    std::cout << "omptimization FAILED!" << std::endl;
-
-  return MeshFromVector(x);
-}
-*/
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 IOptimizer* CreateSimpleOptimizer(); 
+IOptimizer* CreateComplexOptimizer();
 
 int main(int argc, char *argv[]) 
 {
@@ -543,8 +437,12 @@ int main(int argc, char *argv[])
   render(mesh2, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target.bmp");
   
+  #ifdef COMPLEX_OPT
+  IOptimizer* pOpt = CreateComplexOptimizer();
+  #else
   IOptimizer* pOpt = CreateSimpleOptimizer();
-  
+  #endif
+
   pOpt->Init(mesh, img); // set different terget image
 
   TriangleMesh mesh3 = pOpt->Run(250);
