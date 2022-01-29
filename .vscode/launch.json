@@ -5,29 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name"   : "Launch",
+            "name"   : "Launch (Debug)",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/a.out",
-            "args"   : ["aaa", "bbb"],
-            "stopAtEntry": false,
-            "cwd"    : "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name"   : "RunMSETests",
-            "type"   : "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/z_mse_test",
+            "program": "${workspaceFolder}/build/drender",
             "args"   : ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}",
@@ -43,5 +24,24 @@
             ]
         },
 
+        {
+            "name"   : "Launch (Release)",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-release/drender",
+            "args"   : ["aaa", "bbb"],
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
     ]
 }

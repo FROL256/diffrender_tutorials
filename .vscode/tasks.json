@@ -4,18 +4,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "BuildRelease",
+            "label": "BuildDebug",
             "type": "shell",
-            "command": "g++ -O3 -std=c++14 2d_triangles.cpp Bitmap.cpp -Iinclude -I/usr/local/include/eigen3",
+            "command": "cd build && make -j 8",
             "group": "build",
             "problemMatcher": [
                 "$gcc"
             ]
         },
         {
-            "label": "BuildDebug",
+            "label": "BuildRelease",
             "type": "shell",
-            "command": "g++ -std=c++14 2d_triangles.cpp Bitmap.cpp -g -Iinclude -I/usr/local/include/eigen3",
+            "command": "cd build-release && make -j 8",
             "group": "build",
             "problemMatcher": [
                 "$gcc"

@@ -18,6 +18,8 @@
 #include <cassert>
 #include <iomanip>
 
+#include "dmesh.h"
+#include "optimizer.h"
 
 using std::for_each;
 using std::upper_bound;
@@ -45,22 +47,6 @@ float2 normal(const float2 &v) {return float2{-v.y, v.x};} // Vec2f normal(const
 /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////
 
-// data structures for rendering
-struct TriangleMesh {
-    vector<float2>     vertices;
-    vector<unsigned>   indices;
-    vector<float3>     colors; // defined for each face
-};
-
-struct DTriangleMesh {
-    DTriangleMesh(int num_vertices, int num_colors) {
-        vertices.resize(num_vertices, float2{0, 0});
-        colors.resize(num_colors, float3{0, 0, 0});
-    }
-
-    vector<float2> vertices;
-    vector<float3> colors;
-};
 
 struct Edge {
     int v0, v1; // vertex ID, v0 < v1
@@ -77,19 +63,6 @@ struct Edge {
 struct Sampler {
     vector<float> pmf; // probability mass function
     vector<float> cdf;
-};
-
-struct Img {
-    Img(int width, int height, const float3 &val = float3{0, 0, 0}) :
-            width(width), height(height) {
-        color.resize(width * height, val);
-    }
-
-    void clear() { memset(color.data(), 0, color.size()*sizeof(float3)); }
-
-    vector<float3> color;
-    int width;
-    int height;
 };
 
 // build a discrete CDF using edge length
@@ -142,7 +115,7 @@ static inline unsigned IntColorUint32(int r, int g, int b)
 
 static inline int tonemap(float x) { return int(pow(clamp(x, float(0), float(1)), float(1/2.2))*255 + float(.5)); }
 
-void save_img(const Img &img, const string &filename, bool flip = false) 
+void save_img(const Img &img, const string &filename, bool flip) 
 {
   std::vector<unsigned> colors(img.width * img.height);
   for (int y = 0; y < img.height; y++)
@@ -368,13 +341,6 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TriangleMesh g_mesh; ///<! global mesh optimized mesh
-Img          g_targetImage(256,256);
-size_t       g_iter = 0;
-
-
-void optInit(const TriangleMesh& a_mesh, const Img& a_image) { g_mesh = a_mesh; g_targetImage = a_image; g_iter = 0; }
-
 /*
 #include <Eigen/Dense>              // optimization methods
 #define OPTIM_ENABLE_EIGEN_WRAPPERS // optimization methods
@@ -482,65 +448,11 @@ TriangleMesh optRun(size_t a_numIters)
 }
 */
 
-float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
-{
-  constexpr int samples_per_pixel = 4;
-
-  Img img(256, 256);
-  mt19937 rng(1234);
-  render(mesh, samples_per_pixel, rng, img);
-  
-  std::stringstream strOut;
-  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << g_iter << ".bmp";
-  save_img(img, strOut.str());
-
-  Img adjoint(img.width, img.height, float3{1, 1, 1});
-  float mse = MSEAndDiff(img, g_targetImage, adjoint);
-  Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
-  
-  memset(gradMesh.colors.data(),   0, gradMesh.colors.size()*sizeof(float3));
-  memset(gradMesh.vertices.data(), 0, gradMesh.vertices.size()*sizeof(float2));
-
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, gradMesh);
-
-  g_iter++;
-  return mse;
-}
-
-
-TriangleMesh optRun(size_t a_numIters) 
-{ 
-  const size_t eachPassDescreasStep = a_numIters/10; 
-
-  DTriangleMesh gradMesh(g_mesh.vertices.size(), g_mesh.colors.size());
-  //float currError = 1e38f;
-  float alphaPos   = 0.1f;
-  float alphaColor = 0.00001f;
-  for(size_t iter=0; iter < a_numIters; iter++)
-  {
-    float error = EvalFunction(g_mesh, gradMesh);
-    std::cout << "iter " << iter << ", error = " << error << std::endl;
-   
-    PrintMesh(gradMesh);
-    for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
-      g_mesh.vertices[vertId] -= gradMesh.vertices[vertId]*alphaPos;
-    for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
-      g_mesh.colors[faceId] -= gradMesh.colors[faceId]*alphaColor;
-
-    if(iter % eachPassDescreasStep == 0)
-    {
-      alphaPos   = alphaPos*0.75f;
-      alphaColor = alphaColor*0.75f;
-    }
-  }
-
-  return g_mesh;
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+IOptimizer* CreateSimpleOptimizer(); 
 
 int main(int argc, char *argv[]) 
 {
@@ -560,7 +472,7 @@ int main(int argc, char *argv[])
       {0, 1, 2, 
        3, 4, 5},
       // color
-      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
+      {{0.3, 0.3, 0.3}, {0.3, 0.3, 0.3}}
   };
 
   Img img(256, 256);
@@ -624,19 +536,22 @@ int main(int argc, char *argv[])
       {0, 1, 2, 
        3, 4, 5},
       // color
-      {{0.75, 0.3, 0.3}, {0.3, 0.75, 0.3}}
+      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
   };
   
   img.clear();
   render(mesh2, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target.bmp");
+  
+  IOptimizer* pOpt = CreateSimpleOptimizer();
+  
+  pOpt->Init(mesh, img); // set different terget image
 
-  optInit(mesh, img); // set different terget image
-
-  TriangleMesh mesh3 = optRun(200);
+  TriangleMesh mesh3 = pOpt->Run(250);
   img.clear();
   render(mesh3, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target2.bmp");
-
+  
+  delete pOpt; pOpt = nullptr;
   return 0;
 }
