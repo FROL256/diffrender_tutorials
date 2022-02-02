@@ -196,7 +196,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
                                   mt19937 &rng,
-                                  vector<float3> &d_colors) {
+                                  float3* d_colors) {
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     for (int y = 0; y < adjoint.height; y++) { // for each pixel
@@ -227,7 +227,7 @@ void compute_edge_derivatives(
         mt19937 &rng,
         Img &screen_dx,
         Img &screen_dy,
-        vector<float2> &d_vertices) {
+        float2* d_vertices) {
     for (int i = 0; i < num_edge_samples; i++) {
         // pick an edge
         auto edge_id = sample(edge_sampler, uni_dist(rng));
@@ -279,11 +279,11 @@ void d_render(const TriangleMesh &mesh,
               Img &screen_dx,
               Img &screen_dy,
               DTriangleMesh &d_mesh) {
-    compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, d_mesh.colors);
+    compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, d_mesh.faceColors());
     auto edges = collect_edges(mesh);
     auto edge_sampler = build_edge_sampler(mesh, edges);
     compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
-                             rng, screen_dx, screen_dy, d_mesh.vertices);
+                             rng, screen_dx, screen_dy, d_mesh.vertices());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -292,11 +292,11 @@ void d_render(const TriangleMesh &mesh,
 
 void PrintMesh(const DTriangleMesh& a_mesh)
 {
-  for(size_t i=0; i<a_mesh.vertices.size();i++)
-    std::cout << "ver[" << i << "]: " << a_mesh.vertices[i].x << ", " << a_mesh.vertices[i].y << std::endl;  
+  for(int i=0; i<a_mesh.numVertices();i++)
+    std::cout << "ver[" << i << "]: " << a_mesh.vertices()[i].x << ", " << a_mesh.vertices()[i].y << std::endl;  
   std::cout << std::endl;
-  for(size_t i=0; i<a_mesh.colors.size();i++)
-    std::cout << "col[" << i << "]: " << a_mesh.colors[i].x << ", " << a_mesh.colors[i].y << ", " << a_mesh.colors[i].z << std::endl;
+  for(size_t i=0; i<a_mesh.numFaces();i++)
+    std::cout << "col[" << i << "]: " << a_mesh.faceColors()[i].x << ", " << a_mesh.faceColors()[i].y << ", " << a_mesh.faceColors()[i].z << std::endl;
   std::cout << std::endl;
 }
 
@@ -398,13 +398,13 @@ int main(int argc, char *argv[])
     tmpMesh.vertices[vertId].x += dEpsilon;
     tempImg.clear();
     render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.vertices[vertId].x += accumDiff(tempImg, img)/dEpsilon;
+    testMesh.vertices()[vertId].x += accumDiff(tempImg, img)/dEpsilon;
   
     tmpMesh = mesh;
     tmpMesh.vertices[vertId].y += dEpsilon;
     tempImg.clear();
     render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.vertices[vertId].y += accumDiff(tempImg, img)/dEpsilon;
+    testMesh.vertices()[vertId].y += accumDiff(tempImg, img)/dEpsilon;
   }
   
   for(size_t faceId=0; faceId < mesh.colors.size(); faceId++)
@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
     tmpMesh.colors[faceId] += float3(dEpsilon, dEpsilon, dEpsilon);
     tempImg.clear();
     render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.colors[faceId] += accumDiff3(tempImg, img)/dEpsilon;
+    testMesh.faceColors()[faceId] += accumDiff3(tempImg, img)/dEpsilon;
   }
 
   std::cout << std::endl;

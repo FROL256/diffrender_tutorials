@@ -46,9 +46,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   float mse = MSEAndDiff(img, g_targetImage, adjoint);
   Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
   
-  memset(gradMesh.colors.data(),   0, gradMesh.colors.size()*sizeof(float3));
-  memset(gradMesh.vertices.data(), 0, gradMesh.vertices.size()*sizeof(float2));
-
+  gradMesh.clear();
   d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, gradMesh);
 
   g_iter++;
@@ -76,15 +74,15 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     std::cout << "iter " << iter << ", error = " << error << std::endl;
    
     //PrintMesh(gradMesh);
-    for(size_t vertId=0; vertId< g_mesh.vertices.size(); vertId++)
-      g_mesh.vertices[vertId] -= gradMesh.vertices[vertId]*alphaPos;
-    for(size_t faceId=0; faceId < g_mesh.colors.size(); faceId++)
-      g_mesh.colors[faceId] -= gradMesh.colors[faceId]*alphaColor;
+    for(int vertId=0; vertId< g_mesh.vertices.size(); vertId++)
+      g_mesh.vertices[vertId] -= gradMesh.vertices()[vertId]*alphaPos;
+    for(int faceId=0; faceId < g_mesh.colors.size(); faceId++)
+      g_mesh.colors[faceId] -= gradMesh.faceColors()[faceId]*alphaColor;
 
     if(iter % eachPassDescreasStep == 0)
     {
       alphaPos   = alphaPos*0.75f;
-      alphaColor = alphaColor*0.75f;
+      alphaColor = alphaColor*0.5f;
     }
   }
 

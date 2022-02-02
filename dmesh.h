@@ -16,12 +16,35 @@ struct TriangleMesh {
 
 struct DTriangleMesh {
     DTriangleMesh(int num_vertices, int num_colors) {
-        vertices.resize(num_vertices, LiteMath::float2{0, 0});
-        colors.resize(num_colors, LiteMath::float3{0, 0, 0});
+      //vertices.resize(num_vertices, LiteMath::float2{0, 0});
+      //colors.resize(num_colors, LiteMath::float3{0, 0, 0});
+
+      m_numVertices = num_vertices;
+      m_numFaces    = num_colors;
+      m_allParams.resize(num_vertices*2 + num_colors*3);
+      m_faceColorOffset = num_vertices*2;
     }
 
-    std::vector<LiteMath::float2> vertices;
-    std::vector<LiteMath::float3> colors;
+    //std::vector<LiteMath::float2> vertices;
+    //std::vector<LiteMath::float3> colors;
+
+    int numVertices() const { return m_numVertices; }
+    int numFaces()    const { return m_numFaces;    }
+ 
+    LiteMath::float2*       vertices()       { return (LiteMath::float2*)m_allParams.data(); }
+    const LiteMath::float2* vertices() const { return (LiteMath::float2*)m_allParams.data(); }
+
+    LiteMath::float3*       faceColors()       { return (LiteMath::float3*)(m_allParams.data() + m_faceColorOffset); }
+    const LiteMath::float3* faceColors() const { return (LiteMath::float3*)(m_allParams.data() + m_faceColorOffset); }
+
+    void clear() { memset(m_allParams.data(), 0, m_allParams.size()*sizeof(float)); }
+    size_t totalParams() const { return m_allParams.size(); } 
+
+protected:
+    std::vector<float> m_allParams;
+    int                m_faceColorOffset;
+    int                m_numVertices;
+    int                m_numFaces;
 };
 
 struct Img {

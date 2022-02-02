@@ -32,7 +32,6 @@ IOptimizer* CreateComplexOptimizer() { return new OptComplex; };
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
 
-
 EVector VectorFromMesh(const TriangleMesh& a_mesh)
 {
   EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
@@ -56,18 +55,18 @@ constexpr float alphaColor = 0.00001f;
 
 EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
 {
-  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
+  EVector result(a_mesh.totalParams());
   size_t currPos = 0;
-  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
+  for(int vertId=0; vertId< a_mesh.numVertices(); vertId++, currPos+=2)
   {
-    result[currPos+0] = a_mesh.vertices[vertId].x*alphaPos;
-    result[currPos+1] = a_mesh.vertices[vertId].y*alphaPos;
+    result[currPos+0] = a_mesh.vertices()[vertId].x*alphaPos;
+    result[currPos+1] = a_mesh.vertices()[vertId].y*alphaPos;
   }
-  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
+  for(int faceId=0; faceId < a_mesh.numFaces(); faceId++, currPos+=3)
   {
-   result[currPos+0] = a_mesh.colors[faceId].x*alphaColor;
-   result[currPos+1] = a_mesh.colors[faceId].y*alphaColor;
-   result[currPos+2] = a_mesh.colors[faceId].z*alphaColor;
+    result[currPos+0] = a_mesh.faceColors()[faceId].x*alphaColor;
+    result[currPos+1] = a_mesh.faceColors()[faceId].y*alphaColor;
+    result[currPos+2] = a_mesh.faceColors()[faceId].z*alphaColor;
   }
   return result;
 }
@@ -130,18 +129,16 @@ TriangleMesh OptComplex::Run(size_t a_numIters)
 { 
   optim::algo_settings_t settings;
   settings.iter_max = a_numIters;
-  settings.gd_settings.method = 0;   // 0 for simple gradient descend, 6 ADAM
-  settings.gd_settings.par_step_size  = 1.0; // initialization for ADAM
-  settings.gd_settings.step_decay     = true;
-  settings.gd_settings.step_decay_val = 0.85f;
+  settings.gd_settings.method = 0; // 0 for simple gradient descend, 6 ADAM
+  settings.gd_settings.par_step_size      = 1.0; // initialization for ADAM
+  settings.gd_settings.step_decay         = true;
+  settings.gd_settings.step_decay_periods = a_numIters/10;
+  settings.gd_settings.step_decay_val     = 0.75f;
+  settings.opt_error_value                = 20.0f;
 
   EVector x = VectorFromMesh(g_mesh);
   bool success = optim::gd(x, &EvalFunction, this, settings);
-
-  if(success)
-    std::cout << "OptComplex, optimization SUCCEDED!" << std::endl;
-  else
-    std::cout << "OptComplex, optimization FAILED!" << std::endl;
+  std::cout << "OptComplex, optimization is FINISHED!" << std::endl;
 
   return MeshFromVector(x, g_mesh);
 }
