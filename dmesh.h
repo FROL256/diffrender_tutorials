@@ -7,6 +7,15 @@
 
 #include "LiteMath.h"
 
+enum MESH_TYPES {
+    TRIANGLE_2D_FACE_COL = 1,
+    TRIANGLE_2D_VERT_COL = 2,
+    TRIANGLE_2D_DIFF_TEX = 3,
+    TRIANGLE_3D_FACE_COL = 4,
+    TRIANGLE_3D_VERT_COL = 5,
+    TRIANGLE_3D_DIFF_TEX = 6,
+};
+
 // data structures for rendering
 struct TriangleMesh {
     std::vector<LiteMath::float2>     vertices;
@@ -41,7 +50,11 @@ struct DTriangleMesh {
     size_t totalParams() const { return m_allParams.size(); } 
 
 protected:
+
+    inline const float* getData() const { return m_allParams.data(); }
+    inline float*       getData()       { return m_allParams.data(); }
     std::vector<float> m_allParams;
+
     int                m_faceColorOffset;
     int                m_numVertices;
     int                m_numFaces;
