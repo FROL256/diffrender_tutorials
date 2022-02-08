@@ -10,7 +10,7 @@ Use Cmake in a standart way
 
 # Installation of complex opt. tools (optional, -DCOMPLEX_OPT=ON)
 
-Sorry for this sh*t, we need Eigen for advanced optimisation methods for a while (use https://github.com/kthohr/optim)
+Sorry for this, we need Eigen for advanced optimisation methods for a while (use https://github.com/kthohr/optim)
 
 1) Download Eigen 3.4
 
