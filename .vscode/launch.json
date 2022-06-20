@@ -8,7 +8,7 @@
             "name"   : "Launch (Debug)",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/drender",
+            "program": "${workspaceFolder}/cmake-build-debug/drender",
             "args"   : ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}",

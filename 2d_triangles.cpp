@@ -132,43 +132,64 @@ void save_img(const Img &img, const string &filename, bool flip)
   SaveBMP(filename.c_str(), colors.data(), img.width, img.height);
 }
 
+static inline float edgeFunction(float2 a, float2 b, float2 c) // actuattly just a mixed product ... :)
+{
+  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+}
+
 // trace a single ray at screen_pos, intersect with the triangle mesh.
 float3 raytrace(const TriangleMesh &mesh, const float2 &screen_pos,
-                unsigned *out_faceIndex = nullptr) {
-    // loop over all triangles in a mesh, return the first one that hits
-    for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
+                unsigned *out_faceIndex = nullptr, float2* uv = nullptr) 
+{
+
+  // loop over all triangles in a mesh, return the first one that hits
+  for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
+  {
+    // retrieve the three vertices of a triangle
+    auto A = mesh.indices[i+0];
+    auto B = mesh.indices[i+1];
+    auto C = mesh.indices[i+2];
+    
+    auto v0 = mesh.vertices[A];
+    auto v1 = mesh.vertices[B];
+    auto v2 = mesh.vertices[C];
+
+    // form three half-planes: v1-v0, v2-v1, v0-v2
+    // if a point is on the same side of all three half-planes, it's inside the triangle.
+    auto n01 = normal(v1 - v0);
+    auto n12 = normal(v2 - v1);
+    auto n20 = normal(v0 - v2);
+    
+    const bool side01 = dot(screen_pos - v0, n01) > 0;
+    const bool side12 = dot(screen_pos - v1, n12) > 0;
+    const bool side20 = dot(screen_pos - v2, n20) > 0;
+    if ((side01 && side12 && side20) || (!side01 && !side12 && !side20)) 
     {
-      // retrieve the three vertices of a triangle
-      auto A = mesh.indices[i+0];
-      auto B = mesh.indices[i+1];
-      auto C = mesh.indices[i+2];
+      if (out_faceIndex != nullptr) 
+        *out_faceIndex = i/3; // because we store face id here
       
-      auto v0 = mesh.vertices[A];
-      auto v1 = mesh.vertices[B];
-      auto v2 = mesh.vertices[C];
+      const float areaInv = 1.0f / edgeFunction(v0, v1, v2); 
+      const float e0      = edgeFunction(v0, v1, screen_pos);
+      const float e1      = edgeFunction(v1, v2, screen_pos);
+      const float e2      = edgeFunction(v2, v0, screen_pos);
+      const float u = e1*areaInv; // v0
+      const float v = e2*areaInv; // v1 
 
-      // form three half-planes: v1-v0, v2-v1, v0-v2
-      // if a point is on the same side of all three half-planes, it's inside the triangle.
-      auto n01 = normal(v1 - v0);
-      auto n12 = normal(v2 - v1);
-      auto n20 = normal(v0 - v2);
-      
-      auto side01 = dot(screen_pos - v0, n01) > 0;
-      auto side12 = dot(screen_pos - v1, n12) > 0;
-      auto side20 = dot(screen_pos - v2, n20) > 0;
+      if(uv != nullptr)
+        *uv = float2(u,v);
 
-      if ((side01 && side12 && side20) || (!side01 && !side12 && !side20)) {
-          if (out_faceIndex != nullptr) {
-              *out_faceIndex = i/3; // because we store face id here
-          }
-          return mesh.colors[i/3];
-      }
+      if(mesh.type == TRIANGLE_2D_VERT_COL)
+        return mesh.colors[A]*u + mesh.colors[B]*v + (1.0f-u-v)*mesh.colors[C]; 
+      else
+        return mesh.colors[i/3]; 
     }
-    // return background
-    if (out_faceIndex != nullptr) {
-        *out_faceIndex = unsigned(-1);
-    }
-    return float3{0, 0, 0};
+  }
+
+  // return background
+  if (out_faceIndex != nullptr)
+    *out_faceIndex = unsigned(-1);
+
+  return float3{0, 0, 0};
 }
 
 void render(const TriangleMesh &mesh,
@@ -184,8 +205,9 @@ void render(const TriangleMesh &mesh,
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
                     auto screen_pos = float2{x + xoff, y + yoff};
-                    auto color = raytrace(mesh, screen_pos);
-                    img.color[y * img.width + x] += color / samples_per_pixel;
+                    float2 uv;
+                    auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
+                    img.color[y * img.width + x] += color / samples_per_pixel; //#TODO: atomics
                 }
             }
         }
@@ -199,6 +221,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                                   float3* d_colors) {
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
+    
     for (int y = 0; y < adjoint.height; y++) { // for each pixel
         for (int x = 0; x < adjoint.width; x++) {
             for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
@@ -207,10 +230,23 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
                     auto screen_pos = float2{x + xoff, y + yoff};
                     unsigned faceIndex = unsigned(-1);
-                    raytrace(mesh, screen_pos, &faceIndex);
-                    if (faceIndex != unsigned(-1)) {
-                      // if running in parallel, use atomic add here.
-                      d_colors[faceIndex] += adjoint.color[y * adjoint.width + x] / samples_per_pixel;
+                    float2 uv;
+                    raytrace(mesh, screen_pos, &faceIndex, &uv);
+                    if (faceIndex != unsigned(-1)) 
+                    {
+                      auto val = adjoint.color[y * adjoint.width + x] / samples_per_pixel;
+
+                      if(mesh.type == TRIANGLE_2D_VERT_COL)
+                      {
+                        auto A = mesh.indices[faceIndex*3+0];
+                        auto B = mesh.indices[faceIndex*3+1];
+                        auto C = mesh.indices[faceIndex*3+2];
+                        d_colors[A] += uv.x*val;
+                        d_colors[B] += uv.y*val;
+                        d_colors[C] += (1.0f-uv.x-uv.y)*val;
+                      }
+                      else
+                        d_colors[faceIndex] += val; // if running in parallel, use atomic add here.
                     }
                 }
             }
@@ -225,9 +261,8 @@ void compute_edge_derivatives(
         const Img &adjoint,
         const int num_edge_samples,
         mt19937 &rng,
-        Img* screen_dx,
-        Img* screen_dy,
-        float2* d_vertices) {
+        Img* screen_dx, Img* screen_dy,
+        float2* d_vertices, float3* d_colors = nullptr) {
 
     
     for (int i = 0; i < num_edge_samples; i++) 
@@ -266,6 +301,19 @@ void compute_edge_derivatives(
       d_vertices[edge.v0] += d_v0;
       d_vertices[edge.v1] += d_v1;
 
+      //if(mesh.type == TRIANGLE_2D_VERT_COL && d_colors!= nullptr) //#TODO: add branch by mesh.m_type
+      //{
+      //  // auto c0 = mesh.vertices[edge.v0];
+      //  // auto c1 = mesh.vertices[edge.v1];
+      //  // auto c  = c0 + t * (c1 - c0);
+      //  // dc/dv0.x = (1 - t, 0), dc/dv0.y = (0, 1 - t)
+      //  // dc/dv1.x = (    t, 0), dc/dv1.y = (0,     t)
+      //  auto d_c0 = float3(1 - t) * adj * weight;             // * ????
+      //  auto d_c1 = float3(t)     * adj * weight;             // * ????
+      //  d_colors[edge.v0] += d_c0;
+      //  d_colors[edge.v1] += d_c1;
+      //}
+
       if(screen_dx != nullptr && screen_dy != nullptr) 
       {
         // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
@@ -291,7 +339,7 @@ void d_render(const TriangleMesh &mesh,
   // (1)
   //
   compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, 
-                               d_mesh.faceColors());
+                               d_mesh.colors());
     
   // (2)
   //
@@ -311,7 +359,7 @@ void PrintMesh(const DTriangleMesh& a_mesh)
     std::cout << "ver[" << i << "]: " << a_mesh.vertices()[i].x << ", " << a_mesh.vertices()[i].y << std::endl;  
   std::cout << std::endl;
   for(size_t i=0; i<a_mesh.numFaces();i++)
-    std::cout << "col[" << i << "]: " << a_mesh.faceColors()[i].x << ", " << a_mesh.faceColors()[i].y << ", " << a_mesh.faceColors()[i].z << std::endl;
+    std::cout << "col[" << i << "]: " << a_mesh.colors()[i].x << ", " << a_mesh.colors()[i].y << ", " << a_mesh.colors()[i].z << std::endl;
   std::cout << std::endl;
 }
 
@@ -363,16 +411,8 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 IOptimizer* CreateSimpleOptimizer(); 
 IOptimizer* CreateComplexOptimizer();
 
-int main(int argc, char *argv[]) 
+void scn01_TwoTrisFlat(TriangleMesh& initial, TriangleMesh& target)
 {
-  #ifdef WIN32
-  mkdir("rendered");
-  mkdir("rendered_opt");
-  #else
-  mkdir("rendered", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  #endif
-
   TriangleMesh mesh{
       // vertices
       {{50.0, 25.0}, {200.0, 200.0}, {15.0, 150.0},
@@ -385,61 +425,8 @@ int main(int argc, char *argv[])
       {0.3, 0.3, 0.3}}
   };
 
-  Img img(256, 256);
-  mt19937 rng(1234);
-  render(mesh, 4 /* samples_per_pixel */, rng, img);
-  save_img(img, "rendered/render.bmp");
+  initial = mesh;
 
-  Img adjoint(img.width, img.height, float3{1, 1, 1});
-  Img dx(img.width, img.height);
-  Img dy(img.width, img.height);
-  
-  DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, 4 /* interior_samples_per_pixel */,
-           img.width * img.height /* edge_samples_in_total */, rng, &dx, &dy, d_mesh);
-
-  save_img(dx, "rendered/dx_pos.bmp", false /*flip*/); save_img(dx, "rendered/dx_neg.bmp", true /*flip*/);
-  save_img(dy, "rendered/dy_pos.bmp", false /*flip*/); save_img(dy, "rendered/dy_neg.bmp", true /*flip*/);
-  
-  std::cout << "gradients(1):" << std::endl;
-  PrintMesh(d_mesh);
-
-  // check differentials with brute force numerical approach
-  //
-  DTriangleMesh testMesh(mesh.vertices.size(), mesh.colors.size());
-  Img           tempImg(256, 256); 
-  const float   dEpsilon = 2.0f;
-
-  for(size_t vertId=0; vertId< mesh.vertices.size(); vertId++)
-  {
-    TriangleMesh tmpMesh = mesh;
-    tmpMesh.vertices[vertId].x += dEpsilon;
-    tempImg.clear();
-    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.vertices()[vertId].x += accumDiff(tempImg, img)/dEpsilon;
-  
-    tmpMesh = mesh;
-    tmpMesh.vertices[vertId].y += dEpsilon;
-    tempImg.clear();
-    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.vertices()[vertId].y += accumDiff(tempImg, img)/dEpsilon;
-  }
-  
-  for(size_t faceId=0; faceId < mesh.colors.size(); faceId++)
-  {
-    TriangleMesh tmpMesh = mesh;
-    tmpMesh.colors[faceId] += float3(dEpsilon, dEpsilon, dEpsilon);
-    tempImg.clear();
-    render(tmpMesh, 4 /* samples_per_pixel */, rng, tempImg);
-    testMesh.faceColors()[faceId] += accumDiff3(tempImg, img)/dEpsilon;
-  }
-
-  std::cout << std::endl;
-  std::cout << "gradients(2):" << std::endl;
-  PrintMesh(testMesh);
-
-  // try optimization
-  //
   TriangleMesh mesh2{
       // vertices
       {{50.0, 25.0+10.0}, {200.0, 200.0+10.0}, {15.0, 150.0+10.0},
@@ -450,6 +437,67 @@ int main(int argc, char *argv[])
       // color
       {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
   };
+  target = mesh2;
+}
+
+void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
+{
+  TriangleMesh mesh{
+      // vertices
+      {{50.0, 25.0}, {200.0, 200.0}, {15.0, 150.0},
+       {200.0, 15.0}, {150.0, 250.0}, {50.0, 100.0}},
+      // indices
+      {0, 1, 2, 
+       3, 4, 5}
+  };
+  
+  mesh.type = TRIANGLE_2D_VERT_COL;
+  mesh.colors.resize(mesh.vertices.size());
+  for(size_t i=0;i<mesh.vertices.size();i++)
+     mesh.colors[i] = float3{0.3, 0.5, 0.3};
+  initial = mesh;
+  ///////////////////////////////////////////////////////////////// 
+  
+  TriangleMesh mesh2{
+      // vertices
+      {{50.0, 25.0+10.0}, {200.0, 200.0+10.0}, {15.0, 150.0+10.0},
+       {200.0-10.0 + 50.0, 15.0+5.0}, {150.0+50.0+50.0, 250.0-25.0}, {80.0, 100.0-25.0}},
+      // indices
+      {0, 1, 2, 
+       3, 4, 5},
+  };
+
+  mesh2.type = TRIANGLE_2D_VERT_COL;
+  mesh2.colors.resize(mesh.vertices.size());
+
+  mesh2.colors[0] = float3(1,0,0);
+  mesh2.colors[1] = float3(0,1,0);
+  mesh2.colors[2] = float3(0,0,1);
+
+  mesh2.colors[3] = float3(1,1,0);
+  mesh2.colors[4] = float3(1,1,0);
+  mesh2.colors[5] = float3(1,1,0);
+
+  target = mesh2;
+}
+
+
+int main(int argc, char *argv[]) 
+{
+  #ifdef WIN32
+  mkdir("rendered");
+  mkdir("rendered_opt");
+  #else
+  mkdir("rendered", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  #endif
+
+  mt19937 rng(1234);
+  Img img(256, 256);
+
+  TriangleMesh mesh, mesh2;
+  //scn01_TwoTrisFlat(mesh, mesh2);
+  scn02_TwoTrisSmooth(mesh, mesh2);
   
   img.clear();
   render(mesh2, 4 /* samples_per_pixel */, rng, img);
@@ -463,7 +511,7 @@ int main(int argc, char *argv[])
 
   pOpt->Init(mesh, img); // set different target image
 
-  TriangleMesh mesh3 = pOpt->Run(250);
+  TriangleMesh mesh3 = pOpt->Run(300);
   img.clear();
   render(mesh3, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target2.bmp");

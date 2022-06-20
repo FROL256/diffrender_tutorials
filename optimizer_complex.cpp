@@ -64,9 +64,9 @@ EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
   }
   for(int faceId=0; faceId < a_mesh.numFaces(); faceId++, currPos+=3)
   {
-    result[currPos+0] = a_mesh.faceColors()[faceId].x*alphaColor;
-    result[currPos+1] = a_mesh.faceColors()[faceId].y*alphaColor;
-    result[currPos+2] = a_mesh.faceColors()[faceId].z*alphaColor;
+    result[currPos+0] = a_mesh.colors()[faceId].x*alphaColor;
+    result[currPos+1] = a_mesh.colors()[faceId].y*alphaColor;
+    result[currPos+2] = a_mesh.colors()[faceId].z*alphaColor;
   }
   return result;
 }

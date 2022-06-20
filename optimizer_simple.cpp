@@ -17,7 +17,7 @@ void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor,
     mesh->vertices[vertId] -= gradMesh.vertices()[vertId]*alphaPos;
   
   for(int faceId=0; faceId < mesh->colors.size(); faceId++)
-    mesh->colors[faceId] -= gradMesh.faceColors()[faceId]*alphaColor;
+    mesh->colors[faceId] -= gradMesh.colors()[faceId]*alphaColor;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
   //float currError = 1e38f;
   float alphaPos   = 0.1f;
-  float alphaColor = 0.00001f;
+  float alphaColor = 0.0001f;
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);
@@ -94,11 +94,16 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     //PrintMesh(gradMesh);
     opt_step(gradMesh, alphaPos, alphaColor, 
              &m_mesh);
-
-    if(iter % eachPassDescreasStep == 0)
+    
+    if(iter > 100 && iter % eachPassDescreasStep == 0)
+    {
+      alphaPos   = alphaPos*0.5f;
+      alphaColor = alphaColor*0.5f;
+    }
+    else if(iter % eachPassDescreasStep == 0)
     {
       alphaPos   = alphaPos*0.75f;
-      alphaColor = alphaColor*0.5f;
+      alphaColor = alphaColor*0.75f;
     }
   }
 
