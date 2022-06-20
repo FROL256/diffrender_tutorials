@@ -15,9 +15,9 @@ struct OptComplex : public IOptimizer
   void         Init(const TriangleMesh& a_mesh, const Img& a_image) override;
   TriangleMesh Run (size_t a_numIters = 100) override;
 
-  TriangleMesh g_mesh; ///<! global mesh optimized mesh
-  Img          g_targetImage;
-  size_t       g_iter = 0;
+  TriangleMesh m_mesh; ///<! global mesh optimized mesh
+  Img          m_targetImage;
+  size_t       m_iter = 0;
 };
 
 IOptimizer* CreateComplexOptimizer() { return new OptComplex; };
@@ -57,7 +57,7 @@ EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
 {
   EVector result(a_mesh.totalParams());
   size_t currPos = 0;
-  for(int vertId=0; vertId< a_mesh.numVertices(); vertId++, currPos+=2)
+  for(int vertId=0; vertId< a_mesh.numVerts(); vertId++, currPos+=2)
   {
     result[currPos+0] = a_mesh.vertices()[vertId].x*alphaPos;
     result[currPos+1] = a_mesh.vertices()[vertId].y*alphaPos;
@@ -93,7 +93,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
 {
   OptComplex* pObj = (OptComplex*)opt_data;
 
-  TriangleMesh mesh = MeshFromVector(vals_inp, pObj->g_mesh);
+  TriangleMesh mesh = MeshFromVector(vals_inp, pObj->m_mesh);
   
   constexpr int samples_per_pixel = 4;
 
@@ -102,27 +102,27 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   render(mesh, samples_per_pixel, rng, img);
   
   std::stringstream strOut;
-  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << pObj->g_iter << ".bmp";
+  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << pObj->m_iter << ".bmp";
   save_img(img, strOut.str());
 
   Img adjoint(img.width, img.height, float3{1, 1, 1});
-  float mse = MSEAndDiff(img, pObj->g_targetImage, adjoint);
-  Img dx(img.width, img.height), dy(img.width, img.height); // actually not needed here
+  float mse = MSEAndDiff(img, pObj->m_targetImage, adjoint);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, dx, dy, d_mesh);
+  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, nullptr, nullptr, 
+           d_mesh);
   
-  std::cout << "iter " << pObj->g_iter << ", error = " << mse << std::endl;
+  std::cout << "iter " << pObj->m_iter << ", error = " << mse << std::endl;
   (*grad_out) = VectorFromDMesh(d_mesh); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
-  pObj->g_iter++;
+  pObj->m_iter++;
   return mse;
 }
 
 void OptComplex::Init(const TriangleMesh& a_mesh, const Img& a_image) 
 { 
-  g_mesh        = a_mesh; 
-  g_targetImage = a_image; 
-  g_iter        = 0; 
+  m_mesh        = a_mesh; 
+  m_targetImage = a_image; 
+  m_iter        = 0; 
 }
 
 TriangleMesh OptComplex::Run(size_t a_numIters) 
@@ -136,9 +136,9 @@ TriangleMesh OptComplex::Run(size_t a_numIters)
   settings.gd_settings.step_decay_val     = 0.75f;
   settings.opt_error_value                = 20.0f;
 
-  EVector x = VectorFromMesh(g_mesh);
+  EVector x = VectorFromMesh(m_mesh);
   bool success = optim::gd(x, &EvalFunction, this, settings);
   std::cout << "OptComplex, optimization is FINISHED!" << std::endl;
 
-  return MeshFromVector(x, g_mesh);
+  return MeshFromVector(x, m_mesh);
 }

@@ -28,7 +28,7 @@
             "name"   : "Launch (Release)",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build-release/drender",
+            "program": "${workspaceFolder}/cmake-build-release/drender",
             "args"   : ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}",

@@ -209,8 +209,8 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                     unsigned faceIndex = unsigned(-1);
                     raytrace(mesh, screen_pos, &faceIndex);
                     if (faceIndex != unsigned(-1)) {
-                        // if running in parallel, use atomic add here.
-                        d_colors[faceIndex] += adjoint.color[y * adjoint.width + x] / samples_per_pixel;
+                      // if running in parallel, use atomic add here.
+                      d_colors[faceIndex] += adjoint.color[y * adjoint.width + x] / samples_per_pixel;
                     }
                 }
             }
@@ -225,49 +225,57 @@ void compute_edge_derivatives(
         const Img &adjoint,
         const int num_edge_samples,
         mt19937 &rng,
-        Img &screen_dx,
-        Img &screen_dy,
+        Img* screen_dx,
+        Img* screen_dy,
         float2* d_vertices) {
-    for (int i = 0; i < num_edge_samples; i++) {
-        // pick an edge
-        auto edge_id = sample(edge_sampler, uni_dist(rng));
-        auto edge = edges[edge_id];
-        auto pmf = edge_sampler.pmf[edge_id];
-        // pick a point p on the edge
-        auto v0 = mesh.vertices[edge.v0];
-        auto v1 = mesh.vertices[edge.v1];
-        auto t = uni_dist(rng);
-        auto p = v0 + t * (v1 - v0);
-        auto xi = (int)p.x; auto yi = (int)p.y; // integer coordinates
-        if (xi < 0 || yi < 0 || xi >= adjoint.width || yi >= adjoint.height) {
-            continue;
-        }
-        // sample the two sides of the edge
-        auto n = normal((v1 - v0) / length(v1 - v0));
-        auto color_in = raytrace(mesh, p - 1e-3f * n);
-        auto color_out = raytrace(mesh, p + 1e-3f * n);
-        // get corresponding adjoint from the adjoint image,
-        // multiply with the color difference and divide by the pdf & number of samples.
-        auto pdf = pmf / (length(v1 - v0));
-        auto weight = float(1 / (pdf * float(num_edge_samples)));
-        auto adj = dot(color_in - color_out, adjoint.color[yi * adjoint.width + xi]);
-        // the boundary point is p = v0 + t * (v1 - v0)
-        // according to Reynolds transport theorem,
-        // the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
-        // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
-        // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
-        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
+
+    
+    for (int i = 0; i < num_edge_samples; i++) 
+    {
+      // pick an edge
+      auto edge_id = sample(edge_sampler, uni_dist(rng));
+      auto edge = edges[edge_id];
+      auto pmf = edge_sampler.pmf[edge_id];
+      // pick a point p on the edge
+      auto v0 = mesh.vertices[edge.v0];
+      auto v1 = mesh.vertices[edge.v1];
+      auto t = uni_dist(rng);
+      auto p = v0 + t * (v1 - v0);
+      int xi = int(p.x); 
+      int yi = int(p.y); // integer coordinates
+      if (xi < 0 || yi < 0 || xi >= adjoint.width || yi >= adjoint.height) {
+          continue;
+      }
+      // sample the two sides of the edge
+      auto n         = normal((v1 - v0) / length(v1 - v0));
+      auto color_in  = raytrace(mesh, p - 1e-3f * n);
+      auto color_out = raytrace(mesh, p + 1e-3f * n);
+      // get corresponding adjoint from the adjoint image,
+      // multiply with the color difference and divide by the pdf & number of samples.
+      float pdf    = pmf  / (length(v1 - v0));
+      float weight = 1.0f / (pdf * float(num_edge_samples));
+      float adj    = dot(color_in - color_out, adjoint.color[yi * adjoint.width + xi]);
+      // the boundary point is p = v0 + t * (v1 - v0)
+      // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
+      // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
+      // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
+      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
+      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
+      
+      // if running in parallel, use atomic add here.
+      d_vertices[edge.v0] += d_v0;
+      d_vertices[edge.v1] += d_v1;
+
+      if(screen_dx != nullptr && screen_dy != nullptr) 
+      {
         // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
         // the screen space derivatives are the negation of this
         auto dx = -n.x * (color_in - color_out) * weight;
         auto dy = -n.y * (color_in - color_out) * weight;
-        // scatter gradients to buffers
-        // in the parallel case, use atomic add here.
-        screen_dx.color[yi * adjoint.width + xi] += dx;
-        screen_dy.color[yi * adjoint.width + xi] += dy;
-        d_vertices[edge.v0] += d_v0;
-        d_vertices[edge.v1] += d_v1;
+        // scatter gradients to buffers, in the parallel case, use atomic add here.
+        screen_dx->color[yi * adjoint.width + xi] += dx;
+        screen_dy->color[yi * adjoint.width + xi] += dy;
+      }
     }    
 }
 
@@ -276,14 +284,21 @@ void d_render(const TriangleMesh &mesh,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
               mt19937 &rng,
-              Img &screen_dx,
-              Img &screen_dy,
+              Img* screen_dx,
+              Img* screen_dy,
               DTriangleMesh &d_mesh) {
-    compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, d_mesh.faceColors());
-    auto edges = collect_edges(mesh);
-    auto edge_sampler = build_edge_sampler(mesh, edges);
-    compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
-                             rng, screen_dx, screen_dy, d_mesh.vertices());
+    
+  // (1)
+  //
+  compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, 
+                               d_mesh.faceColors());
+    
+  // (2)
+  //
+  auto edges        = collect_edges(mesh);
+  auto edge_sampler = build_edge_sampler(mesh, edges);
+  compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
+                           rng, screen_dx, screen_dy, d_mesh.vertices());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -292,7 +307,7 @@ void d_render(const TriangleMesh &mesh,
 
 void PrintMesh(const DTriangleMesh& a_mesh)
 {
-  for(int i=0; i<a_mesh.numVertices();i++)
+  for(int i=0; i<a_mesh.numVerts();i++)
     std::cout << "ver[" << i << "]: " << a_mesh.vertices()[i].x << ", " << a_mesh.vertices()[i].y << std::endl;  
   std::cout << std::endl;
   for(size_t i=0; i<a_mesh.numFaces();i++)
@@ -366,7 +381,8 @@ int main(int argc, char *argv[])
       {0, 1, 2, 
        3, 4, 5},
       // color
-      {{0.3, 0.3, 0.3}, {0.3, 0.3, 0.3}}
+      {{0.3, 0.3, 0.3}, 
+      {0.3, 0.3, 0.3}}
   };
 
   Img img(256, 256);
@@ -375,11 +391,13 @@ int main(int argc, char *argv[])
   save_img(img, "rendered/render.bmp");
 
   Img adjoint(img.width, img.height, float3{1, 1, 1});
-  Img dx(img.width, img.height), dy(img.width, img.height);
+  Img dx(img.width, img.height);
+  Img dy(img.width, img.height);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
   d_render(mesh, adjoint, 4 /* interior_samples_per_pixel */,
-           img.width * img.height /* edge_samples_in_total */, rng, dx, dy, d_mesh);
+           img.width * img.height /* edge_samples_in_total */, rng, &dx, &dy, d_mesh);
+
   save_img(dx, "rendered/dx_pos.bmp", false /*flip*/); save_img(dx, "rendered/dx_neg.bmp", true /*flip*/);
   save_img(dy, "rendered/dy_pos.bmp", false /*flip*/); save_img(dy, "rendered/dy_neg.bmp", true /*flip*/);
   
@@ -443,7 +461,7 @@ int main(int argc, char *argv[])
   IOptimizer* pOpt = CreateSimpleOptimizer();
   #endif
 
-  pOpt->Init(mesh, img); // set different terget image
+  pOpt->Init(mesh, img); // set different target image
 
   TriangleMesh mesh3 = pOpt->Run(250);
   img.clear();
