@@ -423,20 +423,18 @@ float MSE(const Img& b, const Img& a)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void gradFinDiff(const TriangleMesh &mesh, const char* outFolder, int width, int height,
+void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
                  DTriangleMesh &d_mesh) 
 {
-  Img img(width, height);
-  Img ref(width, height);
+  Img img(origin.width, origin.height);
   mt19937 rng(1234);
-  
-  ref.clear();
-  render(mesh, 4, rng, ref);
 
   d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
   d_mesh.clear();
   
   constexpr float dPos = 0.5f;
+  constexpr float dCol = 0.01f;
+  const float MSEOrigin = MSE(origin, target);
 
   for(size_t i=0; i<mesh.vertices.size();i++)
   {
@@ -448,17 +446,20 @@ void gradFinDiff(const TriangleMesh &mesh, const char* outFolder, int width, int
     copy.vertices[i].x += dPos;
     img.clear();
     render(copy, 4, rng, img);
-
-    auto diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "posx_" << i << ".bmp";
-      auto path = strOut.str();
-      save_img(diffImage, path.c_str());
-    }
-    float3 summColor = diffImage.summPixels(); 
-    d_mesh.vertices()[i].x += 0.33333f*(summColor.x + summColor.y + summColor.z);
+    
+    auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
+    d_mesh.vertices()[i].x += diffToTarget;
+    
+    //auto diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
+    //if(outFolder != nullptr)
+    //{
+    //  std::stringstream strOut;
+    //  strOut << outFolder << "/" << "posx_" << i << ".bmp";
+    //  auto path = strOut.str();
+    //  save_img(diffImage, path.c_str());
+    //}
+    //float3 summColor = diffImage.summPixels(); 
+    //d_mesh.vertices()[i].x += 0.33333f*(summColor.x + summColor.y + summColor.z);
     
     // dy
     //
@@ -467,28 +468,57 @@ void gradFinDiff(const TriangleMesh &mesh, const char* outFolder, int width, int
     img.clear();
     render(copy, 4, rng, img);
 
-    diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "posy_" << i << ".bmp";
-      auto path = strOut.str();
-      save_img(diffImage, path.c_str());
-    }
-    summColor = diffImage.summPixels(); 
-    d_mesh.vertices()[i].y += 0.33333f*(summColor.x + summColor.y + summColor.z);
-  }
+    diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
+    d_mesh.vertices()[i].y += diffToTarget;
 
-  if(mesh.type == TRIANGLE_2D_VERT_COL)
+    //diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
+    //if(outFolder != nullptr)
+    //{
+    //  std::stringstream strOut;
+    //  strOut << outFolder << "/" << "posy_" << i << ".bmp";
+    //  auto path = strOut.str();
+    //  save_img(diffImage, path.c_str());
+    //}
+    //summColor = diffImage.summPixels(); 
+    //d_mesh.vertices()[i].y += 0.33333f*(summColor.x + summColor.y + summColor.z);
+  }
+  
+  size_t colrsNum = (mesh.type == TRIANGLE_2D_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
+  
+  for(size_t i=0; i<colrsNum;i++)
   {
+    TriangleMesh copy;
+    
+    // d_red
+    //
+    copy = mesh;
+    copy.colors[i].x += dCol;
+    img.clear();
+    render(copy, 4, rng, img);
+    
+    auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
+    d_mesh.colors()[i].x += diffToTarget;
 
-  }
-  else // TRIANGLE_2D_FACE_COL
-  {
+    // d_green
+    //
+    copy = mesh;
+    copy.colors[i].y += dCol;
+    img.clear();
+    render(copy, 4, rng, img);
+    
+    diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
+    d_mesh.colors()[i].y += diffToTarget;
 
+    // d_blue
+    //
+    copy = mesh;
+    copy.colors[i].z += dCol;
+    img.clear();
+    render(copy, 4, rng, img);
+    
+    diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
+    d_mesh.colors()[i].z += diffToTarget;
   }
-  // for d_render use
-  //Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
 
 }
 
@@ -518,17 +548,22 @@ int main(int argc, char *argv[])
   scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
-  if(0)
+  if(1) // check gradients with finite difference method
   {
-    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
-    gradFinDiff(initialMesh, "fin_diff", img.width, img.height, grad1);
+    Img target(img.width, img.height, float3{0, 0, 0});
+    Img adjoint(img.width, img.height, float3{0, 0, 0});
+    render(initialMesh, 4, rng, img);
+    render(targetMesh, 4, rng, target);
     
-    Img adjoint(img.width, img.height, float3{1, 1, 1});
+    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
+    d_finDiff(initialMesh, "fin_diff", img, target, grad1);
+    
+    MSEAndDiff(img, target, adjoint); // put MSE ==> adjoint 
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
     d_render(initialMesh, adjoint, 4, img.width*img.height, rng, nullptr, nullptr, grad2);
     
     for(size_t i=0;i<grad1.totalParams();i++)
-      std::cout << std::setprecision(4) << grad1.getData()[i] << "\t--\t" << grad2.getData()[i] << std::endl; 
+      std::cout << std::setprecision(4) << grad1.getData()[i] << "\t--  " << grad2.getData()[i] << std::endl; 
 
     exit(0);
   }
