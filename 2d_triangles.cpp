@@ -405,6 +405,92 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
   return float(accumMSE);
 }
 
+float MSE(const Img& b, const Img& a)
+{
+  assert(a.width*a.height == b.width*b.height);
+  double accumMSE = 0.0f;
+  const size_t imgSize = a.width*a.height;
+  for(size_t i=0;i<imgSize;i++)
+  {
+    const float3 diffVec = b.color[i] - a.color[i];
+    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
+  }
+  return float(accumMSE);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void gradFinDiff(const TriangleMesh &mesh, const char* outFolder, int width, int height,
+                 DTriangleMesh &d_mesh) 
+{
+  Img img(width, height);
+  Img ref(width, height);
+  mt19937 rng(1234);
+  
+  ref.clear();
+  render(mesh, 4, rng, ref);
+
+  d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
+  d_mesh.clear();
+  
+  constexpr float dPos = 0.5f;
+
+  for(size_t i=0; i<mesh.vertices.size();i++)
+  {
+    TriangleMesh copy;
+    
+    // dx
+    //
+    copy = mesh;
+    copy.vertices[i].x += dPos;
+    img.clear();
+    render(copy, 4, rng, img);
+
+    auto diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "posx_" << i << ".bmp";
+      auto path = strOut.str();
+      save_img(diffImage, path.c_str());
+    }
+    float3 summColor = diffImage.summPixels(); 
+    d_mesh.vertices()[i].x += 0.33333f*(summColor.x + summColor.y + summColor.z);
+    
+    // dy
+    //
+    copy = mesh;
+    copy.vertices[i].y += dPos;
+    img.clear();
+    render(copy, 4, rng, img);
+
+    diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "posy_" << i << ".bmp";
+      auto path = strOut.str();
+      save_img(diffImage, path.c_str());
+    }
+    summColor = diffImage.summPixels(); 
+    d_mesh.vertices()[i].y += 0.33333f*(summColor.x + summColor.y + summColor.z);
+  }
+
+  if(mesh.type == TRIANGLE_2D_VERT_COL)
+  {
+
+  }
+  else // TRIANGLE_2D_FACE_COL
+  {
+
+  }
+  // for d_render use
+  //Img adjoint(img.width, img.height, Vec3f{1, 1, 1});
+
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,27 +498,27 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 IOptimizer* CreateSimpleOptimizer(); 
 IOptimizer* CreateComplexOptimizer();
 
-
-
 int main(int argc, char *argv[]) 
 {
   #ifdef WIN32
   mkdir("rendered");
   mkdir("rendered_opt");
+  mkdir("fin_diff");
   #else
-  mkdir("rendered", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("fin_diff",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
 
   mt19937 rng(1234);
   Img img(256, 256);
 
-  TriangleMesh mesh, mesh2;
-  //scn01_TwoTrisFlat(mesh, mesh2);
-  scn02_TwoTrisSmooth(mesh, mesh2);
+  TriangleMesh initialMesh, targetMesh;
+  scn01_TwoTrisFlat(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
   img.clear();
-  render(mesh2, 4 /* samples_per_pixel */, rng, img);
+  render(targetMesh, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target.bmp");
   
   #ifdef COMPLEX_OPT
@@ -441,7 +527,7 @@ int main(int argc, char *argv[])
   IOptimizer* pOpt = CreateSimpleOptimizer();
   #endif
 
-  pOpt->Init(mesh, img); // set different target image
+  pOpt->Init(initialMesh, img); // set different target image
 
   TriangleMesh mesh3 = pOpt->Run(300);
   img.clear();

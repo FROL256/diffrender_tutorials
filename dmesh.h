@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring> // for memset
 #include <random>  // for random gen 
+#include <cassert> 
 
 #include "LiteMath.h"
 
@@ -33,8 +34,14 @@ struct TriangleMesh
 
 struct DTriangleMesh 
 {
-  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_2D_FACE_COL) : m_type(a_meshType)
+  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_2D_FACE_COL) 
   {
+    resize(num_vertices, num_faces, a_meshType);
+  }
+
+  void resize(int num_vertices, int num_faces, MESH_TYPES a_meshType)
+  {
+    m_type = a_meshType;
     m_numVertices = num_vertices;
     m_numFaces    = num_faces;  
 
@@ -63,6 +70,7 @@ struct DTriangleMesh
   size_t totalParams() const { return m_allParams.size(); } 
 
   const MESH_TYPES getMeshType() const { return m_type; }
+  MESH_TYPES m_type = TRIANGLE_2D_FACE_COL;
 
 protected:
 
@@ -73,16 +81,63 @@ protected:
   int                m_colorOffset;
   int                m_numVertices;
   int                m_numFaces;
-  MESH_TYPES m_type = TRIANGLE_2D_FACE_COL;
 };
 
 struct Img {
   Img(){}
   Img(int width, int height, const float3 &val = float3{0, 0, 0}) : width(width), height(height) {
-      color.resize(width * height, val);
+    color.resize(width * height, val);
   }
 
   void clear() { memset(color.data(), 0, color.size()*sizeof(float3)); }  
+
+  Img operator+(const Img& rhs) const
+  {
+    assert(width == rhs.width);
+    assert(height == rhs.height);
+    Img res(width, height);
+    for(size_t i=0;i<color.size();i++)
+      res.color[i] = color[i] + rhs.color[i];
+    return res;
+  }
+
+  Img operator-(const Img& rhs) const
+  {
+    assert(width == rhs.width);
+    assert(height == rhs.height);
+    Img res(width, height);
+    for(size_t i=0;i<color.size();i++)
+      res.color[i] = color[i] - rhs.color[i];
+    return res;
+  }
+
+  Img operator*(const float a_mult) const
+  {
+    Img res(width, height);
+    for(size_t i=0;i<color.size();i++)
+      res.color[i] = color[i]*a_mult;
+    return res;
+  }
+
+  Img operator/(const float a_div) const
+  {
+    const float invDiv = 1.0f/a_div;
+    Img res(width, height);
+    for(size_t i=0;i<color.size();i++)
+      res.color[i] = color[i]*invDiv;
+    return res;
+  }
+
+  float3 summPixels() const 
+  {
+    double summ[3] = {0.0, 0.0, 0.0};
+    for(size_t i=0;i<color.size();i++) {
+      summ[0] += double(color[i].x);
+      summ[1] += double(color[i].y);
+      summ[2] += double(color[i].z); 
+    }
+    return float3(summ[0], summ[1], summ[2]);
+  }
 
   std::vector<float3> color;
   int width;
