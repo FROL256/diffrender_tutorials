@@ -442,7 +442,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
   d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
   d_mesh.clear();
   
-  constexpr float dPos = 0.5f;
+  constexpr float dPos = 1.0f;
   constexpr float dCol = 0.01f;
   const float MSEOrigin = MSE(origin, target);
 
@@ -541,7 +541,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
   d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
   d_mesh.clear();
   
-  constexpr float dPos = 0.5f;
+  constexpr float dPos = 1.0f;
   constexpr float dCol = 0.01f;
   const Img MSEOrigin = MSEImage(origin, target);
 
@@ -606,6 +606,13 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "colr_" << i << ".bmp";
+      auto path = strOut.str();
+      save_img(diffToTarget, path.c_str());
+    }
     float3 summColor = diffToTarget.summPixels(); 
     d_mesh.colors()[i].x += (summColor.x + summColor.y + summColor.z);
 
@@ -617,6 +624,13 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     render(copy, 4, rng, img);
     
     diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "colg_" << i << ".bmp";
+      auto path = strOut.str();
+      save_img(diffToTarget, path.c_str());
+    }
     summColor = diffToTarget.summPixels(); 
     d_mesh.colors()[i].y += (summColor.x + summColor.y + summColor.z);
 
@@ -628,6 +642,13 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     render(copy, 4, rng, img);
     
     diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "colb_" << i << ".bmp";
+      auto path = strOut.str();
+      save_img(diffToTarget, path.c_str());
+    }
     summColor = diffToTarget.summPixels();
     d_mesh.colors()[i].z += (summColor.x + summColor.y + summColor.z);
   }
