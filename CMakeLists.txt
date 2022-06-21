@@ -24,13 +24,15 @@ endif()
 
 if(COMPLEX_OPT)
 add_executable(drender 2d_triangles.cpp 
+                       scenes.cpp
                        optimizer_simple.cpp
                        optimizer_complex.cpp
                        Bitmap.cpp)
 
 
 else()
-add_executable(drender 2d_triangles.cpp 
+add_executable(drender 2d_triangles.cpp
+                       scenes.cpp 
                        optimizer_simple.cpp
                        Bitmap.cpp)
 endif()
