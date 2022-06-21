@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <iomanip>
 
 #include "Bitmap.h"
 #include "LiteMath.h"
@@ -517,6 +518,22 @@ int main(int argc, char *argv[])
   scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
+  if(0)
+  {
+    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
+    gradFinDiff(initialMesh, "fin_diff", img.width, img.height, grad1);
+    
+    Img adjoint(img.width, img.height, float3{1, 1, 1});
+    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
+    d_render(initialMesh, adjoint, 4, img.width*img.height, rng, nullptr, nullptr, grad2);
+    
+    for(size_t i=0;i<grad1.totalParams();i++)
+      std::cout << std::setprecision(4) << grad1.getData()[i] << "\t--\t" << grad2.getData()[i] << std::endl; 
+
+    exit(0);
+  }
+
+
   img.clear();
   render(targetMesh, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target.bmp");

@@ -72,10 +72,10 @@ struct DTriangleMesh
   const MESH_TYPES getMeshType() const { return m_type; }
   MESH_TYPES m_type = TRIANGLE_2D_FACE_COL;
 
-protected:
-
   inline const float* getData() const { return m_allParams.data(); }
   inline float*       getData()       { return m_allParams.data(); }
+
+protected:
 
   std::vector<float> m_allParams;
   int                m_colorOffset;
