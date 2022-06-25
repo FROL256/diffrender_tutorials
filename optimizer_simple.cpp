@@ -60,11 +60,11 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
   save_img(img, strOut.str());
 
-  Img adjoint(img.width, img.height, float3{1, 1, 1});
+  Img adjoint(img.width(), img.height(), float3{1, 1, 1});
   float mse = MSEAndDiff(img, m_targetImage, adjoint);
   
   gradMesh.clear();
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, nullptr, nullptr, 
+  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), rng, nullptr, nullptr, 
            gradMesh);
 
   m_iter++;

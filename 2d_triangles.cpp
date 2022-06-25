@@ -119,19 +119,19 @@ static inline int tonemap(float x) { return int(pow(clamp(x, float(0), float(1))
 
 void save_img(const Img &img, const string &filename, bool flip) 
 {
-  std::vector<unsigned> colors(img.width * img.height);
-  for (int y = 0; y < img.height; y++)
+  std::vector<unsigned> colors(img.width() * img.height());
+  for (int y = 0; y < img.height(); y++)
   {
-    const int offset1 = (img.height - y - 1)*img.width;
-    const int offset2 = y*img.width;
-    for(int x =0; x < img.width; x++)
+    const int offset1 = (img.height() - y - 1)*img.width();
+    const int offset2 = y*img.width();
+    for(int x =0; x < img.width(); x++)
     {
-      auto c = flip ? (-1.0f)*img.color[offset1 + x] : img.color[offset1 + x];
+      auto c = flip ? (-1.0f)*img.data()[offset1 + x] : img.data()[offset1 + x];
       colors[offset2+x] = IntColorUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
     }
   }
   
-  SaveBMP(filename.c_str(), colors.data(), img.width, img.height);
+  SaveBMP(filename.c_str(), colors.data(), img.width(), img.height());
 }
 
 static inline float edgeFunction(float2 a, float2 b, float2 c) // actuattly just a mixed product ... :)
@@ -200,8 +200,8 @@ void render(const TriangleMesh &mesh,
             Img &img) {
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
-    for (int y = 0; y < img.height; y++) { // for each pixel
-        for (int x = 0; x < img.width; x++) {
+    for (int y = 0; y < img.height(); y++) { // for each pixel
+        for (int x = 0; x < img.width(); x++) {
             for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
@@ -209,7 +209,7 @@ void render(const TriangleMesh &mesh,
                     auto screen_pos = float2{x + xoff, y + yoff};
                     float2 uv;
                     auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
-                    img.color[y * img.width + x] += color / samples_per_pixel; //#TODO: atomics
+                    img[int2(x,y)] += color / samples_per_pixel; //#TODO: atomics
                 }
             }
         }
@@ -224,8 +224,8 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     
-    for (int y = 0; y < adjoint.height; y++) { // for each pixel
-        for (int x = 0; x < adjoint.width; x++) {
+    for (int y = 0; y < adjoint.height(); y++) { // for each pixel
+        for (int x = 0; x < adjoint.width(); x++) {
             for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
@@ -236,7 +236,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                     raytrace(mesh, screen_pos, &faceIndex, &uv);
                     if (faceIndex != unsigned(-1)) 
                     {
-                      auto val = adjoint.color[y * adjoint.width + x] / samples_per_pixel;
+                      auto val = adjoint[int2(x,y)] / samples_per_pixel;
 
                       if(mesh.type == TRIANGLE_2D_VERT_COL)
                       {
@@ -280,7 +280,7 @@ void compute_edge_derivatives(
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
       int yi = int(p.y); // integer coordinates
-      if (xi < 0 || yi < 0 || xi >= adjoint.width || yi >= adjoint.height) {
+      if (xi < 0 || yi < 0 || xi >= adjoint.width() || yi >= adjoint.height()) {
           continue;
       }
       // sample the two sides of the edge
@@ -291,7 +291,7 @@ void compute_edge_derivatives(
       // multiply with the color difference and divide by the pdf & number of samples.
       float pdf    = pmf  / (length(v1 - v0));
       float weight = 1.0f / (pdf * float(num_edge_samples));
-      float adj    = dot(color_in - color_out, adjoint.color[yi * adjoint.width + xi]);
+      float adj    = dot(color_in - color_out, adjoint[int2(xi,yi)]);
       // the boundary point is p = v0 + t * (v1 - v0)
       // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
       // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
@@ -323,8 +323,8 @@ void compute_edge_derivatives(
         auto dx = -n.x * (color_in - color_out) * weight;
         auto dy = -n.y * (color_in - color_out) * weight;
         // scatter gradients to buffers, in the parallel case, use atomic add here.
-        screen_dx->color[yi * adjoint.width + xi] += dx;
-        screen_dy->color[yi * adjoint.width + xi] += dy;
+        (*screen_dx)[int2(xi, yi)] += dx;
+        (*screen_dy)[int2(xi, yi)] += dy;
       }
     }    
 }
@@ -365,67 +365,30 @@ void PrintMesh(const DTriangleMesh& a_mesh)
   std::cout << std::endl;
 }
 
-float3 accumDiff3(const Img& b, const Img& a)
-{
-  assert(a.width*a.height == b.width*b.height);
-  double accum[3] = {0,0,0};
-  const size_t imgSize = a.width*a.height;
-  for(size_t i=0;i<imgSize;i++)
-  {
-    accum[0] += double(b.color[i].x - a.color[i].x);
-    accum[1] += double(b.color[i].y - a.color[i].y);
-    accum[2] += double(b.color[i].z - a.color[i].z);
-  }
-  return float3(accum[0], accum[1], accum[2]);
-}
-
-float accumDiff(const Img& b, const Img& a)
-{
-  assert(a.width*a.height == b.width*b.height);
-  double accum = 0.0f;
-  const size_t imgSize = a.width*a.height;
-  for(size_t i=0;i<imgSize;i++)
-  {
-    const float3 diffVec = b.color[i] - a.color[i];
-    accum += double(diffVec.x + diffVec.y + diffVec.z);
-  }
-  return float(accum);
-}
 
 float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
 {
-  assert(a.width*a.height == b.width*b.height);
+  assert(a.width()*a.height() == b.width()*b.height());
   double accumMSE = 0.0f;
-  const size_t imgSize = a.width*a.height;
+  const size_t imgSize = a.width()*a.height();
   for(size_t i=0;i<imgSize;i++)
   {
-    const float3 diffVec = b.color[i] - a.color[i];
-    a_outDiff.color[i] = 2.0f*diffVec;                     // (I[x,y] - I_target[x,y])  // dirrerential of the loss function 
+    const float3 diffVec = b.data()[i] - a.data()[i];
+    a_outDiff.data()[i] = 2.0f*diffVec;                     // (I[x,y] - I_target[x,y])  // dirrerential of the loss function 
     accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
   }
   return float(accumMSE);
 }
 
-float MSE(const Img& b, const Img& a)
-{
-  assert(a.width*a.height == b.width*b.height);
-  double accumMSE = 0.0f;
-  const size_t imgSize = a.width*a.height;
-  for(size_t i=0;i<imgSize;i++)
-  {
-    const float3 diffVec = b.color[i] - a.color[i];
-    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
-  }
-  return float(accumMSE);
-}
+float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
 
 Img MSEImage(const Img& b, const Img& a)
 {
-  assert(a.width*a.height == b.width*b.height);
-  Img result(a.width, a.height);
-  const size_t imgSize = a.width*a.height;
+  assert(a.width()*a.height() == b.width()*b.height());
+  Img result(a.width(), a.height());
+  const size_t imgSize = a.width()*a.height();
   for(size_t i=0;i<imgSize;i++)
-    result.color[i] = (b.color[i] - a.color[i])*(b.color[i] - a.color[i]); // (I[x,y] - I_target[x,y])^2  // loss function
+    result.data()[i] = (b.data()[i] - a.data()[i])*(b.data()[i] - a.data()[i]); // (I[x,y] - I_target[x,y])^2  // loss function
   return result;
 }
 
@@ -436,7 +399,7 @@ Img MSEImage(const Img& b, const Img& a)
 void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
                  DTriangleMesh &d_mesh) 
 {
-  Img img(origin.width, origin.height);
+  Img img(origin.width(), origin.height());
   mt19937 rng(1234);
 
   d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
@@ -454,7 +417,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     //
     copy = mesh;
     copy.vertices[i].x += dPos;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -475,7 +438,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     //
     copy = mesh;
     copy.vertices[i].y += dPos;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -503,7 +466,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     //
     copy = mesh;
     copy.colors[i].x += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -513,7 +476,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     //
     copy = mesh;
     copy.colors[i].y += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -523,7 +486,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     //
     copy = mesh;
     copy.colors[i].z += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -535,7 +498,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
                  DTriangleMesh &d_mesh) 
 {
-  Img img(origin.width, origin.height);
+  Img img(origin.width(), origin.height());
   mt19937 rng(1234);
 
   d_mesh.resize(mesh.vertices.size(), mesh.indices.size()/3, mesh.type);
@@ -553,7 +516,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     //
     copy = mesh;
     copy.vertices[i].x += dPos;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     //auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -567,14 +530,14 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       auto path = strOut.str();
       save_img(diffImage, path.c_str());
     }
-    float3 summColor = diffImage.summPixels(); 
+    float3 summColor = SummOfPixels(diffImage); 
     d_mesh.vertices()[i].x += (summColor.x + summColor.y + summColor.z);
     
     // dy
     //
     copy = mesh;
     copy.vertices[i].y += dPos;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
 
     //diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -588,7 +551,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       auto path = strOut.str();
       save_img(diffImage, path.c_str());
     }
-    summColor = diffImage.summPixels(); 
+    summColor = SummOfPixels(diffImage); 
     d_mesh.vertices()[i].y += (summColor.x + summColor.y + summColor.z);
   }
   
@@ -602,7 +565,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     //
     copy = mesh;
     copy.colors[i].x += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
@@ -613,14 +576,14 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       auto path = strOut.str();
       save_img(diffToTarget, path.c_str());
     }
-    float3 summColor = diffToTarget.summPixels(); 
+    float3 summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors()[i].x += (summColor.x + summColor.y + summColor.z);
 
     // d_green
     //
     copy = mesh;
     copy.colors[i].y += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
@@ -631,14 +594,14 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       auto path = strOut.str();
       save_img(diffToTarget, path.c_str());
     }
-    summColor = diffToTarget.summPixels(); 
+    summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors()[i].y += (summColor.x + summColor.y + summColor.z);
 
     // d_blue
     //
     copy = mesh;
     copy.colors[i].z += dCol;
-    img.clear();
+    img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
     diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
@@ -649,7 +612,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       auto path = strOut.str();
       save_img(diffToTarget, path.c_str());
     }
-    summColor = diffToTarget.summPixels();
+    summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors()[i].z += (summColor.x + summColor.y + summColor.z);
   }
 
@@ -681,10 +644,10 @@ int main(int argc, char *argv[])
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
-    Img target(img.width, img.height, float3{0, 0, 0});
-    Img adjoint(img.width, img.height, float3{0, 0, 0});
+    Img target(img.width(), img.height(), float3{0, 0, 0});
+    Img adjoint(img.width(), img.height(), float3{0, 0, 0});
     render(initialMesh, 4, rng, img);
     render(targetMesh, 4, rng, target);
     
@@ -696,7 +659,7 @@ int main(int argc, char *argv[])
     d_finDiff (initialMesh, "fin_diff", img, target, grad3);
     
     MSEAndDiff(img, target, adjoint); // put MSE ==> adjoint 
-    d_render(initialMesh, adjoint, 4, img.width*img.height, rng, nullptr, nullptr, grad1);
+    d_render(initialMesh, adjoint, 4, img.width()*img.height(), rng, nullptr, nullptr, grad1);
     
     for(size_t i=0;i<grad1.totalParams();i++) {
       std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.getData()[i] << "\t";  
@@ -708,7 +671,7 @@ int main(int argc, char *argv[])
   }
 
 
-  img.clear();
+  img.clear(float3{0,0,0});
   render(targetMesh, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target.bmp");
   
@@ -721,7 +684,7 @@ int main(int argc, char *argv[])
   pOpt->Init(initialMesh, img); // set different target image
 
   TriangleMesh mesh3 = pOpt->Run(300);
-  img.clear();
+  img.clear(float3{0,0,0});
   render(mesh3, 4 /* samples_per_pixel */, rng, img);
   save_img(img, "rendered_opt/z_target2.bmp");
   

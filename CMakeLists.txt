@@ -27,12 +27,14 @@ add_executable(drender 2d_triangles.cpp
                        scenes.cpp
                        optimizer_simple.cpp
                        optimizer_complex.cpp
-                       Bitmap.cpp)
+                       Bitmap.cpp
+                       include/Image2d.cpp)
 
 
 else()
 add_executable(drender 2d_triangles.cpp
                        scenes.cpp 
                        optimizer_simple.cpp
-                       Bitmap.cpp)
+                       Bitmap.cpp
+                       include/Image2d.cpp)
 endif()

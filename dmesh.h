@@ -7,6 +7,7 @@
 #include <cassert> 
 
 #include "LiteMath.h"
+#include "Image2d.h"
 
 enum MESH_TYPES {
     TRIANGLE_2D_FACE_COL = 1,
@@ -83,66 +84,19 @@ protected:
   int                m_numFaces;
 };
 
-struct Img {
-  Img(){}
-  Img(int width, int height, const float3 &val = float3{0, 0, 0}) : width(width), height(height) {
-    color.resize(width * height, val);
+using Img = LiteImage::Image2D<float3>;
+
+static inline float3 SummOfPixels(const Img& a_image) 
+{
+  const auto& color = a_image.vector();
+  double summ[3] = {0.0, 0.0, 0.0};
+  for(size_t i=0;i<color.size();i++) {
+    summ[0] += double(color[i].x);
+    summ[1] += double(color[i].y);
+    summ[2] += double(color[i].z); 
   }
-
-  void clear() { memset(color.data(), 0, color.size()*sizeof(float3)); }  
-
-  Img operator+(const Img& rhs) const
-  {
-    assert(width == rhs.width);
-    assert(height == rhs.height);
-    Img res(width, height);
-    for(size_t i=0;i<color.size();i++)
-      res.color[i] = color[i] + rhs.color[i];
-    return res;
-  }
-
-  Img operator-(const Img& rhs) const
-  {
-    assert(width == rhs.width);
-    assert(height == rhs.height);
-    Img res(width, height);
-    for(size_t i=0;i<color.size();i++)
-      res.color[i] = color[i] - rhs.color[i];
-    return res;
-  }
-
-  Img operator*(const float a_mult) const
-  {
-    Img res(width, height);
-    for(size_t i=0;i<color.size();i++)
-      res.color[i] = color[i]*a_mult;
-    return res;
-  }
-
-  Img operator/(const float a_div) const
-  {
-    const float invDiv = 1.0f/a_div;
-    Img res(width, height);
-    for(size_t i=0;i<color.size();i++)
-      res.color[i] = color[i]*invDiv;
-    return res;
-  }
-
-  float3 summPixels() const 
-  {
-    double summ[3] = {0.0, 0.0, 0.0};
-    for(size_t i=0;i<color.size();i++) {
-      summ[0] += double(color[i].x);
-      summ[1] += double(color[i].y);
-      summ[2] += double(color[i].z); 
-    }
-    return float3(summ[0], summ[1], summ[2]);
-  }
-
-  std::vector<float3> color;
-  int width;
-  int height;
-};
+  return float3(summ[0], summ[1], summ[2]);
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
