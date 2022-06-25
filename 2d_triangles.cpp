@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "Bitmap.h"
+//#include "Bitmap.h"
 #include "LiteMath.h"
 
 #ifdef WIN32
@@ -344,7 +344,7 @@ void PrintMesh(const DTriangleMesh& a_mesh)
 }
 
 
-float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
+float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
 {
   assert(a.width()*a.height() == b.width()*b.height());
   double accumMSE = 0.0f;
@@ -352,23 +352,13 @@ float MSEAndDiff(const Img& b, const Img& a, Img& a_outDiff)
   for(size_t i=0;i<imgSize;i++)
   {
     const float3 diffVec = b.data()[i] - a.data()[i];
-    a_outDiff.data()[i] = 2.0f*diffVec;                     // (I[x,y] - I_target[x,y])  // dirrerential of the loss function 
-    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // loss function
+    a_outDiff.data()[i] = 2.0f*diffVec;                    // (I[x,y] - I_target[x,y])    // dirrerential of the loss function 
+    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // the loss function itself
   }
   return float(accumMSE);
 }
 
 float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
-
-Img MSEImage(const Img& b, const Img& a)
-{
-  assert(a.width()*a.height() == b.width()*b.height());
-  Img result(a.width(), a.height());
-  const size_t imgSize = a.width()*a.height();
-  for(size_t i=0;i<imgSize;i++)
-    result.data()[i] = (b.data()[i] - a.data()[i])*(b.data()[i] - a.data()[i]); // (I[x,y] - I_target[x,y])^2  // loss function
-  return result;
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -386,6 +376,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
   constexpr float dPos = 1.0f;
   constexpr float dCol = 0.01f;
   const float MSEOrigin = MSE(origin, target);
+  const float scale = float(256*256*3);
 
   for(size_t i=0; i<mesh.vertices.size();i++)
   {
@@ -399,7 +390,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices()[i].x += diffToTarget;
+    d_mesh.vertices()[i].x += diffToTarget*scale;
     
     //auto diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
     //if(outFolder != nullptr)
@@ -420,7 +411,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, 4, rng, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices()[i].y += diffToTarget;
+    d_mesh.vertices()[i].y += diffToTarget*scale;
 
     //diffImage   = (img - ref)/dPos;    // auto diffToTarget = (MSE(img,a_targetImage) - MSE(ref, a_targetImage))/dPos;
     //if(outFolder != nullptr)
@@ -448,7 +439,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, 4, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].x += diffToTarget;
+    d_mesh.colors()[i].x += diffToTarget*scale;
 
     // d_green
     //
@@ -458,7 +449,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, 4, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].y += diffToTarget;
+    d_mesh.colors()[i].y += diffToTarget*scale;
 
     // d_blue
     //
@@ -468,7 +459,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, 4, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].z += diffToTarget;
+    d_mesh.colors()[i].z += diffToTarget*scale;
   }
 
 }
@@ -484,7 +475,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
   
   constexpr float dPos = 1.0f;
   constexpr float dCol = 0.01f;
-  const Img MSEOrigin = MSEImage(origin, target);
+  const Img MSEOrigin = LiteImage::MSEImage(origin, target);
 
   for(size_t i=0; i<mesh.vertices.size();i++)
   {
@@ -500,7 +491,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     //auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
     //d_mesh.vertices()[i].x += diffToTarget;
     
-    auto diffImage = (MSEImage(img,target) - MSEOrigin)/dPos;   
+    auto diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
@@ -521,7 +512,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     //diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
     //d_mesh.vertices()[i].y += diffToTarget;
 
-    diffImage = (MSEImage(img,target) - MSEOrigin)/dPos;   
+    diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
@@ -546,7 +537,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
-    auto diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    auto diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
@@ -564,7 +555,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
-    diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
@@ -582,13 +573,13 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, 4, rng, img);
     
-    diffToTarget = (MSEImage(img,target) - MSEOrigin)/dCol;
+    diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
       strOut << outFolder << "/" << "colb_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffToTarget, path.c_str());
+      save_img(diffToTarget, path.c_str()); // 
     }
     summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors()[i].z += (summColor.x + summColor.y + summColor.z);
@@ -636,7 +627,7 @@ int main(int argc, char *argv[])
     d_finDiff2(initialMesh, "fin_diff", img, target, grad2);
     d_finDiff (initialMesh, "fin_diff", img, target, grad3);
     
-    MSEAndDiff(img, target, adjoint); // put MSE ==> adjoint 
+    LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, 4, img.width()*img.height(), rng, nullptr, nullptr, grad1);
     
     for(size_t i=0;i<grad1.totalParams();i++) {

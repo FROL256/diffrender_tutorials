@@ -106,7 +106,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   save_img(img, strOut.str());
 
   Img adjoint(img.width, img.height, float3{1, 1, 1});
-  float mse = MSEAndDiff(img, pObj->m_targetImage, adjoint);
+  float mse = LossAndDiffLoss(img, pObj->m_targetImage, adjoint);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
   d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, nullptr, nullptr, 

@@ -179,6 +179,25 @@ namespace LiteImage
   template<typename T> float MSE(const Image2D<T>& a, const Image2D<T>& b) { return MSE(a.vector(), b.vector())/3.0f; }
   template<> inline float LiteImage::MSE<float>(const Image2D<float>& a, const Image2D<float>& b) { return MSE(a.vector(), b.vector()); }
   
+  /**
+  \brief save 24 bit RGB bitmap images.
+  \param a      - input image1 (I)
+  \param b      - input image2 (I_target)
+  \return per pixel loss function: (I[x,y] - I_target[x,y])^2
+  */
+  template<typename T> Image2D<T> MSEImage(const Image2D<T>& a, const Image2D<T>& b) 
+  { 
+    assert(a.width()*a.height() == b.width()*b.height());
+    Image2D<T> result(a.width(), a.height());
+    const size_t imgSize = a.width()*a.height();
+    for(size_t i=0;i<imgSize;i++) {
+      const auto av = a.data()[i];
+      const auto bv = b.data()[i];
+      result.data()[i] = (bv - av)*(bv - av);
+    }
+    return result;
+  }
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   

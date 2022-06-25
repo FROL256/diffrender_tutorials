@@ -62,7 +62,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   save_img(img, temp.c_str());
 
   Img adjoint(img.width(), img.height(), float3{1, 1, 1});
-  float mse = MSEAndDiff(img, m_targetImage, adjoint);
+  float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
   d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), rng, nullptr, nullptr, 
