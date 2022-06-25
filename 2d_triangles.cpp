@@ -110,29 +110,7 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
     return vector<Edge>(edges.begin(), edges.end());
 }
 
-static inline unsigned IntColorUint32(int r, int g, int b)
-{
-  return unsigned(r | (g << 8) | (b << 16) | 0xFF000000);
-}
-
-static inline int tonemap(float x) { return int(pow(clamp(x, float(0), float(1)), float(1/2.2))*255 + float(.5)); }
-
-void save_img(const Img &img, const string &filename, bool flip) 
-{
-  std::vector<unsigned> colors(img.width() * img.height());
-  for (int y = 0; y < img.height(); y++)
-  {
-    const int offset1 = (img.height() - y - 1)*img.width();
-    const int offset2 = y*img.width();
-    for(int x =0; x < img.width(); x++)
-    {
-      auto c = flip ? (-1.0f)*img.data()[offset1 + x] : img.data()[offset1 + x];
-      colors[offset2+x] = IntColorUint32(tonemap(c.x), tonemap(c.y), tonemap(c.z));
-    }
-  }
-  
-  SaveBMP(filename.c_str(), colors.data(), img.width(), img.height());
-}
+void save_img(const Img &img, const char* filename)  { LiteImage::SaveImage(filename, img); }
 
 static inline float edgeFunction(float2 a, float2 b, float2 c) // actuattly just a mixed product ... :)
 {
