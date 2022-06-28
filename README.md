@@ -1,7 +1,8 @@
 This is differentiable raster sandbox for get familiar with the basics of differentiable rendering  
 
 # Build
-Use Cmake in a standart way
+1) don't forget to clone submodules 
+2) Use Cmake in a standart way
 
 # Make animation
 
