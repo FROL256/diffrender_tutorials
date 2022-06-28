@@ -12,8 +12,7 @@ if(COMPLEX_OPT)
 endif()
 
 set (CMAKE_CXX_STANDARD 14)
-include_directories(".")
-include_directories("include")
+include_directories(".", "include", "LiteMath")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -27,12 +26,12 @@ add_executable(drender 2d_triangles.cpp
                        scenes.cpp
                        optimizer_simple.cpp
                        optimizer_complex.cpp
-                       include/Image2d.cpp)
+                       LiteMath/Image2d.cpp)
 
 
 else()
 add_executable(drender 2d_triangles.cpp
                        scenes.cpp 
                        optimizer_simple.cpp
-                       include/Image2d.cpp)
+                       LiteMath/Image2d.cpp)
 endif()

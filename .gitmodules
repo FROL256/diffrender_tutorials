@@ -1,0 +1,3 @@
+[submodule "LiteMath"]
+	path = LiteMath
+	url = https://github.com/msu-graphics-group/LiteMath
