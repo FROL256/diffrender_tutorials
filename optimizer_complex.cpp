@@ -103,13 +103,14 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << pObj->m_iter << ".bmp";
-  save_img(img, strOut.str());
+  auto tempStr = strOut.str();
+  save_img(img, tempStr.c_str());
 
-  Img adjoint(img.width, img.height, float3{1, 1, 1});
+  Img adjoint(img.width(), img.height(), float3{0, 0, 0});
   float mse = LossAndDiffLoss(img, pObj->m_targetImage, adjoint);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, samples_per_pixel, img.width * img.height , rng, nullptr, nullptr, 
+  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height() , rng, nullptr, nullptr, 
            d_mesh);
   
   std::cout << "iter " << pObj->m_iter << ", error = " << mse << std::endl;

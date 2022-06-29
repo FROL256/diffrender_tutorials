@@ -21,6 +21,9 @@ endif()
 #find_package(OpenMP)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp ")
 
+#uncomment this to detect broken memory problems via gcc sanitizers
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
+
 if(COMPLEX_OPT)
 add_executable(drender 2d_triangles.cpp 
                        scenes.cpp

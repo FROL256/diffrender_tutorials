@@ -291,15 +291,15 @@ void compute_edge_derivatives(
       d_vertices[edge.v0] += d_v0;
       d_vertices[edge.v1] += d_v1;
 
-      //if(mesh.type == TRIANGLE_2D_VERT_COL && d_colors!= nullptr) //#TODO: add branch by mesh.m_type
+      //if(mesh.type == TRIANGLE_2D_VERT_COL && (d_colors!= nullptr)) // it is important to check that we store colors per vertex, not per face!
       //{
-      //  // auto c0 = mesh.vertices[edge.v0];
-      //  // auto c1 = mesh.vertices[edge.v1];
+      //  // auto c0 = mesh.colors[edge.v0];
+      //  // auto c1 = mesh.colors[edge.v1];
       //  // auto c  = c0 + t * (c1 - c0);
       //  // dc/dv0.x = (1 - t, 0), dc/dv0.y = (0, 1 - t)
       //  // dc/dv1.x = (    t, 0), dc/dv1.y = (0,     t)
-      //  auto d_c0 = float3(1 - t) * adj * weight;             // * ????
-      //  auto d_c1 = float3(t)     * adj * weight;             // * ????
+      //  auto d_c0 = float3(1 - t) * adj * weight;  // * ????
+      //  auto d_c1 = float3(t)     * adj * weight;  // * ????
       //  d_colors[edge.v0] += d_c0;
       //  d_colors[edge.v1] += d_c1;
       //}
@@ -336,7 +336,7 @@ void d_render(const TriangleMesh &mesh,
   auto edges        = collect_edges(mesh);
   auto edge_sampler = build_edge_sampler(mesh, edges);
   compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
-                           rng, screen_dx, screen_dy, d_mesh.vertices());
+                           rng, screen_dx, screen_dy, d_mesh.vertices(), d_mesh.colors());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -591,7 +591,7 @@ int main(int argc, char *argv[])
   scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
@@ -602,11 +602,11 @@ int main(int argc, char *argv[])
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
     DTriangleMesh grad3(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
 
-    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, 1.0f, 0.01f);
-    d_finDiff (initialMesh, "fin_diff", img, target, grad3, 1.0f, 0.01f);
-    
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), rng, nullptr, nullptr, grad1);
+
+    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, 1.0f, 0.01f);
+    d_finDiff (initialMesh, "fin_diff", img, target, grad3, 1.0f, 0.01f);
     
     double totalError = 0.0;
     for(size_t i=0;i<grad1.totalParams();i++) {

@@ -61,7 +61,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   auto temp = strOut.str();
   save_img(img, temp.c_str());
 
-  Img adjoint(img.width(), img.height(), float3{1, 1, 1});
+  Img adjoint(img.width(), img.height(), float3{0, 0, 0});
   float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
@@ -86,7 +86,7 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
   //float currError = 1e38f;
   float alphaPos   = 0.1f;
-  float alphaColor = 0.0001f;
+  float alphaColor = 0.00002f;
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);
@@ -99,7 +99,7 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     if(iter > 100 && iter % eachPassDescreasStep == 0)
     {
       alphaPos   = alphaPos*0.5f;
-      alphaColor = alphaColor*0.5f;
+      alphaColor = alphaColor*0.75f;
     }
     else if(iter % eachPassDescreasStep == 0)
     {
