@@ -74,9 +74,9 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 
 void OptSimple::Init(const TriangleMesh& a_mesh, const Img& a_image) 
 { 
-  m_mesh = a_mesh; 
+  m_mesh        = a_mesh; 
   m_targetImage = a_image; 
-  m_iter = 0; 
+  m_iter        = 0; 
 }
 
 TriangleMesh OptSimple::Run(size_t a_numIters) 
@@ -84,9 +84,8 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   const size_t eachPassDescreasStep = a_numIters/10; 
 
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
-  //float currError = 1e38f;
-  float alphaPos   = 0.1f;
-  float alphaColor = 0.00002f;
+  float alphaPos   = 0.2f;
+  float alphaColor = 4.0f/float(m_targetImage.width()*m_targetImage.height()); 
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);

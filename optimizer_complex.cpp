@@ -50,8 +50,8 @@ EVector VectorFromMesh(const TriangleMesh& a_mesh)
   return result;
 }
 
-constexpr float alphaPos   = 0.1f;
-constexpr float alphaColor = 0.00001f;
+float g_alphaPos   = 0.1f;
+float g_alphaColor = 0.00001f;
 
 EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
 {
@@ -59,14 +59,14 @@ EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
   size_t currPos = 0;
   for(int vertId=0; vertId< a_mesh.numVerts(); vertId++, currPos+=2)
   {
-    result[currPos+0] = a_mesh.vertices()[vertId].x*alphaPos;
-    result[currPos+1] = a_mesh.vertices()[vertId].y*alphaPos;
+    result[currPos+0] = a_mesh.vertices()[vertId].x*g_alphaPos;
+    result[currPos+1] = a_mesh.vertices()[vertId].y*g_alphaPos;
   }
   for(int faceId=0; faceId < a_mesh.numFaces(); faceId++, currPos+=3)
   {
-    result[currPos+0] = a_mesh.colors()[faceId].x*alphaColor;
-    result[currPos+1] = a_mesh.colors()[faceId].y*alphaColor;
-    result[currPos+2] = a_mesh.colors()[faceId].z*alphaColor;
+    result[currPos+0] = a_mesh.colors()[faceId].x*g_alphaColor;
+    result[currPos+1] = a_mesh.colors()[faceId].y*g_alphaColor;
+    result[currPos+2] = a_mesh.colors()[faceId].z*g_alphaColor;
   }
   return result;
 }
@@ -133,9 +133,13 @@ TriangleMesh OptComplex::Run(size_t a_numIters)
   settings.gd_settings.method = 0; // 0 for simple gradient descend, 6 ADAM
   settings.gd_settings.par_step_size      = 1.0; // initialization for ADAM
   settings.gd_settings.step_decay         = true;
-  settings.gd_settings.step_decay_periods = a_numIters/10;
+  settings.gd_settings.step_decay_periods = a_numIters/40;
   settings.gd_settings.step_decay_val     = 0.75f;
   settings.opt_error_value                = 20.0f;
+
+  //g_alphaPos   = 0.3f; // for the first scene
+  g_alphaPos   = 0.2f; // for the second scene
+  g_alphaColor = 4.0f/float(m_targetImage.width()*m_targetImage.height()); 
 
   EVector x = VectorFromMesh(m_mesh);
   bool success = optim::gd(x, &EvalFunction, this, settings);

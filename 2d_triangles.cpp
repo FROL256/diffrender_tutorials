@@ -588,8 +588,8 @@ int main(int argc, char *argv[])
   Img img(256, 256);
 
   TriangleMesh initialMesh, targetMesh;
-  scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn01_TwoTrisFlat(initialMesh, targetMesh);
+  scn02_TwoTrisSmooth(initialMesh, targetMesh);
   
   if(0) // check gradients with finite difference method
   {
