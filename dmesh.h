@@ -113,7 +113,6 @@ float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff);
 
 void render(const TriangleMesh &mesh,
             int samples_per_pixel,
-            std::mt19937 &rng,
             Img &img) ;
 
 void d_render(const TriangleMesh &mesh,

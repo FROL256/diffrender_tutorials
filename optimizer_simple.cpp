@@ -54,7 +54,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 
   Img img(256, 256);
   std::mt19937 rng(1234);
-  render(mesh, samples_per_pixel, rng, img);
+  render(mesh, samples_per_pixel, img);
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
