@@ -24,6 +24,8 @@ using namespace LiteMath;
 #include "optimizer.h"
 #include "scenes.h"
 
+#include "qmc.h"
+
 using std::for_each;
 using std::upper_bound;
 using std::vector;
@@ -47,6 +49,8 @@ using LiteMath::normalize;
 float2 normal(const float2 &v) {return float2{-v.y, v.x};} // Vec2f normal(const Vec2f &v) {return Vec2f{-v.y, v.x};}
 
 constexpr int SAM_PER_PIXEL = 16;
+
+unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 
 /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////
@@ -229,12 +233,15 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < adjoint.height(); y++) { // for each pixel
         for (int x = 0; x < adjoint.width(); x++) {
-
+            
+          //for (int samId = 0; samId < samples_per_pixel; samId++) { // for each subpixel
             for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel  //TODO: use less samples here?
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
 
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
                     auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
+                    //float xoff = qmc::rndFloat(samId, 0, &g_table[0][0]);
+                    //float yoff = qmc::rndFloat(samId, 1, &g_table[0][0]);
                     auto screen_pos = float2{x + xoff, y + yoff};
                     unsigned faceIndex = unsigned(-1);
                     float2 uv;
@@ -621,6 +628,8 @@ int main(int argc, char *argv[])
   mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("fin_diff",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
+
+  qmc::init(g_table);
 
   mt19937 rng(1234);
   Img img(256, 256);

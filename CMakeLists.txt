@@ -27,6 +27,7 @@ endif()
 if(COMPLEX_OPT)
 add_executable(drender 2d_triangles.cpp 
                        scenes.cpp
+                       qmc.cpp
                        optimizer_simple.cpp
                        optimizer_complex.cpp
                        LiteMath/Image2d.cpp)
@@ -34,7 +35,8 @@ add_executable(drender 2d_triangles.cpp
 
 else()
 add_executable(drender 2d_triangles.cpp
-                       scenes.cpp 
+                       scenes.cpp
+                       qmc.cpp 
                        optimizer_simple.cpp
                        LiteMath/Image2d.cpp)
 endif()
