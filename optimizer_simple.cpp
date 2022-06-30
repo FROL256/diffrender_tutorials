@@ -14,10 +14,10 @@ void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor,
               TriangleMesh* mesh)
 {
   for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
-    mesh->vertices[vertId] -= gradMesh.vertices()[vertId]*alphaPos;
+    mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*alphaPos;
   
   for(int faceId=0; faceId < mesh->colors.size(); faceId++)
-    mesh->colors[faceId] -= gradMesh.colors()[faceId]*alphaColor;
+    mesh->colors[faceId] -= gradMesh.color_at(faceId)*alphaColor;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
 
 float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 {
-  constexpr int samples_per_pixel = 4;
+  constexpr int samples_per_pixel = 16;
 
   Img img(256, 256);
   std::mt19937 rng(1234);

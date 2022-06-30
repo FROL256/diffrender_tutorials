@@ -223,7 +223,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
                                   mt19937 &rng,
-                                  float3* d_colors) {
+                                  GradReal* d_colors) {
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     
@@ -254,35 +254,34 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                         auto contribC = (1.0f-uv.x-uv.y)*val;
 
                         #pragma omp atomic
-                        d_colors[A].x += contribA.x;
+                        d_colors[A*3+0] += GradReal(contribA.x);
                         #pragma omp atomic
-                        d_colors[A].y += contribA.y;
+                        d_colors[A*3+1] += GradReal(contribA.y);
                         #pragma omp atomic
-                        d_colors[A].z += contribA.z;
+                        d_colors[A*3+2] += GradReal(contribA.z);
                         
                         #pragma omp atomic
-                        d_colors[B].x += contribB.x;
+                        d_colors[B*3+0] += GradReal(contribB.x);
                         #pragma omp atomic
-                        d_colors[B].y += contribB.y;
+                        d_colors[B*3+1] += GradReal(contribB.y);
                         #pragma omp atomic
-                        d_colors[B].z += contribB.z;
+                        d_colors[B*3+2] += GradReal(contribB.z);
                         
                         #pragma omp atomic
-                        d_colors[C].x += contribC.x;
+                        d_colors[C*3+0] += GradReal(contribC.x);
                         #pragma omp atomic
-                        d_colors[C].y += contribC.y;
+                        d_colors[C*3+1] += GradReal(contribC.y);
                         #pragma omp atomic
-                        d_colors[C].z += contribC.z;
-
+                        d_colors[C*3+2] += GradReal(contribC.z);
                       }
                       else
                       {
                         #pragma omp atomic
-                        d_colors[faceIndex].x += val.x; 
+                        d_colors[faceIndex*3+0] += GradReal(val.x); 
                         #pragma omp atomic
-                        d_colors[faceIndex].y += val.y;
+                        d_colors[faceIndex*3+1] += GradReal(val.y);
                         #pragma omp atomic
-                        d_colors[faceIndex].z += val.z;
+                        d_colors[faceIndex*3+2] += GradReal(val.z);
                       }
                     }
                 }
@@ -299,7 +298,7 @@ void compute_edge_derivatives(
         const int num_edge_samples,
         mt19937 &rng,
         Img* screen_dx, Img* screen_dy,
-        float2* d_vertices, float3* d_colors = nullptr) {
+        GradReal* d_vertices) {
 
     //#pragma omp parallel for 
     for (int i = 0; i < num_edge_samples; i++) 
@@ -336,14 +335,14 @@ void compute_edge_derivatives(
       
       // if running in parallel, use atomic add here.
       #pragma omp atomic
-      d_vertices[edge.v0].x += d_v0.x;
+      d_vertices[edge.v0*2+0] += GradReal(d_v0.x);
       #pragma omp atomic
-      d_vertices[edge.v0].y += d_v0.y;
+      d_vertices[edge.v0*2+1] += GradReal(d_v0.y);
       
       #pragma omp atomic
-      d_vertices[edge.v1].x += d_v1.x;
+      d_vertices[edge.v1*2+0] += GradReal(d_v1.x);
       #pragma omp atomic
-      d_vertices[edge.v1].y += d_v1.y;
+      d_vertices[edge.v1*2+1] += GradReal(d_v1.y);
 
       if(screen_dx != nullptr && screen_dy != nullptr) 
       {
@@ -370,14 +369,14 @@ void d_render(const TriangleMesh &mesh,
   // (1)
   //
   compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, rng, 
-                               d_mesh.colors());
+                               d_mesh.colors_s());
     
   // (2)
   //
   auto edges        = collect_edges(mesh);
   auto edge_sampler = build_edge_sampler(mesh, edges);
   compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
-                           rng, screen_dx, screen_dy, d_mesh.vertices(), d_mesh.colors());
+                           rng, screen_dx, screen_dy, d_mesh.vertices_s());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,10 +386,10 @@ void d_render(const TriangleMesh &mesh,
 void PrintMesh(const DTriangleMesh& a_mesh)
 {
   for(int i=0; i<a_mesh.numVerts();i++)
-    std::cout << "ver[" << i << "]: " << a_mesh.vertices()[i].x << ", " << a_mesh.vertices()[i].y << std::endl;  
+    std::cout << "ver[" << i << "]: " << a_mesh.vert_at(i).x << ", " << a_mesh.vert_at(i).y << std::endl;  
   std::cout << std::endl;
   for(size_t i=0; i<a_mesh.numFaces();i++)
-    std::cout << "col[" << i << "]: " << a_mesh.colors()[i].x << ", " << a_mesh.colors()[i].y << ", " << a_mesh.colors()[i].z << std::endl;
+    std::cout << "col[" << i << "]: " << a_mesh.color_at(i).x << ", " << a_mesh.color_at(i).y << ", " << a_mesh.color_at(i).z << std::endl;
   std::cout << std::endl;
 }
 
@@ -439,7 +438,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices()[i].x += diffToTarget*scale;
+    d_mesh.vertices_s()[i*2+0] += GradReal(diffToTarget*scale);
     
     // dy
     //
@@ -449,7 +448,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, rng, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices()[i].y += diffToTarget*scale;
+    d_mesh.vertices_s()[2*i+1] += GradReal(diffToTarget*scale);
   }
   
   size_t colrsNum = (mesh.type == TRIANGLE_2D_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
@@ -466,7 +465,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, rng, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].x += diffToTarget*scale;
+    d_mesh.colors_s()[i*3+0] += GradReal(diffToTarget*scale);
 
     // d_green
     //
@@ -476,7 +475,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].y += diffToTarget*scale;
+    d_mesh.colors_s()[i*3+1] += GradReal(diffToTarget*scale);
 
     // d_blue
     //
@@ -486,7 +485,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, rng, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors()[i].z += diffToTarget*scale;
+    d_mesh.colors_s()[i*3+2] += GradReal(diffToTarget*scale);
   }
 
 }
@@ -522,7 +521,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       save_img(diffImage, path.c_str());
     }
     float3 summColor = SummOfPixels(diffImage); 
-    d_mesh.vertices()[i].x += (summColor.x + summColor.y + summColor.z);
+    d_mesh.vertices_s()[i*2+0] += GradReal(summColor.x + summColor.y + summColor.z);
     
     // dy
     //
@@ -540,7 +539,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       save_img(diffImage, path.c_str());
     }
     summColor = SummOfPixels(diffImage); 
-    d_mesh.vertices()[i].y += (summColor.x + summColor.y + summColor.z);
+    d_mesh.vertices_s()[i*2+1] += GradReal(summColor.x + summColor.y + summColor.z);
   }
   
   size_t colrsNum = (mesh.type == TRIANGLE_2D_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
@@ -565,7 +564,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       save_img(diffToTarget, path.c_str());
     }
     float3 summColor = SummOfPixels(diffToTarget); 
-    d_mesh.colors()[i].x += (summColor.x + summColor.y + summColor.z);
+    d_mesh.colors_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_green
     //
@@ -583,7 +582,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       save_img(diffToTarget, path.c_str());
     }
     summColor = SummOfPixels(diffToTarget); 
-    d_mesh.colors()[i].y += (summColor.x + summColor.y + summColor.z);
+    d_mesh.colors_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_blue
     //
@@ -601,7 +600,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       save_img(diffToTarget, path.c_str()); // 
     }
     summColor = SummOfPixels(diffToTarget); 
-    d_mesh.colors()[i].z += (summColor.x + summColor.y + summColor.z);
+    d_mesh.colors_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
 
 }

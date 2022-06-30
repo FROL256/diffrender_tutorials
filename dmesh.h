@@ -33,6 +33,8 @@ struct TriangleMesh
   MESH_TYPES type = TRIANGLE_2D_FACE_COL;
 };
 
+typedef float GradReal;
+
 struct DTriangleMesh 
 {
   DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_2D_FACE_COL) 
@@ -60,28 +62,34 @@ struct DTriangleMesh
 
   int numVerts() const { return m_numVertices; }
   int numFaces() const { return m_numFaces;    }
- 
-  float2*       vertices()       { return (float2*)m_allParams.data(); }
-  const float2* vertices() const { return (float2*)m_allParams.data(); }
+  
+  //////////////////////////////////////////////////////////////////////////////////
+  GradReal*       vertices_s()       { return m_allParams.data(); }
+  const GradReal* vertices_s() const { return m_allParams.data(); }
 
-  float3*       colors()       { return (float3*)(m_allParams.data() + m_colorOffset); }
-  const float3* colors() const { return (float3*)(m_allParams.data() + m_colorOffset); }
+  GradReal*       colors_s()       { return (m_allParams.data() + m_colorOffset); }
+  const GradReal* colors_s() const { return (m_allParams.data() + m_colorOffset); }
 
-  void clear() { memset(m_allParams.data(), 0, m_allParams.size()*sizeof(float)); }
+  float2 vert_at(int i)  const { return float2(float(vertices_s()[2*i+0]), float(vertices_s()[2*i+1])); }
+  float3 color_at(int i) const { return float3(float(colors_s()[3*i+0]), float(colors_s()[3*i+1]), float(colors_s()[3*i+2])); }
+
+  //////////////////////////////////////////////////////////////////////////////////
+
+  void clear() { for(auto& x : m_allParams) x = GradReal(0); }
   size_t totalParams() const { return m_allParams.size(); } 
 
   const MESH_TYPES getMeshType() const { return m_type; }
   MESH_TYPES m_type = TRIANGLE_2D_FACE_COL;
 
-  inline const float* getData() const { return m_allParams.data(); }
-  inline float*       getData()       { return m_allParams.data(); }
+  inline const GradReal* getData() const { return m_allParams.data(); }
+  inline GradReal*       getData()       { return m_allParams.data(); }
 
 protected:
 
-  std::vector<float> m_allParams;
-  int                m_colorOffset;
-  int                m_numVertices;
-  int                m_numFaces;
+  std::vector<GradReal> m_allParams;
+  int m_colorOffset;
+  int m_numVertices;
+  int m_numFaces;
 };
 
 using Img = LiteImage::Image2D<float3>;
