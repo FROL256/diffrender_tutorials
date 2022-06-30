@@ -186,21 +186,36 @@ void render(const TriangleMesh &mesh,
             int samples_per_pixel,
             mt19937 &rng,
             Img &img) {
+
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
-    for (int y = 0; y < img.height(); y++) { // for each pixel
-        for (int x = 0; x < img.width(); x++) {
-            for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
-                for (int dx = 0; dx < sqrt_num_samples; dx++) {
-                    auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
-                    auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
-                    auto screen_pos = float2{x + xoff, y + yoff};
-                    float2 uv;
-                    auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
-                    img[int2(x,y)] += color / samples_per_pixel; //#TODO: atomics
-                }
-            }
+
+    //#pragma omp parallel for collapse (2)
+    for (int y = 0; y < img.height(); y++) { // for each pixel 
+      for (int x = 0; x < img.width(); x++) {
+
+        for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
+          for (int dx = 0; dx < sqrt_num_samples; dx++) {
+
+            auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
+            auto yoff = (dy + uni_dist(rng)) / sqrt_num_samples;
+            auto screen_pos = float2{x + xoff, y + yoff};
+            float2 uv;
+            auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
+
+            auto& pixel = img[int2(x,y)];
+            auto  val   = color / samples_per_pixel;
+
+            #pragma omp atomic
+            pixel.x += val.x;
+            #pragma omp atomic
+            pixel.y += val.y;
+            #pragma omp atomic
+            pixel.z += val.z;
+          }
         }
+
+      }
     }
 }
 
@@ -212,8 +227,10 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
     
+    //#pragma omp parallel for collapse (2)
     for (int y = 0; y < adjoint.height(); y++) { // for each pixel
         for (int x = 0; x < adjoint.width(); x++) {
+
             for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
                 for (int dx = 0; dx < sqrt_num_samples; dx++) {
                     auto xoff = (dx + uni_dist(rng)) / sqrt_num_samples;
@@ -231,12 +248,42 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                         auto A = mesh.indices[faceIndex*3+0];
                         auto B = mesh.indices[faceIndex*3+1];
                         auto C = mesh.indices[faceIndex*3+2];
-                        d_colors[A] += uv.x*val;
-                        d_colors[B] += uv.y*val;
-                        d_colors[C] += (1.0f-uv.x-uv.y)*val;
+                        
+                        auto contribA = uv.x*val;
+                        auto contribB = uv.y*val;
+                        auto contribC = (1.0f-uv.x-uv.y)*val;
+
+                        #pragma omp atomic
+                        d_colors[A].x += contribA.x;
+                        #pragma omp atomic
+                        d_colors[A].y += contribA.y;
+                        #pragma omp atomic
+                        d_colors[A].z += contribA.z;
+                        
+                        #pragma omp atomic
+                        d_colors[B].x += contribB.x;
+                        #pragma omp atomic
+                        d_colors[B].y += contribB.y;
+                        #pragma omp atomic
+                        d_colors[B].z += contribB.z;
+                        
+                        #pragma omp atomic
+                        d_colors[C].x += contribC.x;
+                        #pragma omp atomic
+                        d_colors[C].y += contribC.y;
+                        #pragma omp atomic
+                        d_colors[C].z += contribC.z;
+
                       }
                       else
-                        d_colors[faceIndex] += val; // if running in parallel, use atomic add here.
+                      {
+                        #pragma omp atomic
+                        d_colors[faceIndex].x += val.x; 
+                        #pragma omp atomic
+                        d_colors[faceIndex].y += val.y;
+                        #pragma omp atomic
+                        d_colors[faceIndex].z += val.z;
+                      }
                     }
                 }
             }
@@ -254,7 +301,7 @@ void compute_edge_derivatives(
         Img* screen_dx, Img* screen_dy,
         float2* d_vertices, float3* d_colors = nullptr) {
 
-    
+    //#pragma omp parallel for 
     for (int i = 0; i < num_edge_samples; i++) 
     {
       // pick an edge
@@ -288,21 +335,15 @@ void compute_edge_derivatives(
       auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
       
       // if running in parallel, use atomic add here.
-      d_vertices[edge.v0] += d_v0;
-      d_vertices[edge.v1] += d_v1;
-
-      //if(mesh.type == TRIANGLE_2D_VERT_COL && (d_colors!= nullptr)) // it is important to check that we store colors per vertex, not per face!
-      //{
-      //  // auto c0 = mesh.colors[edge.v0];
-      //  // auto c1 = mesh.colors[edge.v1];
-      //  // auto c  = c0 + t * (c1 - c0);
-      //  // dc/dv0.x = (1 - t, 0), dc/dv0.y = (0, 1 - t)
-      //  // dc/dv1.x = (    t, 0), dc/dv1.y = (0,     t)
-      //  auto d_c0 = float3(1 - t) * adj * weight;  // * ????
-      //  auto d_c1 = float3(t)     * adj * weight;  // * ????
-      //  d_colors[edge.v0] += d_c0;
-      //  d_colors[edge.v1] += d_c1;
-      //}
+      #pragma omp atomic
+      d_vertices[edge.v0].x += d_v0.x;
+      #pragma omp atomic
+      d_vertices[edge.v0].y += d_v0.y;
+      
+      #pragma omp atomic
+      d_vertices[edge.v1].x += d_v1.x;
+      #pragma omp atomic
+      d_vertices[edge.v1].y += d_v1.y;
 
       if(screen_dx != nullptr && screen_dy != nullptr) 
       {
