@@ -119,7 +119,6 @@ void d_render(const TriangleMesh &mesh,
               const Img &adjoint,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
-              std::mt19937 &rng,
               Img* screen_dx,
               Img* screen_dy,
               DTriangleMesh &d_mesh);

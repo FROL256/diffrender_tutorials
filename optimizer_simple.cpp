@@ -1,6 +1,5 @@
 #include "optimizer.h"
 
-#include <random>
 #include <cassert>
 #include <iomanip>
 #include <iostream>
@@ -50,10 +49,9 @@ IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
 
 float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 {
-  constexpr int samples_per_pixel = 16;
+  const int samples_per_pixel = 16;
 
   Img img(256, 256);
-  std::mt19937 rng(1234);
   render(mesh, samples_per_pixel, img);
   
   std::stringstream strOut;
@@ -65,7 +63,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
-  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), rng, nullptr, nullptr, 
+  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), nullptr, nullptr, 
            gradMesh);
 
   m_iter++;
@@ -81,7 +79,7 @@ void OptSimple::Init(const TriangleMesh& a_mesh, const Img& a_image)
 
 TriangleMesh OptSimple::Run(size_t a_numIters) 
 { 
-  const size_t eachPassDescreasStep = a_numIters/10; 
+  const size_t eachPassDescreasStep = 30; //a_numIters/10; 
 
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
   float alphaPos   = 0.2f;
@@ -95,7 +93,7 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     opt_step(gradMesh, alphaPos, alphaColor, 
              &m_mesh);
     
-    if(iter > 100 && iter % eachPassDescreasStep == 0)
+    if(iter > 50 && iter % eachPassDescreasStep == 0)
     {
       alphaPos   = alphaPos*0.5f;
       alphaColor = alphaColor*0.75f;
