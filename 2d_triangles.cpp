@@ -202,18 +202,11 @@ void render(const TriangleMesh &mesh,
             auto xoff = (dx + 0.5f) / float(sqrt_num_samples);
             auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
             auto screen_pos = float2{x + xoff, y + yoff};
+            
             float2 uv;
             auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
 
-            auto& pixel = img[int2(x,y)];
-            auto  val   = color / samples_per_pixel;
-
-            #pragma omp atomic
-            pixel.x += val.x;
-            #pragma omp atomic
-            pixel.y += val.y;
-            #pragma omp atomic
-            pixel.z += val.z;
+            img[int2(x,y)] += (color / samples_per_pixel);
           }
         }
 
