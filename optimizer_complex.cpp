@@ -104,7 +104,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << pObj->m_iter << ".bmp";
   auto tempStr = strOut.str();
-  save_img(img, tempStr.c_str());
+  LiteImage::SaveImage(tempStr.c_str(), img);
 
   Img adjoint(img.width(), img.height(), float3{0, 0, 0});
   float mse = LossAndDiffLoss(img, pObj->m_targetImage, adjoint);

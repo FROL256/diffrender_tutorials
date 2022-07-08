@@ -126,7 +126,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       std::stringstream strOut;
       strOut << outFolder << "/" << "posx_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffImage, path.c_str());
+      LiteImage::SaveImage(path.c_str(), diffImage);
     }
     float3 summColor = SummOfPixels(diffImage); 
     d_mesh.vertices_s()[i*2+0] += GradReal(summColor.x + summColor.y + summColor.z);
@@ -144,7 +144,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       std::stringstream strOut;
       strOut << outFolder << "/" << "posy_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffImage, path.c_str());
+      LiteImage::SaveImage(path.c_str(), diffImage);
     }
     summColor = SummOfPixels(diffImage); 
     d_mesh.vertices_s()[i*2+1] += GradReal(summColor.x + summColor.y + summColor.z);
@@ -169,7 +169,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       std::stringstream strOut;
       strOut << outFolder << "/" << "colr_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffToTarget, path.c_str());
+      LiteImage::SaveImage(path.c_str(), diffToTarget);
     }
     float3 summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
@@ -187,7 +187,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       std::stringstream strOut;
       strOut << outFolder << "/" << "colg_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffToTarget, path.c_str());
+      LiteImage::SaveImage(path.c_str(), diffToTarget);
     }
     summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
@@ -205,7 +205,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       std::stringstream strOut;
       strOut << outFolder << "/" << "colb_" << i << ".bmp";
       auto path = strOut.str();
-      save_img(diffToTarget, path.c_str()); // 
+      LiteImage::SaveImage(path.c_str(), diffToTarget); // 
     }
     summColor = SummOfPixels(diffToTarget); 
     d_mesh.colors_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);

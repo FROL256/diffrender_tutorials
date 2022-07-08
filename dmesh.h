@@ -126,4 +126,3 @@ void d_render(const TriangleMesh &mesh,
 void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor, 
               TriangleMesh *mesh);
 
-void save_img(const Img &img, const char* filename);

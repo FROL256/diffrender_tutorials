@@ -116,15 +116,6 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
     return vector<Edge>(edges.begin(), edges.end());
 }
 
-void save_img(const Img &img, const char* filename)  
-{ 
-  Img copy(img.width(), img.height());
-  for(unsigned y=0;y<img.height();y++)
-    for(unsigned x=0;x<img.width();x++)
-      copy[uint2(x,y)] = clamp(abs(img[uint2(x,y)]), 0.0f, 1.0f);
-  LiteImage::SaveImage(filename, copy); 
-}
-
 static inline float edgeFunction(float2 a, float2 b, float2 c) // actuattly just a mixed product ... :)
 {
   return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -482,7 +473,7 @@ int main(int argc, char *argv[])
 
   img.clear(float3{0,0,0});
   render(targetMesh, SAM_PER_PIXEL, img);
-  save_img(img, "rendered_opt/z_target.bmp");
+  LiteImage::SaveImage("rendered_opt/z_target.bmp", img);
   
   #ifdef COMPLEX_OPT
   IOptimizer* pOpt = CreateComplexOptimizer();
@@ -495,7 +486,7 @@ int main(int argc, char *argv[])
   TriangleMesh mesh3 = pOpt->Run(300);
   img.clear(float3{0,0,0});
   render(mesh3, SAM_PER_PIXEL, img);
-  save_img(img, "rendered_opt/z_target2.bmp");
+  LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
   
   delete pOpt; pOpt = nullptr;
   return 0;
