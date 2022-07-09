@@ -26,7 +26,7 @@ using LiteMath::float4;
 // data structures for rendering
 struct TriangleMesh 
 {
-  std::vector<float2>     vertices;
+  std::vector<float3>     vertices;
   std::vector<unsigned>   indices;
   std::vector<float3>     colors; // defined for each face
 
@@ -50,13 +50,13 @@ struct DTriangleMesh
 
     if(m_type == TRIANGLE_2D_FACE_COL)
     {
-      m_allParams.resize(num_vertices*2 + num_faces*3);
-      m_colorOffset = num_vertices*2;
+      m_allParams.resize(num_vertices*3 + num_faces*3);
+      m_colorOffset = num_vertices*3;
     }
     else if(m_type == TRIANGLE_2D_VERT_COL)
     {
-      m_allParams.resize(num_vertices*2 + num_vertices*3);
-      m_colorOffset = num_vertices*2;
+      m_allParams.resize(num_vertices*3 + num_vertices*3);
+      m_colorOffset = num_vertices*3;
     }
   }
 
@@ -70,8 +70,8 @@ struct DTriangleMesh
   GradReal*       colors_s()       { return (m_allParams.data() + m_colorOffset); }
   const GradReal* colors_s() const { return (m_allParams.data() + m_colorOffset); }
 
-  float2 vert_at(int i)  const { return float2(float(vertices_s()[2*i+0]), float(vertices_s()[2*i+1])); }
-  float3 color_at(int i) const { return float3(float(colors_s()[3*i+0]), float(colors_s()[3*i+1]), float(colors_s()[3*i+2])); }
+  float3 vert_at(int i)  const { return float3(float(vertices_s()[3*i+0]), float(vertices_s()[3*i+1]), float(vertices_s()[3*i+2])); }
+  float3 color_at(int i) const { return float3(float(colors_s  ()[3*i+0]), float(colors_s  ()[3*i+1]), float(colors_s  ()[3*i+2])); }
 
   //////////////////////////////////////////////////////////////////////////////////
 

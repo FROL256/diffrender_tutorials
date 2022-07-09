@@ -134,9 +134,13 @@ float3 raytrace(const TriangleMesh &mesh, const float2 &screen_pos,
     auto B = mesh.indices[i+1];
     auto C = mesh.indices[i+2];
     
-    auto v0 = mesh.vertices[A];
-    auto v1 = mesh.vertices[B];
-    auto v2 = mesh.vertices[C];
+    auto v0_3d = mesh.vertices[A];
+    auto v1_3d = mesh.vertices[B];
+    auto v2_3d = mesh.vertices[C];
+
+    float2 v0 = float2(v0_3d.x, v0_3d.y);
+    float2 v1 = float2(v1_3d.x, v1_3d.y);
+    float2 v2 = float2(v2_3d.x, v2_3d.y);
 
     // form three half-planes: v1-v0, v2-v1, v0-v2
     // if a point is on the same side of all three half-planes, it's inside the triangle.
@@ -300,8 +304,12 @@ void compute_edge_derivatives(
       auto edge = edges[edge_id];
       auto pmf = edge_sampler.pmf[edge_id];
       // pick a point p on the edge
-      auto v0 = mesh.vertices[edge.v0];
-      auto v1 = mesh.vertices[edge.v1];
+      auto v0_3d = mesh.vertices[edge.v0];
+      auto v1_3d = mesh.vertices[edge.v1];
+
+      auto v0 = float2(v0_3d.x, v0_3d.y);
+      auto v1 = float2(v1_3d.x, v1_3d.y);
+
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
@@ -322,19 +330,27 @@ void compute_edge_derivatives(
       // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
       // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
       // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
+      
       auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
       auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
       
+      //auto d_v0 = float3{(1 - t) * n.x, (1 - t) * n.y, (1 - t) * n.z} * adj * weight;
+      //auto d_v1 = float3{     t  * n.x,      t  * n.y,      t  * n.z} * adj * weight;
+
       // if running in parallel, use atomic add here.
       #pragma omp atomic
-      d_vertices[edge.v0*2+0] += GradReal(d_v0.x);
+      d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
       #pragma omp atomic
-      d_vertices[edge.v0*2+1] += GradReal(d_v0.y);
+      d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
+      //#pragma omp atomic
+      //d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
       
       #pragma omp atomic
-      d_vertices[edge.v1*2+0] += GradReal(d_v1.x);
+      d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
       #pragma omp atomic
-      d_vertices[edge.v1*2+1] += GradReal(d_v1.y);
+      d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
+      //#pragma omp atomic
+      //d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
 
       if(screen_dx != nullptr && screen_dy != nullptr) 
       {

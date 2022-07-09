@@ -47,7 +47,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices_s()[i*2+0] += GradReal(diffToTarget*scale);
+    d_mesh.vertices_s()[i*3+0] += GradReal(diffToTarget*scale);
     
     // dy
     //
@@ -57,7 +57,10 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     render(copy, SAM_PER_PIXEL, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices_s()[2*i+1] += GradReal(diffToTarget*scale);
+    d_mesh.vertices_s()[3*i+1] += GradReal(diffToTarget*scale);
+
+    // dz #TODO: implement
+    //
   }
   
   size_t colrsNum = (mesh.type == TRIANGLE_2D_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
@@ -129,7 +132,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       LiteImage::SaveImage(path.c_str(), diffImage);
     }
     float3 summColor = SummOfPixels(diffImage); 
-    d_mesh.vertices_s()[i*2+0] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.vertices_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
     
     // dy
     //
@@ -147,7 +150,10 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
       LiteImage::SaveImage(path.c_str(), diffImage);
     }
     summColor = SummOfPixels(diffImage); 
-    d_mesh.vertices_s()[i*2+1] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.vertices_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
+
+    // dy #TODO: implement
+    //
   }
   
   size_t colrsNum = (mesh.type == TRIANGLE_2D_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
