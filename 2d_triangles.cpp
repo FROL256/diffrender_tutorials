@@ -8,7 +8,6 @@
 #include <omp.h>
 
 #include "LiteMath.h"
-using namespace LiteMath;
 
 #ifdef WIN32
   #include <direct.h>     // for windows mkdir
@@ -21,6 +20,8 @@ using namespace LiteMath;
 #include <iomanip>
 
 #include "dmesh.h"
+#include "raytrace.h"
+
 #include "optimizer.h"
 #include "scenes.h"
 
@@ -43,13 +44,13 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-float2 normal(const float2 &v) {return float2{-v.y, v.x};} // Vec2f normal(const Vec2f &v) {return Vec2f{-v.y, v.x};}
-
 constexpr static int SAM_PER_PIXEL = 16;
 constexpr static int MAXTHREADS    = 8;
 
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
+
+std::shared_ptr<IRayTracer> g_tracer = nullptr;
 
 /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////
@@ -116,76 +117,34 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
     return vector<Edge>(edges.begin(), edges.end());
 }
 
-static inline float edgeFunction(float2 a, float2 b, float2 c) // actuattly just a mixed product ... :)
-{
-  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-}
 
-// trace a single ray at screen_pos, intersect with the triangle mesh.
-float3 raytrace(const TriangleMesh &mesh, const float2 &screen_pos,
-                unsigned *out_faceIndex = nullptr, float2* uv = nullptr) 
-{
 
-  // loop over all triangles in a mesh, return the first one that hits
-  for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
+inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
+{
+  if (surfInfo.faceId == unsigned(-1))
+    return float3(0,0,0); // BGCOLOR
+
+  if(mesh.type == TRIANGLE_2D_VERT_COL)
   {
-    // retrieve the three vertices of a triangle
-    auto A = mesh.indices[i+0];
-    auto B = mesh.indices[i+1];
-    auto C = mesh.indices[i+2];
-    
-    auto v0_3d = mesh.vertices[A];
-    auto v1_3d = mesh.vertices[B];
-    auto v2_3d = mesh.vertices[C];
-
-    float2 v0 = float2(v0_3d.x, v0_3d.y);
-    float2 v1 = float2(v1_3d.x, v1_3d.y);
-    float2 v2 = float2(v2_3d.x, v2_3d.y);
-
-    // form three half-planes: v1-v0, v2-v1, v0-v2
-    // if a point is on the same side of all three half-planes, it's inside the triangle.
-    auto n01 = normal(v1 - v0);
-    auto n12 = normal(v2 - v1);
-    auto n20 = normal(v0 - v2);
-    
-    const bool side01 = dot(screen_pos - v0, n01) > 0;
-    const bool side12 = dot(screen_pos - v1, n12) > 0;
-    const bool side20 = dot(screen_pos - v2, n20) > 0;
-    if ((side01 && side12 && side20) || (!side01 && !side12 && !side20)) 
-    {
-      if (out_faceIndex != nullptr) 
-        *out_faceIndex = i/3; // because we store face id here
-      
-      const float areaInv = 1.0f / edgeFunction(v0, v1, v2); 
-      const float e0      = edgeFunction(v0, v1, screen_pos);
-      const float e1      = edgeFunction(v1, v2, screen_pos);
-      const float e2      = edgeFunction(v2, v0, screen_pos);
-      const float u = e1*areaInv; // v0
-      const float v = e2*areaInv; // v1 
-
-      if(uv != nullptr)
-        *uv = float2(u,v);
-
-      if(mesh.type == TRIANGLE_2D_VERT_COL)
-        return mesh.colors[A]*u + mesh.colors[B]*v + (1.0f-u-v)*mesh.colors[C]; 
-      else
-        return mesh.colors[i/3]; 
-    }
+    const auto  A = mesh.indices[surfInfo.faceId*3+0];
+    const auto  B = mesh.indices[surfInfo.faceId*3+1];
+    const auto  C = mesh.indices[surfInfo.faceId*3+2];
+    const float u = surfInfo.u;
+    const float v = surfInfo.v;
+    return mesh.colors[A]*u + mesh.colors[B]*v + (1.0f-u-v)*mesh.colors[C]; 
   }
-
-  // return background
-  if (out_faceIndex != nullptr)
-    *out_faceIndex = unsigned(-1);
-
-  return float3{0, 0, 0};
+  else
+    return mesh.colors[surfInfo.faceId]; 
 }
 
-void render(const TriangleMesh &mesh,
-            int samples_per_pixel,
+
+void render(const TriangleMesh &mesh, int samples_per_pixel,
             Img &img) {
 
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
+
+    g_tracer->Init(&mesh);
 
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
@@ -198,8 +157,8 @@ void render(const TriangleMesh &mesh,
             auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
             auto screen_pos = float2{x + xoff, y + yoff};
             
-            float2 uv;
-            auto color = raytrace(mesh, screen_pos, nullptr, &uv);     
+            auto surf  = g_tracer->CastSingleRay(screen_pos.x, screen_pos.y);
+            auto color = shade(mesh, surf);
 
             img[int2(x,y)] += (color / samples_per_pixel);
           }
@@ -224,23 +183,25 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
         {         
           float xoff = g_hammSamples[2*samId+0];
           float yoff = g_hammSamples[2*samId+1];
-          auto screen_pos = float2{x + xoff, y + yoff};
-          
-          float2 uv; unsigned faceIndex = unsigned(-1);
-          raytrace(mesh, screen_pos, &faceIndex, &uv);
+
+          //auto screen_pos = float2{x + xoff, y + yoff};
+          //float2 uv; unsigned faceIndex = unsigned(-1);
+          //raytrace(mesh, screen_pos, &faceIndex, &uv);
+
+          auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff);
                     
-          if (faceIndex != unsigned(-1)) 
+          if (surfElem.faceId != unsigned(-1)) 
           {          
             auto val = adjoint[int2(x,y)] / samples_per_pixel;
             if(mesh.type == TRIANGLE_2D_VERT_COL)
             {
-              auto A = mesh.indices[faceIndex*3+0];
-              auto B = mesh.indices[faceIndex*3+1];
-              auto C = mesh.indices[faceIndex*3+2];
+              auto A = mesh.indices[surfElem.faceId*3+0];
+              auto B = mesh.indices[surfElem.faceId*3+1];
+              auto C = mesh.indices[surfElem.faceId*3+2];
               
-              auto contribA = uv.x*val;
-              auto contribB = uv.y*val;
-              auto contribC = (1.0f-uv.x-uv.y)*val;
+              auto contribA = surfElem.u*val;
+              auto contribB = surfElem.v*val;
+              auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
               #pragma omp atomic
               d_colors[A*3+0] += GradReal(contribA.x);
               #pragma omp atomic
@@ -265,11 +226,11 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             else
             {
               #pragma omp atomic
-              d_colors[faceIndex*3+0] += GradReal(val.x); 
+              d_colors[surfElem.faceId*3+0] += GradReal(val.x); 
               #pragma omp atomic
-              d_colors[faceIndex*3+1] += GradReal(val.y);
+              d_colors[surfElem.faceId*3+1] += GradReal(val.y);
               #pragma omp atomic
-              d_colors[faceIndex*3+2] += GradReal(val.z);
+              d_colors[surfElem.faceId*3+2] += GradReal(val.z);
             }
           } //if (faceIndex != unsigned(-1))         
                
@@ -318,9 +279,22 @@ void compute_edge_derivatives(
           continue;
       }
       // sample the two sides of the edge
-      auto n         = normal((v1 - v0) / length(v1 - v0));
-      auto color_in  = raytrace(mesh, p - 1e-3f * n);
-      auto color_out = raytrace(mesh, p + 1e-3f * n);
+      auto n = normal2D((v1 - v0) / length(v1 - v0));
+
+      //float2 uvIn, uvOut;
+      //unsigned faceIdIn = unsigned(-1), faceIdOut = unsigned(-1); 
+      //raytrace(mesh, p - 1e-3f * n, &faceIdIn,  &uvIn);
+      //raytrace(mesh, p + 1e-3f * n, &faceIdOut, &uvOut);
+      
+      const float2 coordIn  = p - 1e-3f * n;
+      const float2 coordOut = p + 1e-3f * n;
+      
+      const auto surfIn    = g_tracer->CastSingleRay(coordIn.x, coordIn.y);
+      const auto surfOut   = g_tracer->CastSingleRay(coordOut.x, coordOut.y);
+
+      const auto color_in  = shade(mesh, surfIn);
+      const auto color_out = shade(mesh, surfOut);
+
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
       float pdf    = pmf  / (length(v1 - v0));
@@ -372,7 +346,11 @@ void d_render(const TriangleMesh &mesh,
               Img* screen_dx,
               Img* screen_dy,
               DTriangleMesh &d_mesh) {
-    
+
+  // (0) Build Acceleration structurres and e.t.c. if needed
+  //
+  g_tracer->Init(&mesh);
+
   // (1)
   //
   compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, 
@@ -454,6 +432,8 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   scn02_TwoTrisSmooth(initialMesh, targetMesh);
+
+  g_tracer = MakeRayTracer2D("");
   
   if(0) // check gradients with finite difference method
   {
@@ -485,7 +465,6 @@ int main(int argc, char *argv[])
     std::cout << "GradError(Total) = " << totalError/double(grad1.totalParams()) << std::endl;
     return 0;
   }
-
 
   img.clear(float3{0,0,0});
   render(targetMesh, SAM_PER_PIXEL, img);
