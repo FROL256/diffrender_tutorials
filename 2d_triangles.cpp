@@ -481,8 +481,8 @@ void compute_edge_derivatives(
       
       if(a_3dProj) 
       {
-        auto d_v0 = float3{(1 - t) * n.x, (1 - t) * n.y, (1 - t) * 1.0f} * adj * weight;
-        auto d_v1 = float3{     t  * n.x,      t  * n.y,      t  * 1.0f} * adj * weight;
+        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
+        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
 
         float3 v0_dx(0,0,0), v0_dy(0,0,0);
         float3 v1_dx(0,0,0), v1_dy(0,0,0);
@@ -493,28 +493,29 @@ void compute_edge_derivatives(
         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
         
-        d_v0.x *= v0_dx.x;
-        d_v0.y *= v0_dy.y;
-        d_v0.z *= 0.5f*(v0_dx.z + v0_dy.z); 
+        const float dv0_dx = v0_dx.x*d_v0.x;
+        const float dv0_dy = v0_dy.y*d_v0.y;
+        const float dv0_dz = (1 - t)*(v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); // / (-200.0f);
+
+        const float dv1_dx = v1_dx.x*d_v1.x;
+        const float dv1_dy = v1_dy.y*d_v1.y;
+        const float dv1_dz = t*(v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); // / (-200.0f);
         
-        d_v1.x *= v1_dx.x;
-        d_v1.y *= v1_dy.y;
-        d_v1.z *= 0.5f*(v1_dx.z + v1_dy.z); 
   
         // if running in parallel, use atomic add here.
         #pragma omp atomic
-        d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
+        d_vertices[edge.v0*3+0] += GradReal(dv0_dx);
         #pragma omp atomic
-        d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
+        d_vertices[edge.v0*3+1] += GradReal(dv0_dy);
         #pragma omp atomic
-        d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
+        d_vertices[edge.v0*3+2] += GradReal(dv0_dz);
         
         #pragma omp atomic
-        d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
+        d_vertices[edge.v1*3+0] += GradReal(dv1_dx);
         #pragma omp atomic
-        d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
+        d_vertices[edge.v1*3+1] += GradReal(dv1_dy);
         #pragma omp atomic
-        d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
+        d_vertices[edge.v1*3+2] += GradReal(dv1_dz);
       }
       else
       {
@@ -654,8 +655,8 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Pyramid3D(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  scn03_Pyramid3D(initialMesh, targetMesh);
 
   g_tracer = MakeRayTracer2D("");
   
