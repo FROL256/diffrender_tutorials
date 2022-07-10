@@ -495,11 +495,11 @@ void compute_edge_derivatives(
         
         const float dv0_dx = v0_dx.x*d_v0.x;
         const float dv0_dy = v0_dy.y*d_v0.y;
-        const float dv0_dz = (1 - t)*(v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); // / (-200.0f);
+        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); // / (-190.0f);
 
         const float dv1_dx = v1_dx.x*d_v1.x;
         const float dv1_dy = v1_dy.y*d_v1.y;
-        const float dv1_dz = t*(v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); // / (-200.0f);
+        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); // / (-190.0f);
         
   
         // if running in parallel, use atomic add here.
