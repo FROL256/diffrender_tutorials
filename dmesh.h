@@ -39,17 +39,21 @@ struct DTriangleMesh
 {
   DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_FACE_COL, GEOM_TYPE a_gType = TRIANGLE_2D) 
   {
-    resize(num_vertices, num_faces);
     m_meshType = a_meshType;
     m_geomType = a_gType;
+    resize(num_vertices, num_faces);
   }
 
   void resize(int num_vertices, int num_faces)
   {
     m_numVertices = num_vertices;
     m_numFaces    = num_faces;  
-
-    m_allParams.resize(num_vertices*3 + num_faces*3);
+    
+    if(m_meshType == TRIANGLE_VERT_COL)
+      m_allParams.resize(num_vertices*3 + num_vertices*3);
+    else
+      m_allParams.resize(num_vertices*3 + num_faces*3);
+  
     m_colorOffset = num_vertices*3;
   }
 

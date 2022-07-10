@@ -179,6 +179,9 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
     return mesh.colors[surfInfo.faceId]; 
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 float VS_X(float V[3], const Uniforms& data)
 {
   const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
@@ -192,6 +195,113 @@ float VS_Y(float V[3], const Uniforms& data)
   const float xNDC = -V[1]/W;
   return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
 }
+
+void VS_X_grad(float V[3], const Uniforms &data, float _d_V[3]) 
+{
+    float _t0;
+    float _t1;
+    float _t2;
+    float _t3;
+    float _t4;
+    float _t5;
+    float _d_W = 0;
+    float _t6;
+    float _t7;
+    float _d_xNDC = 0;
+    float _t8;
+    float _t9;
+    _t1 = V[0];
+    _t0 = data.projM[3];
+    _t3 = V[1];
+    _t2 = data.projM[7];
+    _t5 = V[2];
+    _t4 = data.projM[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t7 = V[0];
+    _t6 = W;
+    const float xNDC = _t7 / _t6;
+    _t9 = (xNDC * 0.5F + 0.5F);
+    _t8 = data.width;
+    float VS_X_return = _t9 * _t8 - 0.5F;
+    {
+        float _r8 = 1 * _t8;
+        float _r9 = _r8 * 0.5F;
+        _d_xNDC += _r9;
+        float _r10 = _t9 * 1;
+    }
+    {
+        float _r6 = _d_xNDC / _t6;
+        _d_V[0] += _r6;
+        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
+        _d_W += _r7;
+    }
+    {
+        float _r0 = _d_W * _t0;
+        _d_V[0] += _r0;
+        float _r1 = _t1 * _d_W;
+        float _r2 = _d_W * _t2;
+        _d_V[1] += _r2;
+        float _r3 = _t3 * _d_W;
+        float _r4 = _d_W * _t4;
+        _d_V[2] += _r4;
+        float _r5 = _t5 * _d_W;
+    }
+}
+
+void VS_Y_grad(float V[3], const Uniforms &data, float _d_V[3]) 
+{
+    float _t0;
+    float _t1;
+    float _t2;
+    float _t3;
+    float _t4;
+    float _t5;
+    float _d_W = 0;
+    float _t6;
+    float _t7;
+    float _d_xNDC = 0;
+    float _t8;
+    float _t9;
+    _t1 = V[0];
+    _t0 = data.projM[3];
+    _t3 = V[1];
+    _t2 = data.projM[7];
+    _t5 = V[2];
+    _t4 = data.projM[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t7 = -V[1];
+    _t6 = W;
+    const float xNDC = _t7 / _t6;
+    _t9 = (xNDC * 0.5F + 0.5F);
+    _t8 = data.height;
+    float VS_Y_return = _t9 * _t8 - 0.5F;
+    {
+        float _r8 = 1 * _t8;
+        float _r9 = _r8 * 0.5F;
+        _d_xNDC += _r9;
+        float _r10 = _t9 * 1;
+    }
+    {
+        float _r6 = _d_xNDC / _t6;
+        _d_V[1] += -_r6;
+        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
+        _d_W += _r7;
+    }
+    {
+        float _r0 = _d_W * _t0;
+        _d_V[0] += _r0;
+        float _r1 = _t1 * _d_W;
+        float _r2 = _d_W * _t2;
+        _d_V[1] += _r2;
+        float _r3 = _t3 * _d_W;
+        float _r4 = _d_W * _t4;
+        _d_V[2] += _r4;
+        float _r5 = _t5 * _d_W;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void render(const TriangleMesh &mesh, int samples_per_pixel,
             Img &img) 
@@ -262,7 +372,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
           if (surfElem.faceId != unsigned(-1)) 
           {          
             auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            if(mesh.m_meshType == TRIANGLE_VERT_COL)
+            if(mesh.m_meshType == TRIANGLE_VERT_COL)                // shade_back( => val)
             {
               auto A = mesh.indices[surfElem.faceId*3+0];
               auto B = mesh.indices[surfElem.faceId*3+1];
@@ -313,7 +423,7 @@ void compute_edge_derivatives(
         const vector<Edge> &edges,
         const Sampler &edge_sampler,
         const Img &adjoint,
-        const int num_edge_samples,
+        const int num_edge_samples, bool a_3dProj,
         Img* screen_dx, Img* screen_dy,
         GradReal* d_vertices) 
 {
@@ -349,11 +459,6 @@ void compute_edge_derivatives(
       }
       // sample the two sides of the edge
       auto n = normal2D((v1 - v0) / length(v1 - v0));
-
-      //float2 uvIn, uvOut;
-      //unsigned faceIdIn = unsigned(-1), faceIdOut = unsigned(-1); 
-      //raytrace(mesh, p - 1e-3f * n, &faceIdIn,  &uvIn);
-      //raytrace(mesh, p + 1e-3f * n, &faceIdOut, &uvOut);
       
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
@@ -374,37 +479,70 @@ void compute_edge_derivatives(
       // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
       // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
       
-      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
-      
-      //auto d_v0 = float3{(1 - t) * n.x, (1 - t) * n.y, (1 - t) * n.z} * adj * weight;
-      //auto d_v1 = float3{     t  * n.x,      t  * n.y,      t  * n.z} * adj * weight;
-
-      // if running in parallel, use atomic add here.
-      #pragma omp atomic
-      d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
-      #pragma omp atomic
-      d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
-      //#pragma omp atomic
-      //d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
-      
-      #pragma omp atomic
-      d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
-      #pragma omp atomic
-      d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
-      //#pragma omp atomic
-      //d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
-
-      if(screen_dx != nullptr && screen_dy != nullptr) 
+      if(a_3dProj) 
       {
-        // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
-        // the screen space derivatives are the negation of this
-        auto dx = -n.x * (color_in - color_out) * weight;
-        auto dy = -n.y * (color_in - color_out) * weight;
-        // scatter gradients to buffers, in the parallel case, use atomic add here.
-        (*screen_dx)[int2(xi, yi)] += dx;
-        (*screen_dy)[int2(xi, yi)] += dy;
+        auto d_v0 = float3{(1 - t) * n.x, (1 - t) * n.y, (1 - t) * 1.0f} * adj * weight;
+        auto d_v1 = float3{     t  * n.x,      t  * n.y,      t  * 1.0f} * adj * weight;
+
+        float3 v0_dx(0,0,0), v0_dy(0,0,0);
+        float3 v1_dx(0,0,0), v1_dy(0,0,0);
+
+        VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
+        VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
+
+        VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
+        VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
+
+        d_v0.x *= v0_dx.x;
+        d_v0.y *= v0_dy.y;
+        d_v0.z *= 0.5f*(v0_dx.z + v0_dy.z); 
+
+        d_v1.x *= v1_dx.x;
+        d_v1.y *= v1_dy.y;
+        d_v1.z *= 0.5f*(v1_dx.z + v1_dy.z); 
+  
+        // if running in parallel, use atomic add here.
+        #pragma omp atomic
+        d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
+        #pragma omp atomic
+        d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
+        //#pragma omp atomic
+        //d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
+        
+        #pragma omp atomic
+        d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
+        #pragma omp atomic
+        d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
+        //#pragma omp atomic
+        //d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
       }
+      else
+      {
+        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
+        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
+  
+        // if running in parallel, use atomic add here.
+        #pragma omp atomic
+        d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
+        #pragma omp atomic
+        d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
+        
+        #pragma omp atomic
+        d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
+        #pragma omp atomic
+        d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
+      }
+
+      //if(screen_dx != nullptr && screen_dy != nullptr) 
+      //{
+      //  // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
+      //  // the screen space derivatives are the negation of this
+      //  auto dx = -n.x * (color_in - color_out) * weight;
+      //  auto dy = -n.y * (color_in - color_out) * weight;
+      //  // scatter gradients to buffers, in the parallel case, use atomic add here.
+      //  (*screen_dx)[int2(xi, yi)] += dx;
+      //  (*screen_dy)[int2(xi, yi)] += dy;
+      //}
     }    
 }
 
@@ -416,20 +554,34 @@ void d_render(const TriangleMesh &mesh,
               Img* screen_dy,
               DTriangleMesh &d_mesh) {
 
+  const TriangleMesh* pMesh = &mesh;
+    
+  TriangleMesh localMesh;
+  if(mesh.m_geomType == TRIANGLE_3D)
+  {
+    localMesh = mesh;
+    for(auto& v : localMesh.vertices) {
+      v.x = VS_X(v.M, g_uniforms);
+      v.y = VS_Y(v.M, g_uniforms);
+    }
+    localMesh.m_geomType = TRIANGLE_2D;
+    pMesh = &localMesh;
+  }
+  
   // (0) Build Acceleration structurres and e.t.c. if needed
   //
-  g_tracer->Init(&mesh);
+  g_tracer->Init(pMesh);
 
   // (1)
   //
-  compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, 
+  compute_interior_derivatives(*pMesh, interior_samples_per_pixel, adjoint, 
                                d_mesh.colors_s());
     
   // (2)
   //
-  auto edges        = collect_edges(mesh);
-  auto edge_sampler = build_edge_sampler(mesh, edges);
-  compute_edge_derivatives(mesh, edges, edge_sampler, adjoint, edge_samples_in_total,
+  auto edges        = collect_edges(*pMesh);
+  auto edge_sampler = build_edge_sampler(*pMesh, edges);
+  compute_edge_derivatives(*pMesh, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == TRIANGLE_3D),
                            screen_dx, screen_dy, d_mesh.vertices_s());
 }
 
@@ -471,8 +623,6 @@ float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
 void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
                DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
 
-void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
-                DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -504,12 +654,12 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Pyramid3D(initialMesh, targetMesh);
+  scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn03_Pyramid3D(initialMesh, targetMesh);
 
   g_tracer = MakeRayTracer2D("");
   
-  if(1)
+  if(0)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
@@ -520,7 +670,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
@@ -529,19 +679,18 @@ int main(int argc, char *argv[])
     
     DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-    DTriangleMesh grad3(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
 
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
+    
+    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 1.0f/float(img.width());
 
-    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, 1.0f, 0.01f);
-    d_finDiff (initialMesh, "fin_diff", img, target, grad3, 1.0f, 0.01f);
+    d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
     double totalError = 0.0;
     for(size_t i=0;i<grad1.totalParams();i++) {
       std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.getData()[i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.getData()[i] << "\t";
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad3.getData()[i] << std::endl; 
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.getData()[i] << std::endl;
       double diff = double(grad1.getData()[i] - grad2.getData()[i]);
       totalError += std::abs(diff);
     }
