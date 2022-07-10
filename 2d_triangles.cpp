@@ -124,7 +124,7 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
   if (surfInfo.faceId == unsigned(-1))
     return float3(0,0,0); // BGCOLOR
 
-  if(mesh.type == TRIANGLE_2D_VERT_COL)
+  if(mesh.m_meshType == TRIANGLE_VERT_COL)
   {
     const auto  A = mesh.indices[surfInfo.faceId*3+0];
     const auto  B = mesh.indices[surfInfo.faceId*3+1];
@@ -193,7 +193,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
           if (surfElem.faceId != unsigned(-1)) 
           {          
             auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            if(mesh.type == TRIANGLE_2D_VERT_COL)
+            if(mesh.m_meshType == TRIANGLE_VERT_COL)
             {
               auto A = mesh.indices[surfElem.faceId*3+0];
               auto B = mesh.indices[surfElem.faceId*3+1];
@@ -442,9 +442,9 @@ int main(int argc, char *argv[])
     render(initialMesh, SAM_PER_PIXEL, img);
     render(targetMesh, SAM_PER_PIXEL, target);
     
-    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
-    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
-    DTriangleMesh grad3(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.type);
+    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    DTriangleMesh grad3(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
 
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);

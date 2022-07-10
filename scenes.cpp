@@ -40,7 +40,7 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5}
   };
   
-  mesh.type = TRIANGLE_2D_VERT_COL;
+  mesh.m_meshType = TRIANGLE_VERT_COL;
   mesh.colors.resize(mesh.vertices.size());
   for(size_t i=0;i<mesh.vertices.size();i++)
      mesh.colors[i] = float3{0.3, 0.5, 0.3};
@@ -56,7 +56,7 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5},
   };
 
-  mesh2.type = TRIANGLE_2D_VERT_COL;
+  mesh2.m_meshType = TRIANGLE_VERT_COL;
   mesh2.colors.resize(mesh.vertices.size());
 
   mesh2.colors[0] = float3(1,0,0);

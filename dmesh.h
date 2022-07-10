@@ -10,14 +10,13 @@
 #include "Image2d.h"
 
 enum MESH_TYPES {
-    TRIANGLE_2D_FACE_COL = 1,
-    TRIANGLE_2D_VERT_COL = 2,
-    TRIANGLE_2D_DIFF_TEX = 3,
-    
-    TRIANGLE_3D_FACE_COL = 4,
-    TRIANGLE_3D_VERT_COL = 5,
-    TRIANGLE_3D_DIFF_TEX = 6,
+    TRIANGLE_FACE_COL = 1,
+    TRIANGLE_VERT_COL = 2,
+    TRIANGLE_DIFF_TEX = 3,
 };
+
+enum GEOM_TYPE { TRIANGLE_2D = 0, 
+                 TRIANGLE_3D = 1};
 
 using LiteMath::float2;
 using LiteMath::float3;
@@ -30,34 +29,28 @@ struct TriangleMesh
   std::vector<unsigned>   indices;
   std::vector<float3>     colors; // defined for each face
 
-  MESH_TYPES type = TRIANGLE_2D_FACE_COL;
+  MESH_TYPES m_meshType = TRIANGLE_FACE_COL;
+  GEOM_TYPE  m_geomType = TRIANGLE_2D;
 };
 
 typedef float GradReal;
 
 struct DTriangleMesh 
 {
-  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_2D_FACE_COL) 
+  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_FACE_COL, GEOM_TYPE a_gType = TRIANGLE_2D) 
   {
-    resize(num_vertices, num_faces, a_meshType);
+    resize(num_vertices, num_faces);
+    m_meshType = a_meshType;
+    m_geomType = a_gType;
   }
 
-  void resize(int num_vertices, int num_faces, MESH_TYPES a_meshType)
+  void resize(int num_vertices, int num_faces)
   {
-    m_type = a_meshType;
     m_numVertices = num_vertices;
     m_numFaces    = num_faces;  
 
-    if(m_type == TRIANGLE_2D_FACE_COL)
-    {
-      m_allParams.resize(num_vertices*3 + num_faces*3);
-      m_colorOffset = num_vertices*3;
-    }
-    else if(m_type == TRIANGLE_2D_VERT_COL)
-    {
-      m_allParams.resize(num_vertices*3 + num_vertices*3);
-      m_colorOffset = num_vertices*3;
-    }
+    m_allParams.resize(num_vertices*3 + num_faces*3);
+    m_colorOffset = num_vertices*3;
   }
 
   int numVerts() const { return m_numVertices; }
@@ -78,8 +71,9 @@ struct DTriangleMesh
   void clear() { for(auto& x : m_allParams) x = GradReal(0); }
   size_t totalParams() const { return m_allParams.size(); } 
 
-  const MESH_TYPES getMeshType() const { return m_type; }
-  MESH_TYPES m_type = TRIANGLE_2D_FACE_COL;
+  const MESH_TYPES getMeshType() const { return m_meshType; }
+  MESH_TYPES m_meshType = TRIANGLE_FACE_COL;
+  GEOM_TYPE  m_geomType = TRIANGLE_2D;
 
   inline const GradReal* getData() const { return m_allParams.data(); }
   inline GradReal*       getData()       { return m_allParams.data(); }
