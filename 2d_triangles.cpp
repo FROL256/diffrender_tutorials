@@ -456,6 +456,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
 
 void compute_edge_derivatives(
         const TriangleMesh &mesh,
+        const TriangleMesh &mesh3d,
         const vector<Edge> &edges,
         const Sampler &edge_sampler,
         const Img &adjoint,
@@ -482,11 +483,11 @@ void compute_edge_derivatives(
       auto edge = edges[edge_id];
       auto pmf = edge_sampler.pmf[edge_id];
       // pick a point p on the edge
-      auto v0_3d = mesh.vertices[edge.v0];
-      auto v1_3d = mesh.vertices[edge.v1];
+      auto v03 = mesh.vertices[edge.v0];
+      auto v13 = mesh.vertices[edge.v1];
 
-      auto v0 = float2(v0_3d.x, v0_3d.y);
-      auto v1 = float2(v1_3d.x, v1_3d.y);
+      auto v0 = float2(v03.x, v03.y);
+      auto v1 = float2(v13.x, v13.y);
 
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
@@ -525,6 +526,9 @@ void compute_edge_derivatives(
         float3 v0_dx(0,0,0), v0_dy(0,0,0);
         float3 v1_dx(0,0,0), v1_dy(0,0,0);
         
+        float3 v0_3d = mesh3d.vertices[edge.v0];
+        float3 v1_3d = mesh3d.vertices[edge.v1];
+
         VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
         VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
         
@@ -602,7 +606,7 @@ void compute_edge_derivatives(
       //}
     }    
 
-    //std::cout << "maxError = " << maxRelativeError*100.0f << "%" << std::endl;
+    //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
 }
 
 void d_render(const TriangleMesh &mesh,
@@ -614,6 +618,7 @@ void d_render(const TriangleMesh &mesh,
               DTriangleMesh &d_mesh) {
 
   const TriangleMesh* pMesh = &mesh;
+  const TriangleMesh copy = mesh;
     
   TriangleMesh localMesh;
   if(mesh.m_geomType == TRIANGLE_3D)
@@ -640,7 +645,7 @@ void d_render(const TriangleMesh &mesh,
   //
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
-  compute_edge_derivatives(*pMesh, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == TRIANGLE_3D),
+  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == TRIANGLE_3D),
                            screen_dx, screen_dy, d_mesh.vertices_s());
 }
 
