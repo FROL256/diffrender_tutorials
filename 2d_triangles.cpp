@@ -486,17 +486,17 @@ void compute_edge_derivatives(
 
         float3 v0_dx(0,0,0), v0_dy(0,0,0);
         float3 v1_dx(0,0,0), v1_dy(0,0,0);
-
+        
         VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
         VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
-
+        
         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
-
+        
         d_v0.x *= v0_dx.x;
         d_v0.y *= v0_dy.y;
         d_v0.z *= 0.5f*(v0_dx.z + v0_dy.z); 
-
+        
         d_v1.x *= v1_dx.x;
         d_v1.y *= v1_dy.y;
         d_v1.z *= 0.5f*(v1_dx.z + v1_dy.z); 
@@ -506,15 +506,15 @@ void compute_edge_derivatives(
         d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
         #pragma omp atomic
         d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
-        //#pragma omp atomic
-        //d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
+        #pragma omp atomic
+        d_vertices[edge.v0*3+2] += GradReal(d_v0.z);
         
         #pragma omp atomic
         d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
         #pragma omp atomic
         d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
-        //#pragma omp atomic
-        //d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
+        #pragma omp atomic
+        d_vertices[edge.v1*3+2] += GradReal(d_v1.z);
       }
       else
       {
@@ -683,20 +683,36 @@ int main(int argc, char *argv[])
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
     
-    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 1.0f/float(img.width());
+    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
 
     d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
     double totalError = 0.0;
+    double posError = 0.0;
+    double colError = 0.0;
+    bool colorNow = false;
     for(size_t i=0;i<grad1.totalParams();i++) {
+      bool colorWasSwitched = colorNow;
+      double diff = std::abs(double(grad1.getData()[i] - grad2.getData()[i]));
+      if(i < grad1.numVerts()*3)
+        posError += diff;
+      else
+      {
+        colorNow = true;
+        colError += diff;
+      }
+      totalError += diff;
+
+      if(!colorWasSwitched && colorNow)
+        std::cout << "--------------------------" << std::endl;
       std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.getData()[i] << "\t";  
       std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.getData()[i] << std::endl;
-      double diff = double(grad1.getData()[i] - grad2.getData()[i]);
-      totalError += std::abs(diff);
     }
-    
-    std::cout << "====================================" << std::endl;
-    std::cout << "GradError(Total) = " << totalError/double(grad1.totalParams()) << std::endl;
+  
+    std::cout << "==========================" << std::endl;
+    std::cout << "GradError(vpos ) = " << posError/double(grad1.numVerts()*3) << std::endl;
+    std::cout << "GradError(color) = " << colError/double(grad1.numVerts()*3) << std::endl;
+    std::cout << "GradError(total) = " << totalError/double(grad1.totalParams()) << std::endl;
     return 0;
   }
 

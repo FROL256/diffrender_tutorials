@@ -61,13 +61,13 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 
     // dz 
     //
-    //copy = mesh;
-    //copy.vertices[i].y += dPos;
-    //img.clear(float3{0,0,0});
-    //render(copy, SAM_PER_PIXEL, img);
-    //
-    //diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    //d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
+    copy = mesh;
+    copy.vertices[i].z += dPos;
+    img.clear(float3{0,0,0});
+    render(copy, SAM_PER_PIXEL, img);
+    
+    diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
+    d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
   }
   
   size_t colrsNum = (mesh.m_meshType == TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
