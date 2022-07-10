@@ -6,12 +6,11 @@ void scn01_TwoTrisFlat(TriangleMesh& initial, TriangleMesh& target)
       // vertices
       {{50.0, 25.0, 0.0}, {200.0, 200.0, 0.0}, {15.0, 150.0, 0.0},
        {200.0, 15.0, 0.0}, {150.0, 250.0, 0.0}, {50.0, 100.0, 0.0}},
+      // color
+      {{0.3, 0.3, 0.3}, {0.3, 0.3, 0.3}},
       // indices
       {0, 1, 2, 
-       3, 4, 5},
-      // color
-      {{0.3, 0.3, 0.3}, 
-      {0.3, 0.3, 0.3}}
+       3, 4, 5}
   };
 
   initial = mesh;
@@ -20,11 +19,11 @@ void scn01_TwoTrisFlat(TriangleMesh& initial, TriangleMesh& target)
       // vertices
       {{50.0, 25.0+10.0, 0.0}, {200.0, 200.0+10.0, 0.0}, {15.0, 150.0+10.0, 0.0},
        {200.0-10.0 + 50.0, 15.0+5.0, 0.0}, {150.0+50.0+50.0, 250.0-25.0, 0.0}, {80.0, 100.0-25.0, 0.0}},
+      // color
+      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}},
       // indices
       {0, 1, 2, 
        3, 4, 5},
-      // color
-      {{0.3, 0.5, 0.3}, {0.3, 0.3, 0.5}}
   };
   target = mesh2;
 }
@@ -35,15 +34,16 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
       // vertices
       {{50.0, 25.0, 0.0}, {200.0, 200.0, 0.0}, {15.0, 150.0, 0.0},
        {200.0, 15.0, 0.0}, {150.0, 250.0, 0.0}, {50.0, 100.0, 0.0}},
+       
+      {{0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3},
+       {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}}, 
+
       // indices
       {0, 1, 2, 
        3, 4, 5}
   };
   
   mesh.m_meshType = TRIANGLE_VERT_COL;
-  mesh.colors.resize(mesh.vertices.size());
-  for(size_t i=0;i<mesh.vertices.size();i++)
-     mesh.colors[i] = float3{0.3, 0.5, 0.3};
   initial = mesh;
   ///////////////////////////////////////////////////////////////// 
   
@@ -51,21 +51,66 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
       // vertices
       {{50.0, 25.0+10.0, 0.0}, {200.0, 200.0+10.0, 0.0}, {15.0, 150.0+10.0, 0.0},
        {200.0-10.0 + 50.0, 15.0+5.0, 0.0}, {150.0+50.0+50.0, 250.0-25.0, 0.0}, {80.0, 100.0-25.0, 0.0}},
+
+       {{1,0,0}, {0,1,0}, {0,0,1},
+        {1,1,0}, {1,1,0}, {1,1,0}}, 
+
       // indices
       {0, 1, 2, 
-       3, 4, 5},
+       3, 4, 5}
   };
 
   mesh2.m_meshType = TRIANGLE_VERT_COL;
-  mesh2.colors.resize(mesh.vertices.size());
-
-  mesh2.colors[0] = float3(1,0,0);
-  mesh2.colors[1] = float3(0,1,0);
-  mesh2.colors[2] = float3(0,0,1);
-
-  mesh2.colors[3] = float3(1,1,0);
-  mesh2.colors[4] = float3(1,1,0);
-  mesh2.colors[5] = float3(1,1,0);
-
   target = mesh2;
+}
+
+
+void scn03_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
+{
+  TriangleMesh pyramid{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {-1.0f, -1.0f, 1.0f},  
+       {1.0f, -1.0f, 1.0f},
+       {1.0f, -1.0f, -1.0f},
+       {-1.0f, -1.0f, -1.0f},
+       },
+
+      // color
+      {{1.0f, 0.0f, 0.0f}, 
+       {0.0f, 1.0f, 0.0f}, 
+       {0.0f, 0.0f, 1.0f},
+       {0.0f, 1.0f, 0.0f}, 
+       {0.0f, 0.0f, 1.0f}, 
+       },
+
+      // indices
+      {0, 1, 2, 
+       0, 2, 3,
+       0, 3, 4,
+       0, 4, 1}
+       //1, 2, 3,
+       //1, 3, 4},
+  };
+
+  pyramid.m_meshType = TRIANGLE_VERT_COL;
+  pyramid.m_geomType = TRIANGLE_3D;
+
+  initial = pyramid;
+  target  = pyramid;
+  
+  // apply transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-3.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+  auto mTransform2 = mTranslate*mRotate2;
+
+  for(auto& v : initial.vertices)
+    v = mTransform1*v;
+
+  for(auto& v : target.vertices)
+    v = mTransform2*v;
 }

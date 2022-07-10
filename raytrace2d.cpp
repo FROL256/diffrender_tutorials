@@ -59,6 +59,7 @@ struct BruteForce2D : public IRayTracer
   
         hit.u = u;
         hit.v = v;
+        break;
       }
     }
   

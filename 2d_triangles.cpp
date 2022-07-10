@@ -50,7 +50,50 @@ constexpr static int MAXTHREADS    = 8;
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
 
+struct Uniforms
+{
+  float projM[16];
+  float width;
+  float height;
+};
+
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
+Uniforms g_uniforms;
+
+void glhFrustumf3(float *matrix, float left, float right, float bottom, float top, float znear, float zfar)
+{
+  float temp, temp2, temp3, temp4;
+  temp = 2.0f * znear;
+  temp2 = right - left;
+  temp3 = top - bottom;
+  temp4 = zfar - znear;
+  matrix[0] = temp / temp2;
+  matrix[1] = 0.0;
+  matrix[2] = 0.0;
+  matrix[3] = 0.0;
+  matrix[4] = 0.0;
+  matrix[5] = temp / temp3;
+  matrix[6] = 0.0;
+  matrix[7] = 0.0;
+  matrix[8] = (right + left) / temp2;
+  matrix[9] = (top + bottom) / temp3;
+  matrix[10] = (-zfar - znear) / temp4;
+  matrix[11] = -1.0;
+  matrix[12] = 0.0;
+  matrix[13] = 0.0;
+  matrix[14] = (-temp * zfar) / temp4;
+  matrix[15] = 0.0;
+}
+
+// matrix will receive the calculated perspective matrix. You would have to upload to your shader or use glLoadMatrixf if you aren't using shaders
+//
+void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear, float zfar)
+{
+  const float ymax = znear * std::tan(fovy * 3.14159265358979323846f / 360.0f);
+  const float xmax = ymax * aspectRatio;
+  glhFrustumf3(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
+}
+
 
 /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////
@@ -118,7 +161,6 @@ vector<Edge> collect_edges(const TriangleMesh &mesh) {
 }
 
 
-
 inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
 {
   if (surfInfo.faceId == unsigned(-1))
@@ -137,14 +179,41 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
     return mesh.colors[surfInfo.faceId]; 
 }
 
+float VS_X(float V[3], const Uniforms& data)
+{
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = V[0]/W;
+  return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
+}
+
+float VS_Y(float V[3], const Uniforms& data)
+{
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = -V[1]/W;
+  return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
+}
 
 void render(const TriangleMesh &mesh, int samples_per_pixel,
-            Img &img) {
+            Img &img) 
+{
+    const TriangleMesh* pMesh = &mesh;
+    
+    TriangleMesh localMesh;
+    if(mesh.m_geomType == TRIANGLE_3D)
+    {
+      localMesh = mesh;
+      for(auto& v : localMesh.vertices) {
+        v.x = VS_X(v.M, g_uniforms);
+        v.y = VS_Y(v.M, g_uniforms);
+      }
+      localMesh.m_geomType = TRIANGLE_2D;
+      pMesh = &localMesh;
+    }
 
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
-    g_tracer->Init(&mesh);
+    g_tracer->Init(pMesh);
 
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
@@ -158,7 +227,7 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
             auto screen_pos = float2{x + xoff, y + yoff};
             
             auto surf  = g_tracer->CastSingleRay(screen_pos.x, screen_pos.y);
-            auto color = shade(mesh, surf);
+            auto color = shade(*pMesh, surf);
 
             img[int2(x,y)] += (color / samples_per_pixel);
           }
@@ -429,12 +498,28 @@ int main(int argc, char *argv[])
 
   Img img(256, 256);
 
+  g_uniforms.width  = float(img.width());
+  g_uniforms.height = float(img.height());
+  glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
+
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  scn03_Pyramid3D(initialMesh, targetMesh);
 
   g_tracer = MakeRayTracer2D("");
   
+  if(1)
+  {
+    Img initial(img.width(), img.height(), float3{0, 0, 0});
+    Img target(img.width(), img.height(), float3{0, 0, 0});
+    render(initialMesh, SAM_PER_PIXEL, initial);
+    render(targetMesh, SAM_PER_PIXEL, target);
+    LiteImage::SaveImage("rendered/initial.bmp", initial);
+    LiteImage::SaveImage("rendered/target.bmp", target);
+    return 0;
+  }
+
   if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});

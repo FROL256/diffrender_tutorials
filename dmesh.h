@@ -26,8 +26,8 @@ using LiteMath::float4;
 struct TriangleMesh 
 {
   std::vector<float3>     vertices;
-  std::vector<unsigned>   indices;
   std::vector<float3>     colors; // defined for each face
+  std::vector<unsigned>   indices;
 
   MESH_TYPES m_meshType = TRIANGLE_FACE_COL;
   GEOM_TYPE  m_geomType = TRIANGLE_2D;
