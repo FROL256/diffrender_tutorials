@@ -196,6 +196,42 @@ float VS_Y(float V[3], const Uniforms& data)
   return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
 }
 
+void VS_X_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3]) 
+{
+  const float epsilon = 5e-5f;
+  float v0 = VS_X(V,data);
+  
+  float V1[3] = {V[0]+epsilon, V[1], V[2]};
+  float V2[3] = {V[0], V[1]+epsilon, V[2]};
+  float V3[3] = {V[0], V[1], V[2]+epsilon};
+
+  float vx = VS_X(V1,data);
+  float vy = VS_X(V2,data);
+  float vz = VS_X(V3,data);
+  
+  _d_V[0] = (vx - v0)/epsilon;
+  _d_V[1] = (vy - v0)/epsilon;
+  _d_V[2] = (vz - v0)/epsilon;
+}
+
+void VS_Y_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3]) 
+{
+  const float epsilon = 5e-5f;
+  float v0 = VS_Y(V,data);
+  
+  float V1[3] = {V[0]+epsilon, V[1], V[2]};
+  float V2[3] = {V[0], V[1]+epsilon, V[2]};
+  float V3[3] = {V[0], V[1], V[2]+epsilon};
+
+  float vx = VS_Y(V1,data);
+  float vy = VS_Y(V2,data);
+  float vz = VS_Y(V3,data);
+  
+  _d_V[0] = (vx - v0)/epsilon;
+  _d_V[1] = (vy - v0)/epsilon;
+  _d_V[2] = (vz - v0)/epsilon;
+}
+
 void VS_X_grad(float V[3], const Uniforms &data, float _d_V[3]) 
 {
     float _t0;
@@ -432,6 +468,8 @@ void compute_edge_derivatives(
     for(int i=0;i<MAXTHREADS;i++)
       gens[i] = prng::RandomGenInit(7777 + i*i + 1);
 
+    //float maxRelativeError = 0.0f;
+
     //#pragma omp parallel for num_threads(MAXTHREADS)
     for (int i = 0; i < num_edge_samples; i++) 
     { 
@@ -493,6 +531,25 @@ void compute_edge_derivatives(
         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
         
+        //// fin diff check
+        //{
+        //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
+        //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
+        //  
+        //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
+        //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
+        //  
+        //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
+        //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
+        //
+        //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
+        //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
+        //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
+        //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
+        //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
+        //  maxRelativeError = std::max(maxRelativeError, errMax);
+        //}
+
         const float dv0_dx = v0_dx.x*d_v0.x;
         const float dv0_dy = v0_dy.y*d_v0.y;
         const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); // / (-190.0f);
@@ -500,7 +557,6 @@ void compute_edge_derivatives(
         const float dv1_dx = v1_dx.x*d_v1.x;
         const float dv1_dy = v1_dy.y*d_v1.y;
         const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); // / (-190.0f);
-        
   
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -545,6 +601,8 @@ void compute_edge_derivatives(
       //  (*screen_dy)[int2(xi, yi)] += dy;
       //}
     }    
+
+    //std::cout << "maxError = " << maxRelativeError*100.0f << "%" << std::endl;
 }
 
 void d_render(const TriangleMesh &mesh,
