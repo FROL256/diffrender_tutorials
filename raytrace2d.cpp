@@ -38,8 +38,8 @@ struct BruteForce2D : public IRayTracer
       for(auto& v : m_mesh2D.vertices) {
         float4 vNDC = mProj*to_float4(v, 1.0f);
         vNDC /= vNDC.w;
-        v.x = (vNDC.x*0.5f + 0.5f)*cam.width  - 0.5f;
-        v.y = (-vNDC.y*0.5f + 0.5f)*cam.height - 0.5f;
+        v.x = (vNDC.x*0.5f + 0.5f)*cam.width;
+        v.y = (-vNDC.y*0.5f + 0.5f)*cam.height;
         v.z = vNDC.z;
       }
       //for(auto& v : m_mesh2D.vertices) {
@@ -99,14 +99,10 @@ struct BruteForce2D : public IRayTracer
         const float u = e1*areaInv; // v0
         const float v = e2*areaInv; // v1 
   
-        const float z = u*v0_3d.z + v*v1_3d.z + (1.0f-u-v)*v2_3d.z;
-        
-        if(z > hit.t)
-        {
-          hit.u = u;
-          hit.v = v;
-          hit.t = z;
-        }
+        //const float z = std::abs(u*v0_3d.z + v*v1_3d.z + (1.0f-u-v)*v2_3d.z);
+
+        hit.u = u;
+        hit.v = v;
       }
     }
   

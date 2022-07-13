@@ -700,13 +700,13 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Pyramid3D(initialMesh, targetMesh);
+  scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn03_Pyramid3D(initialMesh, targetMesh);
 
-  //g_tracer = MakeRayTracer2D("");
-  g_tracer = MakeRayTracer3D("");
+  g_tracer = MakeRayTracer2D("");
+  //g_tracer = MakeRayTracer3D("");
   
-  if(1)
+  if(0)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
@@ -717,7 +717,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
