@@ -44,8 +44,9 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-constexpr static int SAM_PER_PIXEL = 16;
-constexpr static int MAXTHREADS    = 8;
+constexpr static int  SAM_PER_PIXEL = 16;
+constexpr static int  MAXTHREADS    = 8;
+constexpr static bool G_USE3DRT     = false;
 
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
@@ -97,7 +98,8 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
 struct Edge {
     int v0, v1; // vertex ID, v0 < v1
 
-    Edge(int v0, int v1) : v0(min(v0, v1)), v1(max(v0, v1)) {}
+    //Edge(int v0, int v1) : v0(min(v0, v1)), v1(max(v0, v1)) {}
+    Edge(int v0, int v1) : v0(v0), v1(v1) {}
 
     // for sorting edges
     bool operator<(const Edge &e) const {
@@ -540,6 +542,34 @@ void compute_edge_derivatives(
       
       if(a_3dProj) 
       {
+        //if(G_USE3DRT)
+        //{
+        //  const SurfaceInfo* pSurf = &surfIn;
+        //  if(pSurf->faceId == unsigned(-1))
+        //    pSurf =  &surfOut;
+        //
+        //  float minDiff = 10.0f;
+        //  const float diffU = std::abs(pSurf->u - t);
+        //  const float diffV = std::abs(pSurf->v - t);
+        //  const float diffW = std::abs(1.0f - pSurf->u - pSurf->v - t);
+        //
+        //  if(diffU < minDiff)
+        //  {
+        //    minDiff = diffU;
+        //    t = pSurf->u;
+        //  }
+        //  if(diffV < minDiff)
+        //  {
+        //    minDiff = diffV;
+        //    t       = pSurf->v;
+        //  }
+        //  if(diffW < minDiff)
+        //  {
+        //    minDiff = diffW;
+        //    t       = 1.0f - pSurf->u - pSurf->v;
+        //  }  
+        //}
+
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
 
@@ -655,6 +685,9 @@ void d_render(const TriangleMesh &mesh,
   
   // (0) Build Acceleration structurres and e.t.c. if needed
   //
+  //if(G_USE3DRT)
+  //  g_tracer->Init(&copy);
+  //else
   g_tracer->Init(&mesh);
   g_tracer->SetCamera(g_uniforms);
 
@@ -740,12 +773,13 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D(initialMesh, targetMesh);
+  scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn03_Triangle3D(initialMesh, targetMesh);
   //scn04_Pyramid3D(initialMesh, targetMesh);
-
-  g_tracer = MakeRayTracer2D("");
+  
+  //if(G_USE3DRT)
   //g_tracer = MakeRayTracer3D("");
+  g_tracer = MakeRayTracer2D("");
   
   if(0)
   {
