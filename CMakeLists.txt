@@ -30,6 +30,7 @@ add_executable(drender 2d_triangles.cpp
                        scenes.cpp
                        qmc.cpp
                        raytrace2d.cpp
+                       raytrace3d.cpp
                        optimizer_simple.cpp
                        optimizer_complex.cpp
                        LiteMath/Image2d.cpp)
@@ -41,6 +42,7 @@ add_executable(drender 2d_triangles.cpp
                        scenes.cpp
                        qmc.cpp 
                        raytrace2d.cpp
+                       raytrace3d.cpp
                        optimizer_simple.cpp
                        LiteMath/Image2d.cpp)
 endif()

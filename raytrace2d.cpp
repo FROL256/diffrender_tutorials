@@ -1,6 +1,20 @@
 #include "raytrace.h"
 using LiteMath::dot;
 
+static inline float VS_X(float V[3], const CamInfo& data)
+{
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = V[0]/W;
+  return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
+}
+
+static inline float VS_Y(float V[3], const CamInfo& data)
+{
+  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = -V[1]/W;
+  return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
+}
+
 struct BruteForce2D : public IRayTracer
 {
   BruteForce2D(){}
@@ -9,6 +23,23 @@ struct BruteForce2D : public IRayTracer
   void Init(const TriangleMesh* pMesh) override 
   {
     m_pMesh = pMesh;
+    m_pMesh2D = nullptr;
+  }
+
+  void SetCamera(const CamInfo& cam) override
+  {
+    if(m_pMesh->m_geomType == TRIANGLE_3D)
+    {
+      m_mesh2D = *m_pMesh;
+      for(auto& v : m_mesh2D.vertices) {
+        v.x = VS_X(v.M, cam);
+        v.y = VS_Y(v.M, cam);
+      }
+      m_mesh2D.m_geomType = TRIANGLE_2D;
+      m_pMesh2D           = &m_mesh2D;
+    }
+    else
+      m_pMesh2D = m_pMesh;
   }
 
   SurfaceInfo CastSingleRay(float x, float y) override
@@ -18,20 +49,19 @@ struct BruteForce2D : public IRayTracer
     hit.u      = 0.0f;
     hit.v      = 0.0f;
 
-    const TriangleMesh& mesh = *m_pMesh;
     const float2 screen_pos(x,y);
   
     // loop over all triangles in a mesh, return the first one that hits
-    for (size_t i = 0; i < (int)mesh.indices.size(); i+=3) 
+    for (size_t i = 0; i < (int)m_pMesh2D->indices.size(); i+=3) 
     {
       // retrieve the three vertices of a triangle
-      auto A = mesh.indices[i+0];
-      auto B = mesh.indices[i+1];
-      auto C = mesh.indices[i+2];
+      auto A = m_pMesh2D->indices[i+0];
+      auto B = m_pMesh2D->indices[i+1];
+      auto C = m_pMesh2D->indices[i+2];
       
-      auto v0_3d = mesh.vertices[A];
-      auto v1_3d = mesh.vertices[B];
-      auto v2_3d = mesh.vertices[C];
+      auto v0_3d = m_pMesh2D->vertices[A];
+      auto v1_3d = m_pMesh2D->vertices[B];
+      auto v2_3d = m_pMesh2D->vertices[C];
   
       float2 v0 = float2(v0_3d.x, v0_3d.y);
       float2 v1 = float2(v1_3d.x, v1_3d.y);
@@ -66,7 +96,9 @@ struct BruteForce2D : public IRayTracer
     return hit;
   }
 
-  const TriangleMesh* m_pMesh = nullptr;
+  const TriangleMesh* m_pMesh   = nullptr;
+  const TriangleMesh* m_pMesh2D = nullptr;
+  TriangleMesh m_mesh2D;
 
 };
 

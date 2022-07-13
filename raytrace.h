@@ -21,12 +21,21 @@ struct SurfaceInfo
   float    v;       ///<! second triangle baricentric 
 };
 
+struct CamInfo
+{
+  float projM[16];
+//float worldViewM[16];
+  float width;
+  float height;
+};
+
 struct IRayTracer
 {
   IRayTracer(){}
   virtual ~IRayTracer(){}
 
-  virtual void        Init(const TriangleMesh* pMesh)  = 0;
+  virtual void        Init(const TriangleMesh* pMesh) = 0;
+  virtual void        SetCamera(const CamInfo& cam)   = 0;
   virtual SurfaceInfo CastSingleRay(float x, float y) = 0;
 };
 

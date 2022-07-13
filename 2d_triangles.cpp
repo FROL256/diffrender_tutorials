@@ -50,15 +50,9 @@ constexpr static int MAXTHREADS    = 8;
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
 
-struct Uniforms
-{
-  float projM[16];
-  float width;
-  float height;
-};
 
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
-Uniforms g_uniforms;
+CamInfo g_uniforms;
 
 void glhFrustumf3(float *matrix, float left, float right, float bottom, float top, float znear, float zfar)
 {
@@ -182,21 +176,21 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-float VS_X(float V[3], const Uniforms& data)
+float VS_X(float V[3], const CamInfo& data)
 {
   const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
   const float xNDC = V[0]/W;
   return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
 }
 
-float VS_Y(float V[3], const Uniforms& data)
+float VS_Y(float V[3], const CamInfo& data)
 {
   const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
   const float xNDC = -V[1]/W;
   return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
 }
 
-void VS_X_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3]) 
+void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
 {
   const float epsilon = 5e-5f;
   float v0 = VS_X(V,data);
@@ -214,7 +208,7 @@ void VS_X_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3])
   _d_V[2] = (vz - v0)/epsilon;
 }
 
-void VS_Y_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3]) 
+void VS_Y_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
 {
   const float epsilon = 5e-5f;
   float v0 = VS_Y(V,data);
@@ -232,7 +226,7 @@ void VS_Y_grad_finDiff(float V[3], const Uniforms &data, float _d_V[3])
   _d_V[2] = (vz - v0)/epsilon;
 }
 
-void VS_X_grad(float V[3], const Uniforms &data, float _d_V[3]) 
+void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) 
 {
     float _t0;
     float _t1;
@@ -284,7 +278,7 @@ void VS_X_grad(float V[3], const Uniforms &data, float _d_V[3])
     }
 }
 
-void VS_Y_grad(float V[3], const Uniforms &data, float _d_V[3]) 
+void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3]) 
 {
     float _t0;
     float _t1;
@@ -342,24 +336,11 @@ void VS_Y_grad(float V[3], const Uniforms &data, float _d_V[3])
 void render(const TriangleMesh &mesh, int samples_per_pixel,
             Img &img) 
 {
-    const TriangleMesh* pMesh = &mesh;
-    
-    TriangleMesh localMesh;
-    if(mesh.m_geomType == TRIANGLE_3D)
-    {
-      localMesh = mesh;
-      for(auto& v : localMesh.vertices) {
-        v.x = VS_X(v.M, g_uniforms);
-        v.y = VS_Y(v.M, g_uniforms);
-      }
-      localMesh.m_geomType = TRIANGLE_2D;
-      pMesh = &localMesh;
-    }
-
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
-    g_tracer->Init(pMesh);
+    g_tracer->Init(&mesh);
+    g_tracer->SetCamera(g_uniforms);
 
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
@@ -373,7 +354,7 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
             auto screen_pos = float2{x + xoff, y + yoff};
             
             auto surf  = g_tracer->CastSingleRay(screen_pos.x, screen_pos.y);
-            auto color = shade(*pMesh, surf);
+            auto color = shade(mesh, surf);
 
             img[int2(x,y)] += (color / samples_per_pixel);
           }
@@ -554,13 +535,13 @@ void compute_edge_derivatives(
         //  maxRelativeError = std::max(maxRelativeError, errMax);
         //}
 
-        const float dv0_dx = v0_dx.x*d_v0.x;
-        const float dv0_dy = v0_dy.y*d_v0.y;
-        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); // / (-190.0f);
+        const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
+        const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
+        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
 
-        const float dv1_dx = v1_dx.x*d_v1.x;
-        const float dv1_dy = v1_dy.y*d_v1.y;
-        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); // / (-190.0f);
+        const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
+        const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
+        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
   
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -617,8 +598,8 @@ void d_render(const TriangleMesh &mesh,
               Img* screen_dy,
               DTriangleMesh &d_mesh) {
 
+  const TriangleMesh copy   = mesh;
   const TriangleMesh* pMesh = &mesh;
-  const TriangleMesh copy = mesh;
     
   TriangleMesh localMesh;
   if(mesh.m_geomType == TRIANGLE_3D)
@@ -634,7 +615,8 @@ void d_render(const TriangleMesh &mesh,
   
   // (0) Build Acceleration structurres and e.t.c. if needed
   //
-  g_tracer->Init(pMesh);
+  g_tracer->Init(&mesh);
+  g_tracer->SetCamera(g_uniforms);
 
   // (1)
   //
@@ -721,9 +703,10 @@ int main(int argc, char *argv[])
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   scn03_Pyramid3D(initialMesh, targetMesh);
 
-  g_tracer = MakeRayTracer2D("");
+  //g_tracer = MakeRayTracer2D("");
+  g_tracer = MakeRayTracer3D("");
   
-  if(0)
+  if(1)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
