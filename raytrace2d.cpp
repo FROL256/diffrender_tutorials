@@ -1,5 +1,7 @@
 #include "raytrace.h"
 using LiteMath::dot;
+using LiteMath::to_float4;
+using LiteMath::float4x4;
 
 static inline float VS_X(float V[3], const CamInfo& data)
 {
@@ -31,10 +33,19 @@ struct BruteForce2D : public IRayTracer
     if(m_pMesh->m_geomType == TRIANGLE_3D)
     {
       m_mesh2D = *m_pMesh;
+      float4x4 mProj; 
+      memcpy(mProj.m_col, cam.projM, 16*sizeof(float));
       for(auto& v : m_mesh2D.vertices) {
-        v.x = VS_X(v.M, cam);
-        v.y = VS_Y(v.M, cam);
+        float4 vNDC = mProj*to_float4(v, 1.0f);
+        vNDC /= vNDC.w;
+        v.x = (vNDC.x*0.5f + 0.5f)*cam.width  - 0.5f;
+        v.y = (-vNDC.y*0.5f + 0.5f)*cam.height - 0.5f;
+        v.z = vNDC.z;
       }
+      //for(auto& v : m_mesh2D.vertices) {
+      //  v.x = VS_X(v.M, cam);
+      //  v.y = VS_Y(v.M, cam);
+      //}
       m_mesh2D.m_geomType = TRIANGLE_2D;
       m_pMesh2D           = &m_mesh2D;
     }
@@ -48,6 +59,7 @@ struct BruteForce2D : public IRayTracer
     hit.faceId = unsigned(-1);
     hit.u      = 0.0f;
     hit.v      = 0.0f;
+    hit.t      = 0.0f;
 
     const float2 screen_pos(x,y);
   
@@ -87,9 +99,14 @@ struct BruteForce2D : public IRayTracer
         const float u = e1*areaInv; // v0
         const float v = e2*areaInv; // v1 
   
-        hit.u = u;
-        hit.v = v;
-        break;
+        const float z = u*v0_3d.z + v*v1_3d.z + (1.0f-u-v)*v2_3d.z;
+        
+        if(z > hit.t)
+        {
+          hit.u = u;
+          hit.v = v;
+          hit.t = z;
+        }
       }
     }
   

@@ -9,7 +9,7 @@ using LiteMath::to_float3;
 
 static inline float3 EyeRayDirNormalized(float x, float y, float4x4 a_mViewProjInv)
 {
-  float4 pos = float4(2.0f*x - 1.0f, 2.0f*y - 1.0f, 0.0f, 1.0f );
+  float4 pos = float4(2.0f*x - 1.0f, -2.0f*y + 1.0f, 0.0f, 1.0f );
   pos = a_mViewProjInv * pos;
   pos /= pos.w;
   return normalize(to_float3(pos));
@@ -69,12 +69,12 @@ struct BruteForce3D : public IRayTracer
       const float u = dot(qvec, ray_dir)*invDet;
       const float t = dot(edge2, qvec)*invDet;
     
-      if (v > -1e-6f && u > -1e-6f && (u + v < 1.0f + 1e-6f) && t > tNear && t < hit.t)
+      if (v > 0.0f && u > 0.0f && (u + v < 1.0f) && t > tNear && t < hit.t)
       {
         hit.t      = t;
         hit.faceId = triAddress/3;
-        hit.u      = u;
-        hit.v      = v;
+        hit.u      = 1.0f-u-v;    // v0
+        hit.v      = v;           // v1
       }
     }
   

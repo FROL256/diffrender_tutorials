@@ -78,17 +78,19 @@ void scn03_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
 
       // color
       {{1.0f, 0.0f, 0.0f}, 
-       {0.0f, 1.0f, 0.0f}, 
+       {1.0f, 1.0f, 0.0f}, 
        {0.0f, 0.0f, 1.0f},
        {0.0f, 1.0f, 0.0f}, 
        {0.0f, 0.0f, 1.0f}, 
        },
 
       // indices
-      {0, 1, 2, 
-       0, 2, 3,
-       0, 3, 4,
-       0, 4, 1}
+      {0, 1, 2}
+       
+       //0, 2, 3,
+       //0, 3, 4,
+       //0, 4, 1}
+       
        //1, 2, 3,
        //1, 3, 4},
   };
@@ -101,7 +103,7 @@ void scn03_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   
   // apply transforms
   //
-  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-3.0f));
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
   LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
   LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
   
