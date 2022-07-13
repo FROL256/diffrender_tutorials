@@ -176,58 +176,57 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-float VS_X(float V[3], const CamInfo& data)
+static inline float VS_X(float V[3], const CamInfo& data)
 {
-  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = V[0]/W;
-  return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
+  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
+  return (xNDC*0.5f + 0.5f)*data.width;
 }
 
-float VS_Y(float V[3], const CamInfo& data)
+static inline float VS_Y(float V[3], const CamInfo& data)
 {
-  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = -V[1]/W;
-  return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
+  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
+  return (xNDC*0.5f + 0.5f)*data.height;
 }
 
-void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
-{
-  const float epsilon = 5e-5f;
-  float v0 = VS_X(V,data);
-  
-  float V1[3] = {V[0]+epsilon, V[1], V[2]};
-  float V2[3] = {V[0], V[1]+epsilon, V[2]};
-  float V3[3] = {V[0], V[1], V[2]+epsilon};
+//void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
+//{
+//  const float epsilon = 5e-5f;
+//  float v0 = VS_X(V,data);
+//  
+//  float V1[3] = {V[0]+epsilon, V[1], V[2]};
+//  float V2[3] = {V[0], V[1]+epsilon, V[2]};
+//  float V3[3] = {V[0], V[1], V[2]+epsilon};
+//
+//  float vx = VS_X(V1,data);
+//  float vy = VS_X(V2,data);
+//  float vz = VS_X(V3,data);
+//  
+//  _d_V[0] = (vx - v0)/epsilon;
+//  _d_V[1] = (vy - v0)/epsilon;
+//  _d_V[2] = (vz - v0)/epsilon;
+//}
+//
+//void VS_Y_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
+//{
+//  const float epsilon = 5e-5f;
+//  float v0 = VS_Y(V,data);
+//  
+//  float V1[3] = {V[0]+epsilon, V[1], V[2]};
+//  float V2[3] = {V[0], V[1]+epsilon, V[2]};
+//  float V3[3] = {V[0], V[1], V[2]+epsilon};
+//
+//  float vx = VS_Y(V1,data);
+//  float vy = VS_Y(V2,data);
+//  float vz = VS_Y(V3,data);
+//  
+//  _d_V[0] = (vx - v0)/epsilon;
+//  _d_V[1] = (vy - v0)/epsilon;
+//  _d_V[2] = (vz - v0)/epsilon;
+//}
 
-  float vx = VS_X(V1,data);
-  float vy = VS_X(V2,data);
-  float vz = VS_X(V3,data);
-  
-  _d_V[0] = (vx - v0)/epsilon;
-  _d_V[1] = (vy - v0)/epsilon;
-  _d_V[2] = (vz - v0)/epsilon;
-}
-
-void VS_Y_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
-{
-  const float epsilon = 5e-5f;
-  float v0 = VS_Y(V,data);
-  
-  float V1[3] = {V[0]+epsilon, V[1], V[2]};
-  float V2[3] = {V[0], V[1]+epsilon, V[2]};
-  float V3[3] = {V[0], V[1], V[2]+epsilon};
-
-  float vx = VS_Y(V1,data);
-  float vy = VS_Y(V2,data);
-  float vz = VS_Y(V3,data);
-  
-  _d_V[0] = (vx - v0)/epsilon;
-  _d_V[1] = (vy - v0)/epsilon;
-  _d_V[2] = (vz - v0)/epsilon;
-}
-
-void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) 
-{
+static inline void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) {
     float _t0;
     float _t1;
     float _t2;
@@ -237,9 +236,15 @@ void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3])
     float _d_W = 0;
     float _t6;
     float _t7;
-    float _d_xNDC = 0;
     float _t8;
     float _t9;
+    float _t10;
+    float _t11;
+    float _t12;
+    float _t13;
+    float _d_xNDC = 0;
+    float _t14;
+    float _t15;
     _t1 = V[0];
     _t0 = data.projM[3];
     _t3 = V[1];
@@ -247,23 +252,37 @@ void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3])
     _t5 = V[2];
     _t4 = data.projM[11];
     const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
-    _t7 = V[0];
+    _t8 = V[0];
+    _t7 = data.projM[0];
+    _t10 = V[1];
+    _t9 = data.projM[4];
+    _t12 = V[2];
+    _t11 = data.projM[8];
+    _t13 = (_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[12]);
     _t6 = W;
-    const float xNDC = _t7 / _t6;
-    _t9 = (xNDC * 0.5F + 0.5F);
-    _t8 = data.width;
-    float VS_X_return = _t9 * _t8 - 0.5F;
+    const float xNDC = _t13 / _t6;
+    _t15 = (xNDC * 0.5F + 0.5F);
+    _t14 = data.width;
+    float VS_X_return = _t15 * _t14;
     {
-        float _r8 = 1 * _t8;
-        float _r9 = _r8 * 0.5F;
-        _d_xNDC += _r9;
-        float _r10 = _t9 * 1;
+        float _r14 = 1 * _t14;
+        float _r15 = _r14 * 0.5F;
+        _d_xNDC += _r15;
+        float _r16 = _t15 * 1;
     }
     {
         float _r6 = _d_xNDC / _t6;
-        _d_V[0] += _r6;
-        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
-        _d_W += _r7;
+        float _r7 = _r6 * _t7;
+        _d_V[0] += _r7;
+        float _r8 = _t8 * _r6;
+        float _r9 = _r6 * _t9;
+        _d_V[1] += _r9;
+        float _r10 = _t10 * _r6;
+        float _r11 = _r6 * _t11;
+        _d_V[2] += _r11;
+        float _r12 = _t12 * _r6;
+        float _r13 = _d_xNDC * -_t13 / (_t6 * _t6);
+        _d_W += _r13;
     }
     {
         float _r0 = _d_W * _t0;
@@ -278,8 +297,7 @@ void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3])
     }
 }
 
-void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3]) 
-{
+static inline void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3]) {
     float _t0;
     float _t1;
     float _t2;
@@ -289,9 +307,15 @@ void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3])
     float _d_W = 0;
     float _t6;
     float _t7;
-    float _d_xNDC = 0;
     float _t8;
     float _t9;
+    float _t10;
+    float _t11;
+    float _t12;
+    float _t13;
+    float _d_xNDC = 0;
+    float _t14;
+    float _t15;
     _t1 = V[0];
     _t0 = data.projM[3];
     _t3 = V[1];
@@ -299,23 +323,37 @@ void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3])
     _t5 = V[2];
     _t4 = data.projM[11];
     const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
-    _t7 = -V[1];
+    _t8 = V[0];
+    _t7 = data.projM[1];
+    _t10 = V[1];
+    _t9 = data.projM[5];
+    _t12 = V[2];
+    _t11 = data.projM[9];
+    _t13 = -(_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[13]);
     _t6 = W;
-    const float xNDC = _t7 / _t6;
-    _t9 = (xNDC * 0.5F + 0.5F);
-    _t8 = data.height;
-    float VS_Y_return = _t9 * _t8 - 0.5F;
+    const float xNDC = _t13 / _t6;
+    _t15 = (xNDC * 0.5F + 0.5F);
+    _t14 = data.height;
+    float VS_Y_return = _t15 * _t14;
     {
-        float _r8 = 1 * _t8;
-        float _r9 = _r8 * 0.5F;
-        _d_xNDC += _r9;
-        float _r10 = _t9 * 1;
+        float _r14 = 1 * _t14;
+        float _r15 = _r14 * 0.5F;
+        _d_xNDC += _r15;
+        float _r16 = _t15 * 1;
     }
     {
         float _r6 = _d_xNDC / _t6;
-        _d_V[1] += -_r6;
-        float _r7 = _d_xNDC * -_t7 / (_t6 * _t6);
-        _d_W += _r7;
+        float _r7 = -_r6 * _t7;
+        _d_V[0] += _r7;
+        float _r8 = _t8 * -_r6;
+        float _r9 = -_r6 * _t9;
+        _d_V[1] += _r9;
+        float _r10 = _t10 * -_r6;
+        float _r11 = -_r6 * _t11;
+        _d_V[2] += _r11;
+        float _r12 = _t12 * -_r6;
+        float _r13 = _d_xNDC * -_t13 / (_t6 * _t6);
+        _d_W += _r13;
     }
     {
         float _r0 = _d_W * _t0;
@@ -329,6 +367,7 @@ void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3])
         float _r5 = _t5 * _d_W;
     }
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -606,8 +645,9 @@ void d_render(const TriangleMesh &mesh,
   {
     localMesh = mesh;
     for(auto& v : localMesh.vertices) {
-      v.x = VS_X(v.M, g_uniforms);
-      v.y = VS_Y(v.M, g_uniforms);
+      auto vCopy = v;
+      v.x = VS_X(vCopy.M, g_uniforms);
+      v.y = VS_Y(vCopy.M, g_uniforms);
     }
     localMesh.m_geomType = TRIANGLE_2D;
     pMesh = &localMesh;
@@ -700,8 +740,9 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Pyramid3D(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  scn03_Triangle3D(initialMesh, targetMesh);
+  //scn04_Pyramid3D(initialMesh, targetMesh);
 
   g_tracer = MakeRayTracer2D("");
   //g_tracer = MakeRayTracer3D("");
@@ -717,7 +758,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});

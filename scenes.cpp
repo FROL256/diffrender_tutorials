@@ -64,8 +64,49 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
   target = mesh2;
 }
 
+void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
+{
+   TriangleMesh pyramid{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {-1.0f, -1.0f, 1.0f},  
+       {1.0f, -1.0f, 1.0f},
+       },
 
-void scn03_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
+      // color
+      {{1.0f, 0.0f, 0.0f}, 
+       {1.0f, 1.0f, 0.0f}, 
+       {0.0f, 0.0f, 1.0f},
+       },
+
+      // indices
+      {0, 1, 2}
+  };
+
+  pyramid.m_meshType = TRIANGLE_VERT_COL;
+  pyramid.m_geomType = TRIANGLE_3D;
+
+  initial = pyramid;
+  target  = pyramid;
+  
+  // apply transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+  auto mTransform2 = mTranslate*mRotate2;
+
+  for(auto& v : initial.vertices)
+    v = mTransform1*v;
+
+  for(auto& v : target.vertices)
+    v = mTransform2*v;
+}
+
+
+void scn04_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh pyramid{
       // vertices

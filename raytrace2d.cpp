@@ -5,16 +5,16 @@ using LiteMath::float4x4;
 
 static inline float VS_X(float V[3], const CamInfo& data)
 {
-  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = V[0]/W;
-  return (xNDC*0.5f + 0.5f)*data.width - 0.5f;
+  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
+  return (xNDC*0.5f + 0.5f)*data.width;
 }
 
 static inline float VS_Y(float V[3], const CamInfo& data)
 {
-  const float W    = V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = -V[1]/W;
-  return (xNDC*0.5f + 0.5f)*data.height - 0.5f;
+  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
+  return (xNDC*0.5f + 0.5f)*data.height;
 }
 
 struct BruteForce2D : public IRayTracer
@@ -33,19 +33,11 @@ struct BruteForce2D : public IRayTracer
     if(m_pMesh->m_geomType == TRIANGLE_3D)
     {
       m_mesh2D = *m_pMesh;
-      float4x4 mProj; 
-      memcpy(mProj.m_col, cam.projM, 16*sizeof(float));
       for(auto& v : m_mesh2D.vertices) {
-        float4 vNDC = mProj*to_float4(v, 1.0f);
-        vNDC /= vNDC.w;
-        v.x = (vNDC.x*0.5f + 0.5f)*cam.width;
-        v.y = (-vNDC.y*0.5f + 0.5f)*cam.height;
-        v.z = vNDC.z;
+        auto vCopy = v;
+        v.x = VS_X(vCopy.M, cam);
+        v.y = VS_Y(vCopy.M, cam);
       }
-      //for(auto& v : m_mesh2D.vertices) {
-      //  v.x = VS_X(v.M, cam);
-      //  v.y = VS_Y(v.M, cam);
-      //}
       m_mesh2D.m_geomType = TRIANGLE_2D;
       m_pMesh2D           = &m_mesh2D;
     }
