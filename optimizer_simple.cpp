@@ -13,7 +13,7 @@ void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor,
               TriangleMesh* mesh)
 {
   for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
-    mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*alphaPos;
+    mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*alphaPos; //*float3(1,1,1);
   
   for(int faceId=0; faceId < mesh->colors.size(); faceId++)
     mesh->colors[faceId] -= gradMesh.color_at(faceId)*alphaColor;
@@ -47,6 +47,9 @@ IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
+               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
+
 float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 {
   const int samples_per_pixel = 16;
@@ -66,6 +69,9 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), nullptr, nullptr, 
            gradMesh);
 
+  //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
+  //d_finDiff (mesh, "fin_diff", img, m_targetImage, gradMesh, dPos, 0.01f);
+
   m_iter++;
   return mse;
 }
@@ -84,6 +90,8 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
   float alphaPos   = 0.2f;
   float alphaColor = 4.0f/float(m_targetImage.width()*m_targetImage.height()); 
+  //float alphaPos   = 0.01f/float(m_targetImage.width());
+  //float alphaColor = 0.0f; 
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);
