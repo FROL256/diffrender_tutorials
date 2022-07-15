@@ -1,4 +1,5 @@
 #include "scenes.h"
+#include <iostream>
 
 void scn01_TwoTrisFlat(TriangleMesh& initial, TriangleMesh& target)
 {
@@ -69,14 +70,24 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
    TriangleMesh pyramid{
       // vertices
       {{0.0f, 1.0f, 0.0f},    
-       {-1.0f, -1.0f, 1.0f},  
        {1.0f, -1.0f, 1.0f},
+       {-1.0f, -1.0f, 1.0f},  
        },
 
-      // color
-      {{1.0f, 0.0f, 0.0f}, 
-       {1.0f, 1.0f, 0.0f}, 
-       {0.0f, 0.0f, 1.0f},
+      //// color
+      //{{1.0f, 0.0f, 0.0f}, 
+      // {1.0f, 1.0f, 0.0f}, 
+      // {0.0f, 0.0f, 1.0f},
+      // },
+      
+      //{{0.07805659f, 0.07805659f, 0.07805659f}, 
+      // {0.07805659f, 0.07805659f, 0.07805659f}, 
+      // {0.07805659f, 0.07805659f, 0.07805659f},
+      // },
+      
+      {{1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f},
        },
 
       // indices
@@ -103,6 +114,16 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
 
   for(auto& v : target.vertices)
     v = mTransform2*v;
+  
+  std::cout << "initial: [" << std::endl;
+  for(const auto& v : initial.vertices)
+    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  std::cout << "]" << std::endl << std::endl;
+
+  std::cout << "target: [" << std::endl;
+  for(const auto& v : target.vertices)
+    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  std::cout << "]" << std::endl << std::endl;
 }
 
 

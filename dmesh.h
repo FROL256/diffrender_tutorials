@@ -59,7 +59,7 @@ struct DTriangleMesh
 
   int numVerts() const { return m_numVertices; }
   int numFaces() const { return m_numFaces;    }
-  
+
   //////////////////////////////////////////////////////////////////////////////////
   GradReal*       vertices_s()       { return m_allParams.data(); }
   const GradReal* vertices_s() const { return m_allParams.data(); }
@@ -69,6 +69,9 @@ struct DTriangleMesh
 
   float3 vert_at(int i)  const { return float3(float(vertices_s()[3*i+0]), float(vertices_s()[3*i+1]), float(vertices_s()[3*i+2])); }
   float3 color_at(int i) const { return float3(float(colors_s  ()[3*i+0]), float(colors_s  ()[3*i+1]), float(colors_s  ()[3*i+2])); }
+
+  std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + m_colorOffset); }
+  std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + m_colorOffset, m_allParams.end()); }
 
   //////////////////////////////////////////////////////////////////////////////////
 
@@ -81,6 +84,9 @@ struct DTriangleMesh
 
   inline const GradReal* getData() const { return m_allParams.data(); }
   inline GradReal*       getData()       { return m_allParams.data(); }
+
+  inline float& operator[](size_t i)       { return m_allParams[i]; }
+  inline float  operator[](size_t i) const { return m_allParams[i]; }
 
 protected:
 

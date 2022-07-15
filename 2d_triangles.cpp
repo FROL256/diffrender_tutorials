@@ -192,6 +192,37 @@ static inline float VS_Y(float V[3], const CamInfo& data)
   return (xNDC*0.5f + 0.5f)*data.height;
 }
 
+//static inline void VS_X_Back(const float a_retVal, const CamInfo& data, float V[3])
+//{
+//  const float xNDC_Back = (a_retVal/data.width - 0.5f)*2.0f;
+//  const float W_Back    = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/xNDC_Back;
+//
+//  V[0]+= (W_Back    -        (V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]))/data.projM[3] + 
+//         (xNDC_Back*W_Back - (V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12]))/data.projM[0];
+//
+//  V[1]+= (W_Back    -        (V[0] * data.projM[3] + V[2] * data.projM[11] + data.projM[15]))/data.projM[7] + 
+//         (xNDC_Back*W_Back - (V[0] * data.projM[0] + V[2] * data.projM[ 8] + data.projM[12]))/data.projM[4];
+//
+//  V[2]+= (W_Back    -        (V[0] * data.projM[3] + V[1] * data.projM[7] + data.projM[15])/data.projM[11]) + 
+//         (xNDC_Back*W_Back - (V[0] * data.projM[0] + V[1] * data.projM[4] + data.projM[12])/data.projM[ 8]);
+//}
+//
+//static inline void VS_Y_Back(const float a_retVal, const CamInfo& data, float V[3])
+//{
+//  const float xNDC_Back = (a_retVal/data.width - 0.5f)*2.0f;
+//  const float W_Back    = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/xNDC_Back;
+//
+//  V[0]+= (W_Back    -        (V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]))/data.projM[3] + 
+//         (xNDC_Back*W_Back + (V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13]))/data.projM[0];
+//
+//  V[1]+= (W_Back    -        (V[0] * data.projM[3] + V[2] * data.projM[11] + data.projM[15]))/data.projM[7] + 
+//         (xNDC_Back*W_Back + (V[0] * data.projM[1] + V[2] * data.projM[ 9] + data.projM[13]))/data.projM[4];
+//
+//  V[2]+= (W_Back    -        (V[0] * data.projM[3] + V[1] * data.projM[7] + data.projM[15])/data.projM[11]) + 
+//         (xNDC_Back*W_Back + (V[0] * data.projM[1] + V[1] * data.projM[5] + data.projM[13])/data.projM[ 8]);
+//}
+
+
 //void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
 //{
 //  const float epsilon = 5e-5f;
@@ -579,39 +610,53 @@ void compute_edge_derivatives(
         float3 v0_3d = mesh3d.vertices[edge.v0];
         float3 v1_3d = mesh3d.vertices[edge.v1];
 
-        VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
-        VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
-        
-        VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
-        VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
-        
-        //// fin diff check
-        //{
-        //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
-        //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
-        //  
-        //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
-        //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
-        //  
-        //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
-        //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
-        //
-        //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
-        //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
-        //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
-        //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
-        //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
-        //  maxRelativeError = std::max(maxRelativeError, errMax);
-        //}
-
-        const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
-        const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
-        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
-
-        const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
-        const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
-        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
+         VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
+         VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
+         
+         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
+         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
+         
+         //// fin diff check
+         //{
+         //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
+         //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
+         //  
+         //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
+         //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
+         //  
+         //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
+         //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
+         //
+         //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
+         //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
+         //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
+         //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
+         //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
+         //  maxRelativeError = std::max(maxRelativeError, errMax);
+         //}
+         
+         const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
+         const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
+         const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
+         
+         const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
+         const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
+         const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
   
+        //VS_X_Back(d_v0.x, g_uniforms, v0_dx.M);
+        //VS_X_Back(d_v1.x, g_uniforms, v1_dx.M);
+        //
+        //VS_Y_Back(d_v0.y, g_uniforms, v0_dx.M);
+        //VS_Y_Back(d_v1.y, g_uniforms, v1_dx.M);
+        //
+        //const float dv0_dx = v0_dx.x;
+        //const float dv0_dy = v0_dx.y;
+        //const float dv0_dz = v0_dx.z;
+        //
+        //const float dv1_dx = v1_dx.x;
+        //const float dv1_dy = v1_dx.y;
+        //const float dv1_dz = v1_dx.z;
+
         // if running in parallel, use atomic add here.
         #pragma omp atomic
         d_vertices[edge.v0*3+0] += GradReal(dv0_dx);
@@ -773,14 +818,13 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  scn03_Triangle3D(initialMesh, targetMesh);
   //scn04_Pyramid3D(initialMesh, targetMesh);
-  
-  //if(G_USE3DRT)
+
+  g_tracer = MakeRayTracer2D("");  
   //g_tracer = MakeRayTracer3D("");
-  g_tracer = MakeRayTracer2D("");
-  
+
   if(0)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
@@ -812,29 +856,38 @@ int main(int argc, char *argv[])
     double totalError = 0.0;
     double posError = 0.0;
     double colError = 0.0;
-    bool colorNow = false;
-    for(size_t i=0;i<grad1.totalParams();i++) {
-      bool colorWasSwitched = colorNow;
-      double diff = std::abs(double(grad1.getData()[i] - grad2.getData()[i]));
-      if(i < grad1.numVerts()*3)
-        posError += diff;
-      else
-      {
-        colorNow = true;
-        colError += diff;
-      }
-      totalError += diff;
+    double posLengthL1 = 0.0;
+    double colLengthL1 = 0.0;
 
-      if(!colorWasSwitched && colorNow)
-        std::cout << "--------------------------" << std::endl;
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.getData()[i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.getData()[i] << std::endl;
+    auto subvecPos1 = grad1.subvecPos();
+    auto subvecCol1 = grad1.subvecCol();
+
+    auto subvecPos2 = grad2.subvecPos();
+    auto subvecCol2 = grad2.subvecCol();
+
+    for(size_t i=0;i<subvecPos1.size();i++) {
+      double diff = std::abs(double(subvecPos1[i] - subvecPos2[i]));
+      posError    += diff;
+      totalError  += diff;
+      posLengthL1 += std::abs(subvecPos2[i]);
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+    }
+
+    std::cout << "--------------------------" << std::endl;
+    for(size_t i=0;i<subvecCol1.size();i++) {
+      double diff = std::abs(double(subvecCol1[i] - subvecCol2[i]));
+      colError   += diff;
+      totalError += diff;
+      colLengthL1 += std::abs(subvecCol2[i]);
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
     }
   
     std::cout << "==========================" << std::endl;
-    std::cout << "GradError(vpos ) = " << posError/double(grad1.numVerts()*3) << std::endl;
-    std::cout << "GradError(color) = " << colError/double(grad1.numVerts()*3) << std::endl;
-    std::cout << "GradError(total) = " << totalError/double(grad1.totalParams()) << std::endl;
+    std::cout << "GradErr[L1](vpos ) = " << posError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
+    std::cout << "GradErr[L1](color) = " << colError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
+    std::cout << "GradErr[L1](total) = " << totalError/double(grad1.totalParams()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
     return 0;
   }
 
