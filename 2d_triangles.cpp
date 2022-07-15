@@ -98,8 +98,7 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
 struct Edge {
     int v0, v1; // vertex ID, v0 < v1
 
-    //Edge(int v0, int v1) : v0(min(v0, v1)), v1(max(v0, v1)) {}
-    Edge(int v0, int v1) : v0(v0), v1(v1) {}
+    Edge(int v0, int v1) : v0(min(v0, v1)), v1(max(v0, v1)) {}
 
     // for sorting edges
     bool operator<(const Edge &e) const {
@@ -191,37 +190,6 @@ static inline float VS_Y(float V[3], const CamInfo& data)
   const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
   return (xNDC*0.5f + 0.5f)*data.height;
 }
-
-//static inline void VS_X_Back(const float a_retVal, const CamInfo& data, float V[3])
-//{
-//  const float xNDC_Back = (a_retVal/data.width - 0.5f)*2.0f;
-//  const float W_Back    = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/xNDC_Back;
-//
-//  V[0]+= (W_Back    -        (V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]))/data.projM[3] + 
-//         (xNDC_Back*W_Back - (V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12]))/data.projM[0];
-//
-//  V[1]+= (W_Back    -        (V[0] * data.projM[3] + V[2] * data.projM[11] + data.projM[15]))/data.projM[7] + 
-//         (xNDC_Back*W_Back - (V[0] * data.projM[0] + V[2] * data.projM[ 8] + data.projM[12]))/data.projM[4];
-//
-//  V[2]+= (W_Back    -        (V[0] * data.projM[3] + V[1] * data.projM[7] + data.projM[15])/data.projM[11]) + 
-//         (xNDC_Back*W_Back - (V[0] * data.projM[0] + V[1] * data.projM[4] + data.projM[12])/data.projM[ 8]);
-//}
-//
-//static inline void VS_Y_Back(const float a_retVal, const CamInfo& data, float V[3])
-//{
-//  const float xNDC_Back = (a_retVal/data.width - 0.5f)*2.0f;
-//  const float W_Back    = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/xNDC_Back;
-//
-//  V[0]+= (W_Back    -        (V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]))/data.projM[3] + 
-//         (xNDC_Back*W_Back + (V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13]))/data.projM[0];
-//
-//  V[1]+= (W_Back    -        (V[0] * data.projM[3] + V[2] * data.projM[11] + data.projM[15]))/data.projM[7] + 
-//         (xNDC_Back*W_Back + (V[0] * data.projM[1] + V[2] * data.projM[ 9] + data.projM[13]))/data.projM[4];
-//
-//  V[2]+= (W_Back    -        (V[0] * data.projM[3] + V[1] * data.projM[7] + data.projM[15])/data.projM[11]) + 
-//         (xNDC_Back*W_Back + (V[0] * data.projM[1] + V[1] * data.projM[5] + data.projM[13])/data.projM[ 8]);
-//}
-
 
 //void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
 //{
@@ -514,7 +482,6 @@ void compute_edge_derivatives(
         const Sampler &edge_sampler,
         const Img &adjoint,
         const int num_edge_samples, bool a_3dProj,
-        Img* screen_dx, Img* screen_dy,
         GradReal* d_vertices) 
 {
    
@@ -573,34 +540,6 @@ void compute_edge_derivatives(
       
       if(a_3dProj) 
       {
-        //if(G_USE3DRT)
-        //{
-        //  const SurfaceInfo* pSurf = &surfIn;
-        //  if(pSurf->faceId == unsigned(-1))
-        //    pSurf =  &surfOut;
-        //
-        //  float minDiff = 10.0f;
-        //  const float diffU = std::abs(pSurf->u - t);
-        //  const float diffV = std::abs(pSurf->v - t);
-        //  const float diffW = std::abs(1.0f - pSurf->u - pSurf->v - t);
-        //
-        //  if(diffU < minDiff)
-        //  {
-        //    minDiff = diffU;
-        //    t = pSurf->u;
-        //  }
-        //  if(diffV < minDiff)
-        //  {
-        //    minDiff = diffV;
-        //    t       = pSurf->v;
-        //  }
-        //  if(diffW < minDiff)
-        //  {
-        //    minDiff = diffW;
-        //    t       = 1.0f - pSurf->u - pSurf->v;
-        //  }  
-        //}
-
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
 
@@ -635,27 +574,13 @@ void compute_edge_derivatives(
          //  maxRelativeError = std::max(maxRelativeError, errMax);
          //}
          
-         const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
-         const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
-         const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
+        const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
+        const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
+        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
          
-         const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
-         const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
-         const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
-  
-        //VS_X_Back(d_v0.x, g_uniforms, v0_dx.M);
-        //VS_X_Back(d_v1.x, g_uniforms, v1_dx.M);
-        //
-        //VS_Y_Back(d_v0.y, g_uniforms, v0_dx.M);
-        //VS_Y_Back(d_v1.y, g_uniforms, v1_dx.M);
-        //
-        //const float dv0_dx = v0_dx.x;
-        //const float dv0_dy = v0_dx.y;
-        //const float dv0_dz = v0_dx.z;
-        //
-        //const float dv1_dx = v1_dx.x;
-        //const float dv1_dy = v1_dx.y;
-        //const float dv1_dz = v1_dx.z;
+        const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
+        const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
+        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
 
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -688,17 +613,6 @@ void compute_edge_derivatives(
         #pragma omp atomic
         d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
       }
-
-      //if(screen_dx != nullptr && screen_dy != nullptr) 
-      //{
-      //  // for the derivatives w.r.t. p, dp/dp.x = (1, 0) and dp/dp.y = (0, 1)
-      //  // the screen space derivatives are the negation of this
-      //  auto dx = -n.x * (color_in - color_out) * weight;
-      //  auto dy = -n.y * (color_in - color_out) * weight;
-      //  // scatter gradients to buffers, in the parallel case, use atomic add here.
-      //  (*screen_dx)[int2(xi, yi)] += dx;
-      //  (*screen_dy)[int2(xi, yi)] += dy;
-      //}
     }    
 
     //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
@@ -746,7 +660,7 @@ void d_render(const TriangleMesh &mesh,
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
   compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == TRIANGLE_3D),
-                           screen_dx, screen_dy, d_mesh.vertices_s());
+                           d_mesh.vertices_s());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -817,9 +731,9 @@ int main(int argc, char *argv[])
   glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
 
   TriangleMesh initialMesh, targetMesh;
-  //scn01_TwoTrisFlat(initialMesh, targetMesh);
+  scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D(initialMesh, targetMesh);
+  //scn03_Triangle3D(initialMesh, targetMesh);
   //scn04_Pyramid3D(initialMesh, targetMesh);
 
   g_tracer = MakeRayTracer2D("");  
@@ -849,7 +763,7 @@ int main(int argc, char *argv[])
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
     
-    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
+    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
 
     d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
