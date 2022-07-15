@@ -98,7 +98,8 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
 struct Edge {
     int v0, v1; // vertex ID, v0 < v1
 
-    Edge(int v0, int v1) : v0(min(v0, v1)), v1(max(v0, v1)) {}
+    Edge(int a_v0, int a_v1) : v0(min(a_v0, a_v1)), v1(max(a_v0, a_v1)) {}
+    //Edge(int a_v0, int a_v1) : v0(a_v0), v1(a_v1) {}
 
     // for sorting edges
     bool operator<(const Edge &e) const {
@@ -385,6 +386,11 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
       for (int x = 0; x < img.width(); x++) {
+        
+        if((x == 127 || x == 128) && y == 159)
+        {
+          int a = 2;
+        }
 
         for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
           for (int dx = 0; dx < sqrt_num_samples; dx++) {
@@ -549,30 +555,30 @@ void compute_edge_derivatives(
         float3 v0_3d = mesh3d.vertices[edge.v0];
         float3 v1_3d = mesh3d.vertices[edge.v1];
 
-         VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
-         VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
+        VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
+        VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
          
-         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
-         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
+        VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
+        VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
          
-         //// fin diff check
-         //{
-         //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
-         //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
-         //  
-         //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
-         //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
-         //  
-         //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
-         //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
-         //
-         //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
-         //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
-         //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
-         //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
-         //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
-         //  maxRelativeError = std::max(maxRelativeError, errMax);
-         //}
+        //// fin diff check
+        //{
+        //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
+        //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
+        //  
+        //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
+        //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
+        //  
+        //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
+        //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
+        //
+        //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
+        //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
+        //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
+        //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
+        //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
+        //  maxRelativeError = std::max(maxRelativeError, errMax);
+        //}
          
         const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
         const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
@@ -731,13 +737,13 @@ int main(int argc, char *argv[])
   glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
 
   TriangleMesh initialMesh, targetMesh;
-  scn01_TwoTrisFlat(initialMesh, targetMesh);
+  //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D(initialMesh, targetMesh);
+  scn03_Triangle3D(initialMesh, targetMesh);
   //scn04_Pyramid3D(initialMesh, targetMesh);
 
-  g_tracer = MakeRayTracer2D("");  
-  //g_tracer = MakeRayTracer3D("");
+  //g_tracer = MakeRayTracer2D("");  
+  g_tracer = MakeRayTracer3D("");
 
   if(0)
   {

@@ -1,5 +1,6 @@
 #include "raytrace.h"
 using LiteMath::dot;
+using LiteMath::sign;
 using LiteMath::cross;
 using LiteMath::float4x4;
 using LiteMath::float3;
@@ -63,7 +64,9 @@ struct BruteForce3D : public IRayTracer
       const float3 pvec  = cross(ray_dir, edge2);
       const float3 tvec  = ray_pos - A_pos;
       const float3 qvec  = cross(tvec, edge1);
-      const float invDet = 1.0f / std::max(dot(edge1, pvec), 1e-6f);
+      const float  e1dpv = dot(edge1, pvec);
+      const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
+      const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
     
       const float v = dot(tvec, pvec)*invDet;
       const float u = dot(qvec, ray_dir)*invDet;
