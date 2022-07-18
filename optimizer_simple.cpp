@@ -87,11 +87,14 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
 { 
   const size_t eachPassDescreasStep = 30; //a_numIters/10; 
 
-  DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size());
+  DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size(), m_mesh.m_meshType, m_mesh.m_geomType);
   float alphaPos   = 0.2f;
   float alphaColor = 4.0f/float(m_targetImage.width()*m_targetImage.height()); 
-  //float alphaPos   = 0.01f/float(m_targetImage.width());
-  //float alphaColor = 0.0f; 
+  if(m_mesh.m_geomType == TRIANGLE_3D)
+  {
+    alphaPos   = 0.001f/float(m_targetImage.width());
+    alphaColor = 0.0f; 
+  }
   for(size_t iter=0; iter < a_numIters; iter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);

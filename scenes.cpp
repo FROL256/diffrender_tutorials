@@ -36,8 +36,8 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
       {{50.0, 25.0, 0.0}, {200.0, 200.0, 0.0}, {15.0, 150.0, 0.0},
        {200.0, 15.0, 0.0}, {150.0, 250.0, 0.0}, {50.0, 100.0, 0.0}},
        
-      {{0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3},
-       {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}}, 
+      {{0.0, 0.0, 0.75}, {0.5, 0.1, 0.0}, {0.0, 0.75, 0.5},
+       {0.3, 0.3, 0.5},  {0.3, 0.5, 0.3}, {0.3, 0.5, 0.3}}, 
 
       // indices
       {0, 1, 2, 
@@ -74,7 +74,7 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
        {-1.0f, -1.0f, 1.0f},  
        },
 
-      //// color
+      // color
       //{{1.0f, 0.0f, 0.0f}, 
       // {1.0f, 1.0f, 0.0f}, 
       // {0.0f, 0.0f, 1.0f},
@@ -110,10 +110,10 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
   auto mTransform2 = mTranslate*mRotate2;
 
   for(auto& v : initial.vertices)
-    v = mTransform1*v;
+    v = (mTransform1*v); // + float3(0,0,-0.01f);
 
   for(auto& v : target.vertices)
-    v = mTransform2*v;
+    v = (mTransform2*v); // + float3(0,0,-0.01f);
   
   std::cout << "initial: [" << std::endl;
   for(const auto& v : initial.vertices)

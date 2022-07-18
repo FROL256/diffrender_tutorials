@@ -34,19 +34,23 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> EVector;
 
 EVector VectorFromMesh(const TriangleMesh& a_mesh)
 {
-  EVector result( a_mesh.vertices.size()*2 + a_mesh.colors.size()*3 );
+  EVector result( a_mesh.vertices.size()*3 + a_mesh.colors.size()*3 );
   size_t currPos = 0;
-  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=2)
+  for(size_t vertId=0; vertId< a_mesh.vertices.size(); vertId++, currPos+=3)
   {
     result[currPos+0] = a_mesh.vertices[vertId].x;
     result[currPos+1] = a_mesh.vertices[vertId].y;
+    result[currPos+2] = a_mesh.vertices[vertId].z;
   }
-  for(size_t faceId=0; faceId < a_mesh.colors.size(); faceId++, currPos+=3)
+  
+  const size_t colorsNum = (a_mesh.m_meshType == TRIANGLE_FACE_COL) ? a_mesh.colors.size() : a_mesh.vertices.size();
+  for(size_t colorId=0; colorId < colorsNum; colorId++, currPos+=3)
   {
-   result[currPos+0] = a_mesh.colors[faceId].x;
-   result[currPos+1] = a_mesh.colors[faceId].y;
-   result[currPos+2] = a_mesh.colors[faceId].z;
+    result[currPos+0] = a_mesh.colors[colorId].x;
+    result[currPos+1] = a_mesh.colors[colorId].y;
+    result[currPos+2] = a_mesh.colors[colorId].z;
   }
+
   return result;
 }
 
@@ -56,18 +60,8 @@ float g_alphaColor = 0.00001f;
 EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
 {
   EVector result(a_mesh.totalParams());
-  size_t currPos = 0;
-  for(int vertId=0; vertId< a_mesh.numVerts(); vertId++, currPos+=2)
-  {
-    result[currPos+0] = a_mesh.vertices()[vertId].x*g_alphaPos;
-    result[currPos+1] = a_mesh.vertices()[vertId].y*g_alphaPos;
-  }
-  for(int faceId=0; faceId < a_mesh.numFaces(); faceId++, currPos+=3)
-  {
-    result[currPos+0] = a_mesh.colors()[faceId].x*g_alphaColor;
-    result[currPos+1] = a_mesh.colors()[faceId].y*g_alphaColor;
-    result[currPos+2] = a_mesh.colors()[faceId].z*g_alphaColor;
-  }
+  for(size_t i=0;i<result.size();i++)
+    result[i] = a_mesh[i];
   return result;
 }
 
@@ -75,16 +69,18 @@ TriangleMesh MeshFromVector(const EVector& a_vec, const TriangleMesh& a_mesh)
 {
   TriangleMesh result = a_mesh;
   size_t currPos = 0;
-  for(size_t vertId=0; vertId< result.vertices.size(); vertId++, currPos+=2)
+  for(size_t vertId=0; vertId< result.vertices.size(); vertId++, currPos+=3)
   {
     result.vertices[vertId].x = a_vec[currPos+0];
     result.vertices[vertId].y = a_vec[currPos+1];
+    result.vertices[vertId].z = a_vec[currPos+2];
   }
-  for(size_t faceId=0; faceId < result.colors.size(); faceId++, currPos+=3)
+  const size_t colorsNum = (a_mesh.m_meshType == TRIANGLE_FACE_COL) ? a_mesh.colors.size() : a_mesh.vertices.size();
+  for(size_t colorId=0; colorId < colorsNum; colorId++, currPos+=3)
   {
-    result.colors[faceId].x = a_vec[currPos+0];
-    result.colors[faceId].y = a_vec[currPos+1];
-    result.colors[faceId].z = a_vec[currPos+2];
+    result.colors[colorId].x = a_vec[currPos+0];
+    result.colors[colorId].y = a_vec[currPos+1];
+    result.colors[colorId].z = a_vec[currPos+2];
   }
   return result;
 }
@@ -98,8 +94,7 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   constexpr int samples_per_pixel = 4;
 
   Img img(256, 256);
-  std::mt19937 rng(1234);
-  render(mesh, samples_per_pixel, rng, img);
+  render(mesh, samples_per_pixel, img);
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << pObj->m_iter << ".bmp";
@@ -110,8 +105,10 @@ float EvalFunction(const EVector& vals_inp, EVector* grad_out, void* opt_data)
   float mse = LossAndDiffLoss(img, pObj->m_targetImage, adjoint);
   
   DTriangleMesh d_mesh(mesh.vertices.size(), mesh.colors.size());
-  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height() , rng, nullptr, nullptr, 
+  d_mesh.clear();
+  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), nullptr, nullptr, 
            d_mesh);
+
   
   std::cout << "iter " << pObj->m_iter << ", error = " << mse << std::endl;
   (*grad_out) = VectorFromDMesh(d_mesh); // apply 2.0f*summ(I[x,y] - I_target[x,y]) to get correct gradient for target image
@@ -130,7 +127,7 @@ TriangleMesh OptComplex::Run(size_t a_numIters)
 { 
   optim::algo_settings_t settings;
   settings.iter_max = a_numIters;
-  settings.gd_settings.method = 0; // 0 for simple gradient descend, 6 ADAM
+  settings.gd_settings.method             = 0; // 0 for simple gradient descend, 6 ADAM
   settings.gd_settings.par_step_size      = 1.0; // initialization for ADAM
   settings.gd_settings.step_decay         = true;
   settings.gd_settings.step_decay_periods = a_numIters/40;

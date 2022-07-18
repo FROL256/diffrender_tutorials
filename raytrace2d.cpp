@@ -59,23 +59,19 @@ struct BruteForce2D : public IRayTracer
     for (size_t i = 0; i < (int)m_pMesh2D->indices.size(); i+=3) 
     {
       // retrieve the three vertices of a triangle
-      auto A = m_pMesh2D->indices[i+0];
-      auto B = m_pMesh2D->indices[i+1];
-      auto C = m_pMesh2D->indices[i+2];
+      const auto A = m_pMesh2D->indices[i+0];
+      const auto B = m_pMesh2D->indices[i+1];
+      const auto C = m_pMesh2D->indices[i+2];
       
-      auto v0_3d = m_pMesh2D->vertices[A];
-      auto v1_3d = m_pMesh2D->vertices[B];
-      auto v2_3d = m_pMesh2D->vertices[C];
-  
-      float2 v0 = float2(v0_3d.x, v0_3d.y);
-      float2 v1 = float2(v1_3d.x, v1_3d.y);
-      float2 v2 = float2(v2_3d.x, v2_3d.y);
+      const float2 v0 = LiteMath::to_float2(m_pMesh2D->vertices[A]);
+      const float2 v1 = LiteMath::to_float2(m_pMesh2D->vertices[B]);
+      const float2 v2 = LiteMath::to_float2(m_pMesh2D->vertices[C]);
   
       // form three half-planes: v1-v0, v2-v1, v0-v2
       // if a point is on the same side of all three half-planes, it's inside the triangle.
-      auto n01 = normal2D(v1 - v0);
-      auto n12 = normal2D(v2 - v1);
-      auto n20 = normal2D(v0 - v2);
+      const auto n01 = normal2D(v1 - v0);
+      const auto n12 = normal2D(v2 - v1);
+      const auto n20 = normal2D(v0 - v2);
       
       const bool side01 = dot(screen_pos - v0, n01) > 0;
       const bool side12 = dot(screen_pos - v1, n12) > 0;
@@ -85,16 +81,11 @@ struct BruteForce2D : public IRayTracer
         hit.faceId = (i/3);
   
         const float areaInv = 1.0f / edgeFunction(v0, v1, v2); 
-        const float e0      = edgeFunction(v0, v1, screen_pos);
+        //const float e0      = edgeFunction(v0, v1, screen_pos);
         const float e1      = edgeFunction(v1, v2, screen_pos);
         const float e2      = edgeFunction(v2, v0, screen_pos);
-        const float u = e1*areaInv; // v0
-        const float v = e2*areaInv; // v1 
-  
-        //const float z = std::abs(u*v0_3d.z + v*v1_3d.z + (1.0f-u-v)*v2_3d.z);
-
-        hit.u = u;
-        hit.v = v;
+        hit.u = e1*areaInv; // v0
+        hit.v = e2*areaInv; // v1 
       }
     }
   

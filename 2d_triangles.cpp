@@ -386,11 +386,6 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
       for (int x = 0; x < img.width(); x++) {
-        
-        if((x == 127 || x == 128) && y == 159)
-        {
-          int a = 2;
-        }
 
         for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
           for (int dx = 0; dx < sqrt_num_samples; dx++) {
@@ -501,19 +496,20 @@ void compute_edge_derivatives(
     for (int i = 0; i < num_edge_samples; i++) 
     { 
       auto& gen = gens[omp_get_thread_num()];
-      const float rnd0 = clamp(qmc::rndFloat(i, 0, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
-      const float rnd1 = clamp(qmc::rndFloat(i, 1, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
+      //const float rnd0 = clamp(qmc::rndFloat(i, 0, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
+      //const float rnd1 = clamp(qmc::rndFloat(i, 1, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
+
+      const float rnd0 = prng::rndFloat(&gen);
+      const float rnd1 = prng::rndFloat(&gen);
 
       // pick an edge
       auto edge_id = sample(edge_sampler, rnd0);
-      auto edge = edges[edge_id];
-      auto pmf = edge_sampler.pmf[edge_id];
+      auto edge    = edges[edge_id];
+      auto pmf     = edge_sampler.pmf[edge_id];
+      
       // pick a point p on the edge
-      auto v03 = mesh.vertices[edge.v0];
-      auto v13 = mesh.vertices[edge.v1];
-
-      auto v0 = float2(v03.x, v03.y);
-      auto v1 = float2(v13.x, v13.y);
+      auto v0 = LiteMath::to_float2(mesh.vertices[edge.v0]);
+      auto v1 = LiteMath::to_float2(mesh.vertices[edge.v1]);
 
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
@@ -546,8 +542,8 @@ void compute_edge_derivatives(
       
       if(a_3dProj) 
       {
-        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
+        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
+        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
 
         float3 v0_dx(0,0,0), v0_dy(0,0,0);
         float3 v1_dx(0,0,0), v1_dy(0,0,0);
@@ -742,10 +738,10 @@ int main(int argc, char *argv[])
   scn03_Triangle3D(initialMesh, targetMesh);
   //scn04_Pyramid3D(initialMesh, targetMesh);
 
-  //g_tracer = MakeRayTracer2D("");  
-  g_tracer = MakeRayTracer3D("");
+  g_tracer = MakeRayTracer2D("");  
+  //g_tracer = MakeRayTracer3D("");
 
-  if(0)
+  if(1)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
@@ -753,10 +749,10 @@ int main(int argc, char *argv[])
     render(targetMesh, SAM_PER_PIXEL, target);
     LiteImage::SaveImage("rendered/initial.bmp", initial);
     LiteImage::SaveImage("rendered/target.bmp", target);
-    return 0;
+    //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
