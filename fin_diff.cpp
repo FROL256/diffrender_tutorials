@@ -70,7 +70,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
   }
   
-  size_t colrsNum = (mesh.m_meshType == TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
+  size_t colrsNum = (mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
   
   for(size_t i=0; i<colrsNum;i++)
   {
@@ -163,7 +163,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     //
   }
   
-  size_t colrsNum = (mesh.m_meshType == TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
+  size_t colrsNum = (mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
   
   for(size_t i=0; i<colrsNum;i++)
   {

@@ -9,14 +9,14 @@
 #include "LiteMath.h"
 #include "Image2d.h"
 
-enum MESH_TYPES {
+enum class MESH_TYPES {
     TRIANGLE_FACE_COL = 1,
     TRIANGLE_VERT_COL = 2,
     TRIANGLE_DIFF_TEX = 3,
 };
 
-enum GEOM_TYPE { TRIANGLE_2D = 0, 
-                 TRIANGLE_3D = 1};
+enum class GEOM_TYPE { TRIANGLE_2D = 0, 
+                       TRIANGLE_3D = 1};
 
 using LiteMath::float2;
 using LiteMath::float3;
@@ -29,15 +29,15 @@ struct TriangleMesh
   std::vector<float3>     colors; // defined for each face
   std::vector<unsigned>   indices;
 
-  MESH_TYPES m_meshType = TRIANGLE_FACE_COL;
-  GEOM_TYPE  m_geomType = TRIANGLE_2D;
+  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
+  GEOM_TYPE  m_geomType = GEOM_TYPE::TRIANGLE_2D;
 };
 
 typedef float GradReal;
 
 struct DTriangleMesh 
 {
-  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = TRIANGLE_FACE_COL, GEOM_TYPE a_gType = TRIANGLE_2D) 
+  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPE a_gType = GEOM_TYPE::TRIANGLE_2D) 
   {
     m_meshType = a_meshType;
     m_geomType = a_gType;
@@ -49,7 +49,7 @@ struct DTriangleMesh
     m_numVertices = num_vertices;
     m_numFaces    = num_faces;  
     
-    if(m_meshType == TRIANGLE_VERT_COL)
+    if(m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
       m_allParams.resize(num_vertices*3 + num_vertices*3);
     else
       m_allParams.resize(num_vertices*3 + num_faces*3);
@@ -79,8 +79,8 @@ struct DTriangleMesh
   size_t totalParams() const { return m_allParams.size(); } 
 
   const MESH_TYPES getMeshType() const { return m_meshType; }
-  MESH_TYPES m_meshType = TRIANGLE_FACE_COL;
-  GEOM_TYPE  m_geomType = TRIANGLE_2D;
+  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
+  GEOM_TYPE  m_geomType = GEOM_TYPE::TRIANGLE_2D;
 
   inline const GradReal* getData() const { return m_allParams.data(); }
   inline GradReal*       getData()       { return m_allParams.data(); }

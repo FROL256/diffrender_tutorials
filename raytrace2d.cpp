@@ -30,7 +30,7 @@ struct BruteForce2D : public IRayTracer
 
   void SetCamera(const CamInfo& cam) override
   {
-    if(m_pMesh->m_geomType == TRIANGLE_3D)
+    if(m_pMesh->m_geomType == GEOM_TYPE::TRIANGLE_3D)
     {
       m_mesh2D = *m_pMesh;
       for(auto& v : m_mesh2D.vertices) {
@@ -38,7 +38,7 @@ struct BruteForce2D : public IRayTracer
         v.x = VS_X(vCopy.M, cam);
         v.y = VS_Y(vCopy.M, cam);
       }
-      m_mesh2D.m_geomType = TRIANGLE_2D;
+      m_mesh2D.m_geomType = GEOM_TYPE::TRIANGLE_2D;
       m_pMesh2D           = &m_mesh2D;
     }
     else

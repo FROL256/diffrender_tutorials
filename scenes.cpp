@@ -44,7 +44,7 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5}
   };
   
-  mesh.m_meshType = TRIANGLE_VERT_COL;
+  mesh.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
   initial = mesh;
   ///////////////////////////////////////////////////////////////// 
   
@@ -61,7 +61,7 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5}
   };
 
-  mesh2.m_meshType = TRIANGLE_VERT_COL;
+  mesh2.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
   target = mesh2;
 }
 
@@ -94,8 +94,8 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
       {0, 1, 2}
   };
 
-  pyramid.m_meshType = TRIANGLE_VERT_COL;
-  pyramid.m_geomType = TRIANGLE_3D;
+  pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  pyramid.m_geomType = GEOM_TYPE::TRIANGLE_3D;
 
   initial = pyramid;
   target  = pyramid;
@@ -156,8 +156,8 @@ void scn04_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
        //1, 3, 4},
   };
 
-  pyramid.m_meshType = TRIANGLE_VERT_COL;
-  pyramid.m_geomType = TRIANGLE_3D;
+  pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  pyramid.m_geomType = GEOM_TYPE::TRIANGLE_3D;
 
   initial = pyramid;
   target  = pyramid;

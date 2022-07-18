@@ -162,7 +162,7 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
   if (surfInfo.faceId == unsigned(-1))
     return float3(0,0,0); // BGCOLOR
 
-  if(mesh.m_meshType == TRIANGLE_VERT_COL)
+  if(mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
   {
     const auto  A = mesh.indices[surfInfo.faceId*3+0];
     const auto  B = mesh.indices[surfInfo.faceId*3+1];
@@ -386,6 +386,8 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
     //#pragma omp parallel for collapse (2)
     for (int y = 0; y < img.height(); y++) { // for each pixel 
       for (int x = 0; x < img.width(); x++) {
+        
+        float3 pixelColor(0,0,0);
 
         for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
           for (int dx = 0; dx < sqrt_num_samples; dx++) {
@@ -397,10 +399,11 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
             auto surf  = g_tracer->CastSingleRay(screen_pos.x, screen_pos.y);
             auto color = shade(mesh, surf);
 
-            img[int2(x,y)] += (color / samples_per_pixel);
+            pixelColor += (color / samples_per_pixel);
           }
         }
 
+        img[int2(x,y)] = pixelColor;
       }
     }
 }
@@ -430,7 +433,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
           if (surfElem.faceId != unsigned(-1)) 
           {          
             auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            if(mesh.m_meshType == TRIANGLE_VERT_COL)                // shade_back( => val)
+            if(mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)                // shade_back( => val)
             {
               auto A = mesh.indices[surfElem.faceId*3+0];
               auto B = mesh.indices[surfElem.faceId*3+1];
@@ -632,7 +635,7 @@ void d_render(const TriangleMesh &mesh,
   const TriangleMesh* pMesh = &mesh;
     
   TriangleMesh localMesh;
-  if(mesh.m_geomType == TRIANGLE_3D)
+  if(mesh.m_geomType == GEOM_TYPE::TRIANGLE_3D)
   {
     localMesh = mesh;
     for(auto& v : localMesh.vertices) {
@@ -640,7 +643,7 @@ void d_render(const TriangleMesh &mesh,
       v.x = VS_X(vCopy.M, g_uniforms);
       v.y = VS_Y(vCopy.M, g_uniforms);
     }
-    localMesh.m_geomType = TRIANGLE_2D;
+    localMesh.m_geomType = GEOM_TYPE::TRIANGLE_2D;
     pMesh = &localMesh;
   }
   
@@ -661,7 +664,7 @@ void d_render(const TriangleMesh &mesh,
   //
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
-  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == TRIANGLE_3D),
+  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPE::TRIANGLE_3D),
                            d_mesh.vertices_s());
 }
 
@@ -765,7 +768,7 @@ int main(int argc, char *argv[])
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
     
-    const float dPos = (initialMesh.m_geomType == TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
+    const float dPos = (initialMesh.m_geomType == GEOM_TYPE::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
 
     d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     

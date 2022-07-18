@@ -90,7 +90,7 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size(), m_mesh.m_meshType, m_mesh.m_geomType);
   float alphaPos   = 0.2f;
   float alphaColor = 4.0f/float(m_targetImage.width()*m_targetImage.height()); 
-  if(m_mesh.m_geomType == TRIANGLE_3D)
+  if(m_mesh.m_geomType == GEOM_TYPE::TRIANGLE_3D)
   {
     alphaPos   = 0.001f/float(m_targetImage.width());
     alphaColor = 0.0f; 
