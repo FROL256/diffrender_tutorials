@@ -39,7 +39,9 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, const GammaVec& a_gamma)
 {
   if(m_params.alg == GD_Naive)
-  {
+  { 
+    //xNext[i] = x[i] - gamma*gradF[i];
+    //
     for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
       mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*a_gamma.pos; //*float3(1,1,1);
     
@@ -48,12 +50,28 @@ void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, cons
   }
   else if(m_params.alg == GD_AdaGrad)
   {
-    //adam_vec_v += BMO_MATOPS_POW(grad_p,2);
+    //GSquare[i] = gradF[i]*gradF[i]
     for(size_t i=0;i<gradMesh.size();i++)
       m_GSquare[i] += (gradMesh[i]*gradMesh[i]);
     
-    //direc_out = BMO_MATOPS_ARRAY_DIV_ARRAY( gd_settings.par_step_size * grad_p, BMO_MATOPS_ARRAY_ADD_SCALAR(BMO_MATOPS_SQRT(adam_vec_v), gd_settings.par_ada_norm_term) );
-
+    //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
+    //
+    for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
+    {
+      const GradReal divX = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+0] + GradReal(1e-6f)));
+      const GradReal divY = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+1] + GradReal(1e-6f)));
+      const GradReal divZ = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+2] + GradReal(1e-6f)));
+      mesh->vertices[vertId] -= 0.1f*gradMesh.vert_at(vertId)*float3(divX,divY,divZ);
+    }
+    
+    size_t offset = mesh->vertices.size()*3;
+    for(int faceId=0; faceId < mesh->colors.size(); faceId++)
+    {
+      const GradReal divX = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 0] + GradReal(1e-6f)) );
+      const GradReal divY = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 1] + GradReal(1e-6f)) );
+      const GradReal divZ = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 2] + GradReal(1e-6f)) );
+      mesh->colors[faceId] -= 0.1f*gradMesh.color_at(faceId)*float3(divX,divY,divZ);
+    }
   }
 }
 
