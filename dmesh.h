@@ -22,7 +22,10 @@ using LiteMath::float2;
 using LiteMath::float3;
 using LiteMath::float4;
 
-// data structures for rendering
+/**
+\brief input/output mesh
+
+*/
 struct TriangleMesh 
 {
   std::vector<float3>     vertices;
@@ -35,6 +38,22 @@ struct TriangleMesh
 
 typedef float GradReal;
 
+/**
+\brief gamma multiplier for gradient descend
+  We could use full-sized vector for gamma parameter, however, in practice of differentriable rendering we can split vector in several parts.
+  And then single nubmer for each part of the vector
+*/
+struct GammaVec 
+{
+  GammaVec(float a_pos, float a_color) : pos(a_pos), color(a_color) {}
+  float pos;
+  float color;
+};
+
+/**
+\brief gradient of mesh
+
+*/
 struct DTriangleMesh 
 {
   DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPE a_gType = GEOM_TYPE::TRIANGLE_2D) 
@@ -73,17 +92,24 @@ struct DTriangleMesh
   std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + m_colorOffset); }
   std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + m_colorOffset, m_allParams.end()); }
 
+  GammaVec getGamma(unsigned imageSize) const 
+  {
+    GammaVec res(0.2f, 4.0f/float(imageSize*imageSize));
+    if(m_geomType == GEOM_TYPE::TRIANGLE_3D)
+      res = GammaVec(0.001f/float(imageSize), 0.0);
+    return res;
+  }
   //////////////////////////////////////////////////////////////////////////////////
 
   void clear() { for(auto& x : m_allParams) x = GradReal(0); }
-  size_t totalParams() const { return m_allParams.size(); } 
+  size_t size() const { return m_allParams.size(); } 
 
   const MESH_TYPES getMeshType() const { return m_meshType; }
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
   GEOM_TYPE  m_geomType = GEOM_TYPE::TRIANGLE_2D;
 
-  inline const GradReal* getData() const { return m_allParams.data(); }
-  inline GradReal*       getData()       { return m_allParams.data(); }
+  inline const GradReal* data() const { return m_allParams.data(); }
+  inline GradReal*       data()       { return m_allParams.data(); }
 
   inline float& operator[](size_t i)       { return m_allParams[i]; }
   inline float  operator[](size_t i) const { return m_allParams[i]; }

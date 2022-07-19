@@ -59,7 +59,7 @@ float g_alphaColor = 0.00001f;
 
 EVector VectorFromDMesh(const DTriangleMesh& a_mesh)
 {
-  EVector result(a_mesh.totalParams());
+  EVector result(a_mesh.size());
   for(size_t i=0;i<result.size();i++)
     result[i] = a_mesh[i];
   return result;
