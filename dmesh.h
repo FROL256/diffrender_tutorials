@@ -15,8 +15,8 @@ enum class MESH_TYPES {
     TRIANGLE_DIFF_TEX = 3,
 };
 
-enum class GEOM_TYPE { TRIANGLE_2D = 0, 
-                       TRIANGLE_3D = 1};
+enum class GEOM_TYPES { TRIANGLE_2D = 0, 
+                        TRIANGLE_3D = 1};
 
 using LiteMath::float2;
 using LiteMath::float3;
@@ -33,7 +33,7 @@ struct TriangleMesh
   std::vector<unsigned>   indices;
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPE  m_geomType = GEOM_TYPE::TRIANGLE_2D;
+  GEOM_TYPES  m_geomType = GEOM_TYPES::TRIANGLE_2D;
 };
 
 typedef float GradReal;
@@ -56,7 +56,7 @@ struct GammaVec
 */
 struct DTriangleMesh 
 {
-  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPE a_gType = GEOM_TYPE::TRIANGLE_2D) 
+  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPES a_gType = GEOM_TYPES::TRIANGLE_2D) 
   {
     m_meshType = a_meshType;
     m_geomType = a_gType;
@@ -80,33 +80,31 @@ struct DTriangleMesh
   int numFaces() const { return m_numFaces;    }
 
   //////////////////////////////////////////////////////////////////////////////////
-  GradReal*       vertices_s()       { return m_allParams.data(); }
-  const GradReal* vertices_s() const { return m_allParams.data(); }
+  int vert_offs () const { return 0; }
+  int color_offs() const { return m_colorOffset; }
 
-  GradReal*       colors_s()       { return (m_allParams.data() + m_colorOffset); }
-  const GradReal* colors_s() const { return (m_allParams.data() + m_colorOffset); }
+  GradReal*       vertices_s()       { return m_allParams.data() + vert_offs(); }
+  const GradReal* vertices_s() const { return m_allParams.data() + vert_offs(); }
+
+  GradReal*       colors_s()       { return (m_allParams.data() + color_offs()); }
+  const GradReal* colors_s() const { return (m_allParams.data() + color_offs()); }
 
   float3 vert_at(int i)  const { return float3(float(vertices_s()[3*i+0]), float(vertices_s()[3*i+1]), float(vertices_s()[3*i+2])); }
   float3 color_at(int i) const { return float3(float(colors_s  ()[3*i+0]), float(colors_s  ()[3*i+1]), float(colors_s  ()[3*i+2])); }
 
-  std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + m_colorOffset); }
-  std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + m_colorOffset, m_allParams.end()); }
+  std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + color_offs()); }
+  std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + color_offs(), m_allParams.end()); }
 
-  //GammaVec getGamma(unsigned imageSize) const 
-  //{
-  //  GammaVec res(0.2f, 4.0f/float(imageSize*imageSize));
-  //  if(m_geomType == GEOM_TYPE::TRIANGLE_3D)
-  //    res = GammaVec(0.001f/float(imageSize), 0.0);
-  //  return res;
-  //}
   //////////////////////////////////////////////////////////////////////////////////
 
   void clear() { for(auto& x : m_allParams) x = GradReal(0); }
   size_t size() const { return m_allParams.size(); } 
 
-  const MESH_TYPES getMeshType() const { return m_meshType; }
+  MESH_TYPES getMeshType() const { return m_meshType; }
+  GEOM_TYPES  getGeomType() const { return m_geomType; }
+
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPE  m_geomType = GEOM_TYPE::TRIANGLE_2D;
+  GEOM_TYPES  m_geomType = GEOM_TYPES::TRIANGLE_2D;
 
   inline const GradReal* data() const { return m_allParams.data(); }
   inline GradReal*       data()       { return m_allParams.data(); }

@@ -635,7 +635,7 @@ void d_render(const TriangleMesh &mesh,
   const TriangleMesh* pMesh = &mesh;
     
   TriangleMesh localMesh;
-  if(mesh.m_geomType == GEOM_TYPE::TRIANGLE_3D)
+  if(mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D)
   {
     localMesh = mesh;
     for(auto& v : localMesh.vertices) {
@@ -643,7 +643,7 @@ void d_render(const TriangleMesh &mesh,
       v.x = VS_X(vCopy.M, g_uniforms);
       v.y = VS_Y(vCopy.M, g_uniforms);
     }
-    localMesh.m_geomType = GEOM_TYPE::TRIANGLE_2D;
+    localMesh.m_geomType = GEOM_TYPES::TRIANGLE_2D;
     pMesh = &localMesh;
   }
   
@@ -664,7 +664,7 @@ void d_render(const TriangleMesh &mesh,
   //
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
-  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPE::TRIANGLE_3D),
+  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D),
                            d_mesh.vertices_s());
 }
 
@@ -768,7 +768,7 @@ int main(int argc, char *argv[])
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
     
-    const float dPos = (initialMesh.m_geomType == GEOM_TYPE::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
+    const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
 
     d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
@@ -821,7 +821,7 @@ int main(int argc, char *argv[])
   #endif
 
   //pOpt->Init(initialMesh, img, {30,GD_Naive}); 
-  pOpt->Init(initialMesh, img, {100,GD_AdaGrad}); 
+  pOpt->Init(initialMesh, img, {100,GD_RMSProp}); 
 
   TriangleMesh mesh3 = pOpt->Run(300);
   img.clear(float3{0,0,0});

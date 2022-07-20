@@ -95,7 +95,7 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
   };
 
   pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  pyramid.m_geomType = GEOM_TYPE::TRIANGLE_3D;
+  pyramid.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = pyramid;
   target  = pyramid;
@@ -157,7 +157,7 @@ void scn04_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   };
 
   pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  pyramid.m_geomType = GEOM_TYPE::TRIANGLE_3D;
+  pyramid.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = pyramid;
   target  = pyramid;
