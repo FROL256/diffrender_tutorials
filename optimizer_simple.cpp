@@ -27,7 +27,8 @@ protected:
   size_t       m_iter = 0;
   OptimizerParameters m_params;
 
-  std::vector<GradReal> m_GSquare; ///<! m_GSquare is a vector of the sum of the squared gradients at or before iteration i
+  std::vector<GradReal> m_GSquare; ///<! m_GSquare is a vector of the sum of the squared gradients at or before iteration 'i'
+  std::vector<GradReal> m_vec; 
 };
 
 IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
@@ -96,19 +97,31 @@ void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, cons
   }
   else if(m_params.alg >= GD_AdaGrad)
   {
-    if(m_params.alg >= GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
+    if(m_params.alg == GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
     {
       for(size_t i=0;i<gradMesh.size();i++)
         m_GSquare[i] += (gradMesh[i]*gradMesh[i]);
     }
-    else if(m_params.alg >= GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
+    else if(m_params.alg == GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
     {
       const float alpha = 0.5f;
       for(size_t i=0;i<gradMesh.size();i++)
-        m_GSquare[i] = m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha);
+        m_GSquare[i] = 2.0f*(m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha)); // does not works without 2.0f
     }
+    else if(m_params.alg == GD_Adam) // ==> Adam(m[i] = b*mPrev[i] + (1-b)*gradF[i], GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i])
+    {
+      const float alpha = 0.5f;
+      const float beta  = 0.25f;
+      for(size_t i=0;i<m_vec.size();i++)
+        m_vec[i] = m_vec[i]*beta + gradMesh[i]*(1.0f-beta);
 
-    //adam_vec_v = gd_settings.par_ada_rho * adam_vec_v + (fp_t(1.0) - gd_settings.par_ada_rho) * BMO_MATOPS_POW(grad_p,2);
+      for(size_t i=0;i<gradMesh.size();i++)
+        m_GSquare[i] = 2.0f*(m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha)); // does not works without 2.0f
+
+      DTriangleMesh& gradUpdated = const_cast<DTriangleMesh&>(gradMesh);
+      for(size_t i=0;i<m_vec.size();i++)
+        gradUpdated[i] = m_vec[i];
+    }
     
     //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
     //
@@ -169,9 +182,14 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
 { 
   DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size(), m_mesh.m_meshType, m_mesh.m_geomType);
   
-  if(int(m_params.alg) >= int(GD_AdaGrad)) {
+  if(m_params.alg >= GD_AdaGrad) {
     m_GSquare.resize(gradMesh.size());
     memset(m_GSquare.data(), 0, sizeof(GradReal)*m_GSquare.size());
+  }
+
+  if(m_params.alg == GD_Adam) {
+    m_vec.resize(gradMesh.size());
+    memset(m_vec.data(), 0, sizeof(GradReal)*m_vec.size());
   }
 
   auto gamma = EstimateGamma(m_targetImage.width(), gradMesh.m_geomType);

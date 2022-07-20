@@ -821,7 +821,7 @@ int main(int argc, char *argv[])
   #endif
 
   //pOpt->Init(initialMesh, img, {30,GD_Naive}); 
-  pOpt->Init(initialMesh, img, {100,GD_RMSProp}); 
+  pOpt->Init(initialMesh, img, {100,GD_Adam}); 
 
   TriangleMesh mesh3 = pOpt->Run(300);
   img.clear(float3{0,0,0});
