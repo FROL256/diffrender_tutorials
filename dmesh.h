@@ -41,7 +41,7 @@ typedef float GradReal;
 /**
 \brief gamma multiplier for gradient descend
   We could use full-sized vector for gamma parameter, however, in practice of differentriable rendering we can split vector in several parts.
-  And then single nubmer for each part of the vector
+  And then return single numebr for each part of the vector
 */
 struct GammaVec 
 {
@@ -92,13 +92,13 @@ struct DTriangleMesh
   std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + m_colorOffset); }
   std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + m_colorOffset, m_allParams.end()); }
 
-  GammaVec getGamma(unsigned imageSize) const 
-  {
-    GammaVec res(0.2f, 4.0f/float(imageSize*imageSize));
-    if(m_geomType == GEOM_TYPE::TRIANGLE_3D)
-      res = GammaVec(0.001f/float(imageSize), 0.0);
-    return res;
-  }
+  //GammaVec getGamma(unsigned imageSize) const 
+  //{
+  //  GammaVec res(0.2f, 4.0f/float(imageSize*imageSize));
+  //  if(m_geomType == GEOM_TYPE::TRIANGLE_3D)
+  //    res = GammaVec(0.001f/float(imageSize), 0.0);
+  //  return res;
+  //}
   //////////////////////////////////////////////////////////////////////////////////
 
   void clear() { for(auto& x : m_allParams) x = GradReal(0); }

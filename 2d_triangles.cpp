@@ -820,7 +820,8 @@ int main(int argc, char *argv[])
   IOptimizer* pOpt = CreateSimpleOptimizer();
   #endif
 
-  pOpt->Init(initialMesh, img, {30,GD_AdaGrad}); // set different target image
+  //pOpt->Init(initialMesh, img, {30,GD_Naive}); 
+  pOpt->Init(initialMesh, img, {100,GD_AdaGrad}); 
 
   TriangleMesh mesh3 = pOpt->Run(300);
   img.clear(float3{0,0,0});
