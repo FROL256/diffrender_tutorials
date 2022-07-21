@@ -179,6 +179,103 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static inline void VertexShader(const CamInfo& u, float vx, float vy, float vz, 
+                                float output[2])
+{
+  const float W    =   vx * u.projM[3] + vy * u.projM[7] + vz * u.projM[11] + u.projM[15]; 
+  const float xNDC =  (vx * u.projM[0] + vy * u.projM[4] + vz * u.projM[ 8] + u.projM[12])/W;
+  const float yNDC = -(vx * u.projM[1] + vy * u.projM[5] + vz * u.projM[ 9] + u.projM[13])/W;
+  output[0] = (xNDC*0.5f + 0.5f)*u.width;
+  output[1] = (yNDC*0.5f + 0.5f)*u.height; 
+}
+
+void VertexShader_jac(const CamInfo &u, float vx, float vy, float vz, float output[2], float *jacobianMatrix) 
+{
+    float _t0;
+    float _t1;
+    float _t2;
+    float _t3;
+    float _t4;
+    float _t5;
+    float _d_W = 0;
+    float _t6;
+    float _t7;
+    float _t8;
+    float _t9;
+    float _t10;
+    float _t11;
+    float _t12;
+    float _t13;
+    float _t14;
+    float _t15;
+    float _t16;
+    float _t17;
+    float _t18;
+    float _t19;
+    float _t20;
+    float _t21;
+    float _t22;
+    float _t23;
+    float _t24;
+    float _t25;
+    _t1 = vx;
+    _t0 = u.projM[3];
+    _t3 = vy;
+    _t2 = u.projM[7];
+    _t5 = vz;
+    _t4 = u.projM[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + u.projM[15];
+    _t9 = vx;
+    _t8 = u.projM[0];
+    _t11 = vy;
+    _t10 = u.projM[4];
+    _t13 = vz;
+    _t12 = u.projM[8];
+    _t14 = (_t9 * _t8 + _t11 * _t10 + _t13 * _t12 + u.projM[12]);
+    _t7 = W;
+    _t15 = ((_t14 / _t7) * 0.5F + 0.5F);
+    _t6 = u.width;
+    output[0] = (((vx * u.projM[0] + vy * u.projM[4] + vz * u.projM[8] + u.projM[12]) / W) * 0.5F + 0.5F) * u.width;
+    _t19 = vx;
+    _t18 = u.projM[1];
+    _t21 = vy;
+    _t20 = u.projM[5];
+    _t23 = vz;
+    _t22 = u.projM[9];
+    _t24 = -(_t19 * _t18 + _t21 * _t20 + _t23 * _t22 + u.projM[13]);
+    _t17 = W;
+    _t25 = ((_t24 / _t17) * 0.5F + 0.5F);
+    _t16 = u.height;
+    output[1] = ((-(vx * u.projM[1] + vy * u.projM[5] + vz * u.projM[9] + u.projM[13]) / W) * 0.5F + 0.5F) * u.height;
+    {
+        float _r17 = 1 * _t16;
+        float _r18 = _r17 * 0.5F;
+        float _r19 = _r18 / _t17;
+        float _r20 = -_r19 * _t18;
+        jacobianMatrix[3UL] += _r20;
+        float _r21 = _t19 * -_r19;
+        float _r22 = -_r19 * _t20;
+        jacobianMatrix[4UL] += _r22;
+        float _r23 = _t21 * -_r19;
+        float _r24 = -_r19 * _t22;
+        jacobianMatrix[5UL] += _r24;
+    }
+    {
+        float _r6 = 1 * _t6;
+        float _r7 = _r6 * 0.5F;
+        float _r8 = _r7 / _t7;
+        float _r9 = _r8 * _t8;
+        jacobianMatrix[0UL] += _r9;
+        float _r10 = _t9 * _r8;
+        float _r11 = _r8 * _t10;
+        jacobianMatrix[1UL] += _r11;
+        float _r12 = _t11 * _r8;
+        float _r13 = _r8 * _t12;
+        jacobianMatrix[2UL] += _r13;
+    }
+}
+
+
 static inline float VS_X(float V[3], const CamInfo& data)
 {
   const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
@@ -376,7 +473,7 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
 void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
-                                  GradReal* d_colors) {
+                                  GradReal* d_colors, GradReal* d_pos) {
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
@@ -407,6 +504,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               auto contribA = surfElem.u*val;
               auto contribB = surfElem.v*val;
               auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
+
               #pragma omp atomic
               d_colors[A*3+0] += GradReal(contribA.x);
               #pragma omp atomic
@@ -427,6 +525,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               d_colors[C*3+1] += GradReal(contribC.y);
               #pragma omp atomic
               d_colors[C*3+2] += GradReal(contribC.z);
+
             }
             else
             {
@@ -515,44 +614,47 @@ void compute_edge_derivatives(
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
 
-        float3 v0_dx(0,0,0), v0_dy(0,0,0);
-        float3 v1_dx(0,0,0), v1_dy(0,0,0);
+        float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
+        float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
         
         float3 v0_3d = mesh3d.vertices[edge.v0];
         float3 v1_3d = mesh3d.vertices[edge.v1];
 
-        VS_X_grad(v0_3d.M, g_uniforms, v0_dx.M);
-        VS_Y_grad(v0_3d.M, g_uniforms, v0_dy.M);
+        VS_X_grad(v0_3d.M, g_uniforms, v0_d[0].M);
+        VS_Y_grad(v0_3d.M, g_uniforms, v0_d[1].M);
+        VS_X_grad(v1_3d.M, g_uniforms, v1_d[0].M);
+        VS_Y_grad(v1_3d.M, g_uniforms, v1_d[1].M);
+        
+        //float temp[2]={};
+        //VertexShader_jac(g_uniforms, v0_3d.x, v0_3d.y, v0_3d.z, temp, v0_d[0].M);
+        //VertexShader_jac(g_uniforms, v1_3d.x, v1_3d.y, v1_3d.z, temp, v1_d[0].M); 
          
-        VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
-        VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
+        const float dv0_dx = v0_d[0].x*d_v0.x; //  + v0_dx.y*d_v0.y;
+        const float dv0_dy = v0_d[1].y*d_v0.y; //  + v0_dy.x*d_v0.x;
+        const float dv0_dz = (v0_d[0].z*d_v0.x + v0_d[1].z*d_v0.y); 
          
-        const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
-        const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
-        const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
-         
-        const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
-        const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
-        const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
+        const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y;
+        const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x;
+        const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
 
-        if(G_DEBUG_VERT_ID == edge.v0)
-        {
-          if(debugImageNum > 0)
-            debugImages[0][int2(xi,yi)] += float3(dv0_dx,dv0_dx,dv0_dx);
-          if(debugImageNum > 1)
-            debugImages[1][int2(xi,yi)] += float3(dv0_dy,dv0_dy,dv0_dy);
-          if(debugImageNum > 2)
-            debugImages[2][int2(xi,yi)] += float3(dv0_dz,dv0_dz,dv0_dz);
-        }
-        else if(G_DEBUG_VERT_ID == edge.v1)
-        {
-          if(debugImageNum > 0)
-            debugImages[0][int2(xi,yi)] += float3(dv1_dx,dv1_dx,dv1_dx);
-          if(debugImageNum > 1)
-            debugImages[1][int2(xi,yi)] += float3(dv1_dy,dv1_dy,dv1_dy);
-          if(debugImageNum > 2)
-            debugImages[2][int2(xi,yi)] += float3(dv1_dz,dv1_dz,dv1_dz);
-        }
+        //if(G_DEBUG_VERT_ID == edge.v0)
+        //{
+        //  if(debugImageNum > 0)
+        //    debugImages[0][int2(xi,yi)] += float3(dv0_dx,dv0_dx,dv0_dx);
+        //  if(debugImageNum > 1)
+        //    debugImages[1][int2(xi,yi)] += float3(dv0_dy,dv0_dy,dv0_dy);
+        //  if(debugImageNum > 2)
+        //    debugImages[2][int2(xi,yi)] += float3(dv0_dz,dv0_dz,dv0_dz);
+        //}
+        //else if(G_DEBUG_VERT_ID == edge.v1)
+        //{
+        //  if(debugImageNum > 0)
+        //    debugImages[0][int2(xi,yi)] += float3(dv1_dx,dv1_dx,dv1_dx);
+        //  if(debugImageNum > 1)
+        //    debugImages[1][int2(xi,yi)] += float3(dv1_dy,dv1_dy,dv1_dy);
+        //  if(debugImageNum > 2)
+        //    debugImages[2][int2(xi,yi)] += float3(dv1_dz,dv1_dz,dv1_dz);
+        //}
 
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -607,8 +709,8 @@ void d_render(const TriangleMesh &mesh,
     localMesh = mesh;
     for(auto& v : localMesh.vertices) {
       auto vCopy = v;
-      v.x = VS_X(vCopy.M, g_uniforms);
-      v.y = VS_Y(vCopy.M, g_uniforms);
+      VertexShader(g_uniforms, vCopy.x, vCopy.y, vCopy.z, 
+                   v.M);
     }
     localMesh.m_geomType = GEOM_TYPES::TRIANGLE_2D;
     pMesh = &localMesh;
@@ -625,7 +727,7 @@ void d_render(const TriangleMesh &mesh,
   // (1)
   //
   compute_interior_derivatives(*pMesh, interior_samples_per_pixel, adjoint, 
-                               d_mesh.colors_s());
+                               d_mesh.colors_s(), d_mesh.vertices_s());
     
   // (2)
   //
@@ -708,11 +810,12 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D(initialMesh, targetMesh);
-  //scn04_Pyramid3D(initialMesh, targetMesh);
+  //scn03_Triangle3D_White(initialMesh, targetMesh);
+  //scn04_Triangle3D_Colored(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
 
-  g_tracer = MakeRayTracer2D("");  
-  //g_tracer = MakeRayTracer3D("");
+  //g_tracer = MakeRayTracer2D("");  
+  g_tracer = MakeRayTracer3D("");
 
   if(1)
   {
@@ -725,7 +828,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
@@ -744,19 +847,18 @@ int main(int argc, char *argv[])
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), 
              grad1, dxyzDebug, 3);
     
-    std::string prefixNames[3] = {"posx_", "posy_", "posz_"};
-    for(int j=0;j<3;j++)
-    {
-      std::stringstream strOut;
-      strOut << "our_diff/" << prefixNames[j] << G_DEBUG_VERT_ID << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), dxyzDebug[j]);
-    }
+    //std::string prefixNames[3] = {"posx_", "posy_", "posz_"};
+    //for(int j=0;j<3;j++)
+    //{
+    //  std::stringstream strOut;
+    //  strOut << "our_diff/" << prefixNames[j] << G_DEBUG_VERT_ID << ".bmp";
+    //  auto path = strOut.str();
+    //  LiteImage::SaveImage(path.c_str(), dxyzDebug[j]);
+    //}
 
     const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
-
-    //d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
-    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    //d_finDiff2(initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
     double totalError = 0.0;
     double posError = 0.0;

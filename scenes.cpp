@@ -65,9 +65,9 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
   target = mesh2;
 }
 
-void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
+void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
 {
-   TriangleMesh pyramid{
+   TriangleMesh tridata{
       // vertices
       {{0.0f, 1.0f, 0.0f},    
        {1.0f, -1.0f, 1.0f},
@@ -75,35 +75,97 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
        },
 
       // color
-      //{{1.0f, 0.0f, 0.0f}, 
-      // {1.0f, 1.0f, 0.0f}, 
-      // {0.0f, 0.0f, 1.0f},
-      // },
       
       //{{0.07805659f, 0.07805659f, 0.07805659f}, 
       // {0.07805659f, 0.07805659f, 0.07805659f}, 
       // {0.07805659f, 0.07805659f, 0.07805659f},
       // },
       
-      //{{1.0f, 1.0f, 1.0f}, 
-      // {1.0f, 1.0f, 1.0f}, 
-      // {1.0f, 1.0f, 1.0f},
-      // },
-
-      {{1.0f, 0.0f, 0.0f}, 
-       {0.0f, 0.0f, 0.0f}, 
-       {1.0f, 0.0f, 0.0f},
+      {{1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f},
        },
 
       // indices
       {0, 1, 2}
   };
 
-  pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  pyramid.m_geomType = GEOM_TYPES::TRIANGLE_3D;
+  tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  tridata.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
-  initial = pyramid;
-  target  = pyramid;
+  initial = tridata;
+  target  = tridata;
+  
+  // apply transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+  auto mTransform2 = mTranslate*mRotate2;
+
+  for(auto& v : initial.vertices)
+    v = (mTransform1*v); // + float3(0,0,-0.01f);
+
+  for(auto& v : target.vertices)
+    v = (mTransform2*v); // + float3(0,0,-0.01f);
+  
+  std::cout << "initial: [" << std::endl;
+  for(const auto& v : initial.vertices)
+    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  std::cout << "]" << std::endl << std::endl;
+
+  std::cout << "target: [" << std::endl;
+  for(const auto& v : target.vertices)
+    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  std::cout << "]" << std::endl << std::endl;
+}
+
+void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
+{
+   TriangleMesh tridata{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {1.0f, -1.0f, 1.0f},
+       {-1.0f, -1.0f, 1.0f},  
+       },
+
+      // color
+      {{1.0f, 0.0f, 0.0f}, 
+       {1.0f, 1.0f, 0.0f}, 
+       {0.0f, 0.0f, 1.0f},
+       },
+
+      // indices
+      {0, 1, 2}
+  };
+
+  TriangleMesh tridata2{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {1.0f, -1.0f, 1.0f},
+       {-1.0f, -1.0f, 1.0f},  
+       },
+
+      // color
+      {{0.0f, 1.0f, 0.0f}, 
+       {1.0f, 0.0f, 1.0f}, 
+       {0.25f, 0.25f, 0.25f},
+       },
+
+      // indices
+      {0, 1, 2}
+  };
+
+  tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  tridata.m_geomType = GEOM_TYPES::TRIANGLE_3D;
+
+  tridata2.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  tridata2.m_geomType = GEOM_TYPES::TRIANGLE_3D;
+
+  initial = tridata;
+  target  = tridata2;
   
   // apply transforms
   //
@@ -132,7 +194,8 @@ void scn03_Triangle3D   (TriangleMesh& initial, TriangleMesh& target)
 }
 
 
-void scn04_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
+
+void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh pyramid{
       // vertices
@@ -167,11 +230,14 @@ void scn04_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   initial = pyramid;
   target  = pyramid;
   
+  for(auto& c : initial.colors)
+    c = float3(0.25f,0.25f,0.25f);
+
   // apply transforms
   //
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
-  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-30.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+50.0f);
   
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
