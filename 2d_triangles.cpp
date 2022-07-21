@@ -47,6 +47,7 @@ using LiteMath::normalize;
 constexpr static int  SAM_PER_PIXEL = 16;
 constexpr static int  MAXTHREADS    = 8;
 constexpr static bool G_USE3DRT     = false;
+constexpr static int  G_DEBUG_VERT_ID = 0;
 
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
@@ -191,42 +192,6 @@ static inline float VS_Y(float V[3], const CamInfo& data)
   const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
   return (xNDC*0.5f + 0.5f)*data.height;
 }
-
-//void VS_X_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
-//{
-//  const float epsilon = 5e-5f;
-//  float v0 = VS_X(V,data);
-//  
-//  float V1[3] = {V[0]+epsilon, V[1], V[2]};
-//  float V2[3] = {V[0], V[1]+epsilon, V[2]};
-//  float V3[3] = {V[0], V[1], V[2]+epsilon};
-//
-//  float vx = VS_X(V1,data);
-//  float vy = VS_X(V2,data);
-//  float vz = VS_X(V3,data);
-//  
-//  _d_V[0] = (vx - v0)/epsilon;
-//  _d_V[1] = (vy - v0)/epsilon;
-//  _d_V[2] = (vz - v0)/epsilon;
-//}
-//
-//void VS_Y_grad_finDiff(float V[3], const CamInfo &data, float _d_V[3]) 
-//{
-//  const float epsilon = 5e-5f;
-//  float v0 = VS_Y(V,data);
-//  
-//  float V1[3] = {V[0]+epsilon, V[1], V[2]};
-//  float V2[3] = {V[0], V[1]+epsilon, V[2]};
-//  float V3[3] = {V[0], V[1], V[2]+epsilon};
-//
-//  float vx = VS_Y(V1,data);
-//  float vy = VS_Y(V2,data);
-//  float vz = VS_Y(V3,data);
-//  
-//  _d_V[0] = (vx - v0)/epsilon;
-//  _d_V[1] = (vy - v0)/epsilon;
-//  _d_V[2] = (vz - v0)/epsilon;
-//}
 
 static inline void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) {
     float _t0;
@@ -486,7 +451,9 @@ void compute_edge_derivatives(
         const Sampler &edge_sampler,
         const Img &adjoint,
         const int num_edge_samples, bool a_3dProj,
-        GradReal* d_vertices) 
+        GradReal* d_vertices,
+        Img* debugImages, 
+        int debugImageNum) 
 {
    
     prng::RandomGen gens[MAXTHREADS];
@@ -560,25 +527,6 @@ void compute_edge_derivatives(
         VS_X_grad(v1_3d.M, g_uniforms, v1_dx.M);
         VS_Y_grad(v1_3d.M, g_uniforms, v1_dy.M);
          
-        //// fin diff check
-        //{
-        //  float3 v0_dx_check(0,0,0), v0_dy_check(0,0,0);
-        //  float3 v1_dx_check(0,0,0), v1_dy_check(0,0,0);
-        //  
-        //  VS_X_grad_finDiff(v0_3d.M, g_uniforms, v0_dx_check.M);
-        //  VS_Y_grad_finDiff(v0_3d.M, g_uniforms, v0_dy_check.M);
-        //  
-        //  VS_X_grad_finDiff(v1_3d.M, g_uniforms, v1_dx_check.M);
-        //  VS_Y_grad_finDiff(v1_3d.M, g_uniforms, v1_dy_check.M);
-        //
-        //  const float err1 = length(v0_dx - v0_dx_check) / length(v0_dx);
-        //  const float err2 = length(v0_dy - v0_dy_check) / length(v0_dy);
-        //  const float err3 = length(v1_dx - v1_dx_check) / length(v1_dx);
-        //  const float err4 = length(v1_dy - v1_dy_check) / length(v1_dy);
-        //  const float errMax = std::max(std::max(err1, err2), std::max(err3, err4));
-        //  maxRelativeError = std::max(maxRelativeError, errMax);
-        //}
-         
         const float dv0_dx = v0_dx.x*d_v0.x; //  + v0_dx.y*d_v0.y;
         const float dv0_dy = v0_dy.y*d_v0.y; //  + v0_dy.x*d_v0.x;
         const float dv0_dz = (v0_dx.z*d_v0.x + v0_dy.z*d_v0.y); 
@@ -586,6 +534,25 @@ void compute_edge_derivatives(
         const float dv1_dx = v1_dx.x*d_v1.x; // + v1_dx.y*d_v1.y;
         const float dv1_dy = v1_dy.y*d_v1.y; // + v1_dy.x*d_v1.x;
         const float dv1_dz = (v1_dx.z*d_v1.x + v1_dy.z*d_v1.y); 
+
+        if(G_DEBUG_VERT_ID == edge.v0)
+        {
+          if(debugImageNum > 0)
+            debugImages[0][int2(xi,yi)] += float3(dv0_dx,dv0_dx,dv0_dx);
+          if(debugImageNum > 1)
+            debugImages[1][int2(xi,yi)] += float3(dv0_dy,dv0_dy,dv0_dy);
+          if(debugImageNum > 2)
+            debugImages[2][int2(xi,yi)] += float3(dv0_dz,dv0_dz,dv0_dz);
+        }
+        else if(G_DEBUG_VERT_ID == edge.v1)
+        {
+          if(debugImageNum > 0)
+            debugImages[0][int2(xi,yi)] += float3(dv1_dx,dv1_dx,dv1_dx);
+          if(debugImageNum > 1)
+            debugImages[1][int2(xi,yi)] += float3(dv1_dy,dv1_dy,dv1_dy);
+          if(debugImageNum > 2)
+            debugImages[2][int2(xi,yi)] += float3(dv1_dz,dv1_dz,dv1_dz);
+        }
 
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -627,9 +594,9 @@ void d_render(const TriangleMesh &mesh,
               const Img &adjoint,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
-              Img* screen_dx,
-              Img* screen_dy,
-              DTriangleMesh &d_mesh) {
+              DTriangleMesh &d_mesh,
+              Img* debugImages, 
+              int debugImageNum) {
 
   const TriangleMesh copy   = mesh;
   const TriangleMesh* pMesh = &mesh;
@@ -665,7 +632,7 @@ void d_render(const TriangleMesh &mesh,
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
   compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D),
-                           d_mesh.vertices_s());
+                           d_mesh.vertices_s(), debugImages, debugImageNum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -706,6 +673,9 @@ float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
 void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
                DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
 
+
+void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
+               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -755,10 +725,15 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
+    
+    Img dxyzDebug[3];
+    for(int i=0;i<3;i++)
+      dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
+
     render(initialMesh, SAM_PER_PIXEL, img);
     render(targetMesh, SAM_PER_PIXEL, target);
     
@@ -766,11 +741,22 @@ int main(int argc, char *argv[])
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
 
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
-    d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), nullptr, nullptr, grad1);
+    d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), 
+             grad1, dxyzDebug, 3);
     
+    std::string prefixNames[3] = {"posx_", "posy_", "posz_"};
+    for(int j=0;j<3;j++)
+    {
+      std::stringstream strOut;
+      strOut << "our_diff/" << prefixNames[j] << G_DEBUG_VERT_ID << ".bmp";
+      auto path = strOut.str();
+      LiteImage::SaveImage(path.c_str(), dxyzDebug[j]);
+    }
+
     const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
 
-    d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    //d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
     double totalError = 0.0;
     double posError = 0.0;

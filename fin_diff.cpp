@@ -159,8 +159,23 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     summColor = SummOfPixels(diffImage); 
     d_mesh.vertices_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
 
-    // dy #TODO: implement
+    // dz 
     //
+    copy = mesh;
+    copy.vertices[i].z += dPos;
+    img.clear(float3{0,0,0});
+    render(copy, SAM_PER_PIXEL, img);
+
+    diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
+    if(outFolder != nullptr)
+    {
+      std::stringstream strOut;
+      strOut << outFolder << "/" << "posz_" << i << ".bmp";
+      auto path = strOut.str();
+      LiteImage::SaveImage(path.c_str(), diffImage);
+    }
+    summColor = SummOfPixels(diffImage); 
+    d_mesh.vertices_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
   
   size_t colrsNum = (mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;

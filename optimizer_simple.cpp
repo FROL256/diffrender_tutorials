@@ -160,7 +160,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
-  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(), nullptr, nullptr, 
+  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(),
            gradMesh);
 
   //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());

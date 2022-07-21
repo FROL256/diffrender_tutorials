@@ -146,9 +146,9 @@ void d_render(const TriangleMesh &mesh,
               const Img &adjoint,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
-              Img* screen_dx,
-              Img* screen_dy,
-              DTriangleMesh &d_mesh);
+              DTriangleMesh &d_mesh,
+              Img* debugImages = nullptr, 
+              int debugImageNum = 0);
 
 void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor, 
               TriangleMesh *mesh);
