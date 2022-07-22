@@ -268,7 +268,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               #pragma omp atomic
               d_colors[C*3+2] += GradReal(contribC.z);
               
-              //// backpropagate color change to positions
+              ////// backpropagate color change to positions
               //if(0)
               //{
               //  const float3 v0 = mesh.vertices[A];
@@ -284,9 +284,9 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               //  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
               //  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
               //
-              //  auto contribVA = dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0];
-              //  auto contribVB = dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1];
-              //  auto contribVC = dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2];
+              //  auto contribVA = contribA*(dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]);
+              //  auto contribVB = contribB*(dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]);
+              //  auto contribVC = contribC*(dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]);
               //  
               //  #pragma omp atomic
               //  d_pos[A*3+0] += GradReal(contribVA.x);
@@ -593,9 +593,9 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D_White(initialMesh, targetMesh);
+  //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
   g_tracer = MakeRayTracer3D("");
@@ -611,7 +611,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
