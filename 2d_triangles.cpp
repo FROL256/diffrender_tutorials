@@ -20,6 +20,7 @@
 #include <iomanip>
 
 #include "dmesh.h"
+#include "functions.h"
 #include "raytrace.h"
 
 #include "optimizer.h"
@@ -176,262 +177,6 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
     return mesh.colors[surfInfo.faceId]; 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-static inline void VertexShader(const CamInfo& u, float vx, float vy, float vz, 
-                                float output[2])
-{
-  const float W    =   vx * u.projM[3] + vy * u.projM[7] + vz * u.projM[11] + u.projM[15]; 
-  const float xNDC =  (vx * u.projM[0] + vy * u.projM[4] + vz * u.projM[ 8] + u.projM[12])/W;
-  const float yNDC = -(vx * u.projM[1] + vy * u.projM[5] + vz * u.projM[ 9] + u.projM[13])/W;
-  output[0] = (xNDC*0.5f + 0.5f)*u.width;
-  output[1] = (yNDC*0.5f + 0.5f)*u.height; 
-}
-
-void VertexShader_jac(const CamInfo &u, float vx, float vy, float vz, float output[2], float *jacobianMatrix) 
-{
-    float _t0;
-    float _t1;
-    float _t2;
-    float _t3;
-    float _t4;
-    float _t5;
-    float _d_W = 0;
-    float _t6;
-    float _t7;
-    float _t8;
-    float _t9;
-    float _t10;
-    float _t11;
-    float _t12;
-    float _t13;
-    float _t14;
-    float _t15;
-    float _t16;
-    float _t17;
-    float _t18;
-    float _t19;
-    float _t20;
-    float _t21;
-    float _t22;
-    float _t23;
-    float _t24;
-    float _t25;
-    _t1 = vx;
-    _t0 = u.projM[3];
-    _t3 = vy;
-    _t2 = u.projM[7];
-    _t5 = vz;
-    _t4 = u.projM[11];
-    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + u.projM[15];
-    _t9 = vx;
-    _t8 = u.projM[0];
-    _t11 = vy;
-    _t10 = u.projM[4];
-    _t13 = vz;
-    _t12 = u.projM[8];
-    _t14 = (_t9 * _t8 + _t11 * _t10 + _t13 * _t12 + u.projM[12]);
-    _t7 = W;
-    _t15 = ((_t14 / _t7) * 0.5F + 0.5F);
-    _t6 = u.width;
-    output[0] = (((vx * u.projM[0] + vy * u.projM[4] + vz * u.projM[8] + u.projM[12]) / W) * 0.5F + 0.5F) * u.width;
-    _t19 = vx;
-    _t18 = u.projM[1];
-    _t21 = vy;
-    _t20 = u.projM[5];
-    _t23 = vz;
-    _t22 = u.projM[9];
-    _t24 = -(_t19 * _t18 + _t21 * _t20 + _t23 * _t22 + u.projM[13]);
-    _t17 = W;
-    _t25 = ((_t24 / _t17) * 0.5F + 0.5F);
-    _t16 = u.height;
-    output[1] = ((-(vx * u.projM[1] + vy * u.projM[5] + vz * u.projM[9] + u.projM[13]) / W) * 0.5F + 0.5F) * u.height;
-    {
-        float _r17 = 1 * _t16;
-        float _r18 = _r17 * 0.5F;
-        float _r19 = _r18 / _t17;
-        float _r20 = -_r19 * _t18;
-        jacobianMatrix[3UL] += _r20;
-        float _r21 = _t19 * -_r19;
-        float _r22 = -_r19 * _t20;
-        jacobianMatrix[4UL] += _r22;
-        float _r23 = _t21 * -_r19;
-        float _r24 = -_r19 * _t22;
-        jacobianMatrix[5UL] += _r24;
-    }
-    {
-        float _r6 = 1 * _t6;
-        float _r7 = _r6 * 0.5F;
-        float _r8 = _r7 / _t7;
-        float _r9 = _r8 * _t8;
-        jacobianMatrix[0UL] += _r9;
-        float _r10 = _t9 * _r8;
-        float _r11 = _r8 * _t10;
-        jacobianMatrix[1UL] += _r11;
-        float _r12 = _t11 * _r8;
-        float _r13 = _r8 * _t12;
-        jacobianMatrix[2UL] += _r13;
-    }
-}
-
-
-static inline float VS_X(float V[3], const CamInfo& data)
-{
-  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
-  return (xNDC*0.5f + 0.5f)*data.width;
-}
-
-static inline float VS_Y(float V[3], const CamInfo& data)
-{
-  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
-  return (xNDC*0.5f + 0.5f)*data.height;
-}
-
-static inline void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) {
-    float _t0;
-    float _t1;
-    float _t2;
-    float _t3;
-    float _t4;
-    float _t5;
-    float _d_W = 0;
-    float _t6;
-    float _t7;
-    float _t8;
-    float _t9;
-    float _t10;
-    float _t11;
-    float _t12;
-    float _t13;
-    float _d_xNDC = 0;
-    float _t14;
-    float _t15;
-    _t1 = V[0];
-    _t0 = data.projM[3];
-    _t3 = V[1];
-    _t2 = data.projM[7];
-    _t5 = V[2];
-    _t4 = data.projM[11];
-    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
-    _t8 = V[0];
-    _t7 = data.projM[0];
-    _t10 = V[1];
-    _t9 = data.projM[4];
-    _t12 = V[2];
-    _t11 = data.projM[8];
-    _t13 = (_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[12]);
-    _t6 = W;
-    const float xNDC = _t13 / _t6;
-    _t15 = (xNDC * 0.5F + 0.5F);
-    _t14 = data.width;
-    float VS_X_return = _t15 * _t14;
-    {
-        float _r14 = 1 * _t14;
-        float _r15 = _r14 * 0.5F;
-        _d_xNDC += _r15;
-        float _r16 = _t15 * 1;
-    }
-    {
-        float _r6 = _d_xNDC / _t6;
-        float _r7 = _r6 * _t7;
-        _d_V[0] += _r7;
-        float _r8 = _t8 * _r6;
-        float _r9 = _r6 * _t9;
-        _d_V[1] += _r9;
-        float _r10 = _t10 * _r6;
-        float _r11 = _r6 * _t11;
-        _d_V[2] += _r11;
-        float _r12 = _t12 * _r6;
-        float _r13 = _d_xNDC * -_t13 / (_t6 * _t6);
-        _d_W += _r13;
-    }
-    {
-        float _r0 = _d_W * _t0;
-        _d_V[0] += _r0;
-        float _r1 = _t1 * _d_W;
-        float _r2 = _d_W * _t2;
-        _d_V[1] += _r2;
-        float _r3 = _t3 * _d_W;
-        float _r4 = _d_W * _t4;
-        _d_V[2] += _r4;
-        float _r5 = _t5 * _d_W;
-    }
-}
-
-static inline void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3]) {
-    float _t0;
-    float _t1;
-    float _t2;
-    float _t3;
-    float _t4;
-    float _t5;
-    float _d_W = 0;
-    float _t6;
-    float _t7;
-    float _t8;
-    float _t9;
-    float _t10;
-    float _t11;
-    float _t12;
-    float _t13;
-    float _d_xNDC = 0;
-    float _t14;
-    float _t15;
-    _t1 = V[0];
-    _t0 = data.projM[3];
-    _t3 = V[1];
-    _t2 = data.projM[7];
-    _t5 = V[2];
-    _t4 = data.projM[11];
-    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
-    _t8 = V[0];
-    _t7 = data.projM[1];
-    _t10 = V[1];
-    _t9 = data.projM[5];
-    _t12 = V[2];
-    _t11 = data.projM[9];
-    _t13 = -(_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[13]);
-    _t6 = W;
-    const float xNDC = _t13 / _t6;
-    _t15 = (xNDC * 0.5F + 0.5F);
-    _t14 = data.height;
-    float VS_Y_return = _t15 * _t14;
-    {
-        float _r14 = 1 * _t14;
-        float _r15 = _r14 * 0.5F;
-        _d_xNDC += _r15;
-        float _r16 = _t15 * 1;
-    }
-    {
-        float _r6 = _d_xNDC / _t6;
-        float _r7 = -_r6 * _t7;
-        _d_V[0] += _r7;
-        float _r8 = _t8 * -_r6;
-        float _r9 = -_r6 * _t9;
-        _d_V[1] += _r9;
-        float _r10 = _t10 * -_r6;
-        float _r11 = -_r6 * _t11;
-        _d_V[2] += _r11;
-        float _r12 = _t12 * -_r6;
-        float _r13 = _d_xNDC * -_t13 / (_t6 * _t6);
-        _d_W += _r13;
-    }
-    {
-        float _r0 = _d_W * _t0;
-        _d_V[0] += _r0;
-        float _r1 = _t1 * _d_W;
-        float _r2 = _d_W * _t2;
-        _d_V[1] += _r2;
-        float _r3 = _t3 * _d_W;
-        float _r4 = _d_W * _t4;
-        _d_V[2] += _r4;
-        float _r5 = _t5 * _d_W;
-    }
-}
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -486,11 +231,8 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
           float xoff = g_hammSamples[2*samId+0];
           float yoff = g_hammSamples[2*samId+1];
 
-          //auto screen_pos = float2{x + xoff, y + yoff};
-          //float2 uv; unsigned faceIndex = unsigned(-1);
-          //raytrace(mesh, screen_pos, &faceIndex, &uv);
-
-          auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff);
+          float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
+          auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff, &ray_pos, &ray_dir);
                     
           if (surfElem.faceId != unsigned(-1)) 
           {          
@@ -525,7 +267,48 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               d_colors[C*3+1] += GradReal(contribC.y);
               #pragma omp atomic
               d_colors[C*3+2] += GradReal(contribC.z);
-
+              
+              //// backpropagate color change to positions
+              //if(0)
+              //{
+              //  const float3 v0 = mesh.vertices[A];
+              //  const float3 v1 = mesh.vertices[B];
+              //  const float3 v2 = mesh.vertices[C];
+              //  
+              //  float3 dF_dU = (v0-v2);
+              //  float3 dF_dV = (v1-v2);
+              //
+              //  float3 dU_dvert[3] = {};
+              //  float3 dV_dvert[3] = {};
+              //  
+              //  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
+              //  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
+              //
+              //  auto contribVA = dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0];
+              //  auto contribVB = dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1];
+              //  auto contribVC = dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2];
+              //  
+              //  #pragma omp atomic
+              //  d_pos[A*3+0] += GradReal(contribVA.x);
+              //  #pragma omp atomic
+              //  d_pos[A*3+1] += GradReal(contribVA.y);
+              //  #pragma omp atomic
+              //  d_pos[A*3+2] += GradReal(contribVA.z);
+              //  
+              //  #pragma omp atomic
+              //  d_pos[B*3+0] += GradReal(contribVB.x);
+              //  #pragma omp atomic
+              //  d_pos[B*3+1] += GradReal(contribVB.y);
+              //  #pragma omp atomic
+              //  d_pos[B*3+2] += GradReal(contribVB.z);
+              //  
+              //  #pragma omp atomic
+              //  d_pos[C*3+0] += GradReal(contribVC.x);
+              //  #pragma omp atomic
+              //  d_pos[C*3+1] += GradReal(contribVC.y);
+              //  #pragma omp atomic
+              //  d_pos[C*3+2] += GradReal(contribVC.z);
+              //}
             }
             else
             {
@@ -726,7 +509,7 @@ void d_render(const TriangleMesh &mesh,
 
   // (1)
   //
-  compute_interior_derivatives(*pMesh, interior_samples_per_pixel, adjoint, 
+  compute_interior_derivatives(copy, interior_samples_per_pixel, adjoint, // pass always 3d mesh?
                                d_mesh.colors_s(), d_mesh.vertices_s());
     
   // (2)
@@ -810,9 +593,9 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D_White(initialMesh, targetMesh);
+  scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  scn05_Pyramid3D(initialMesh, targetMesh);
+  //scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
   g_tracer = MakeRayTracer3D("");
@@ -828,7 +611,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});

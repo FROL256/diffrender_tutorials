@@ -16,6 +16,62 @@ static inline float3 EyeRayDirNormalized(float x, float y, float4x4 a_mViewProjI
   return normalize(to_float3(pos));
 }
 
+//static inline float BarU( const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
+//{
+//  const float edge1X = B[0] - A[0];
+//  const float edge1Y = B[1] - A[1];
+//  const float edge1Z = B[2] - A[2];
+//
+//  const float edge2X = C[0] - A[0];
+//  const float edge2Y = C[1] - A[1];
+//  const float edge2Z = C[2] - A[2];
+//  
+//  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
+//  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
+//  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
+//
+//  const float tvecX  = ray_pos[0] - A[0];
+//  const float tvecY  = ray_pos[1] - A[1];
+//  const float tvecZ  = ray_pos[2] - A[2];
+//
+//  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
+//  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
+//  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
+//
+//  const float e1dp   = edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ;
+//  const float signv  = sign(e1dp); // put 1.0 to enable triangle clippin
+//
+//  return signv*(qvecX*ray_dir[0] + qvecY*ray_dir[1] + qvecZ*ray_dir[2])/(e1dp*signv);
+//}
+
+//static inline float BarV(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
+//{
+//  const float edge1X = B[0] - A[0];
+//  const float edge1Y = B[1] - A[1];
+//  const float edge1Z = B[2] - A[2];
+//
+//  const float edge2X = C[0] - A[0];
+//  const float edge2Y = C[1] - A[1];
+//  const float edge2Z = C[2] - A[2];
+//
+//  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
+//  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
+//  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
+//
+//  const float tvecX  = ray_pos[0] - A[0];
+//  const float tvecY  = ray_pos[1] - A[1];
+//  const float tvecZ  = ray_pos[2] - A[2];
+//
+//  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
+//  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
+//  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
+//
+//  const float e1dp   = edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ;
+//  const float signv  = sign(e1dp); // put 1.0 to enable triangle clippin
+//
+//  return signv*(tvecX*pvecX + tvecY*pvecY + tvecZ*pvecZ)/(signv*e1dp); 
+//}
+
 struct BruteForce3D : public IRayTracer
 {
   BruteForce3D(){}
@@ -34,7 +90,7 @@ struct BruteForce3D : public IRayTracer
     m_fheight      = cam.height;
   }
 
-  SurfaceInfo CastSingleRay(float x, float y) override
+  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
   {
     SurfaceInfo hit;
     hit.faceId = unsigned(-1);
@@ -48,6 +104,11 @@ struct BruteForce3D : public IRayTracer
     const float3 ray_pos = float3(0,0,0);
     const float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_mViewProjInv);
     const float  tNear   = 0.0f;
+
+    if(outPos != nullptr)
+      *outPos = ray_pos;
+    if(outDir != nullptr)
+      *outDir = ray_dir;
 
     for (size_t triAddress = 0; triAddress < m_pMesh->indices.size(); triAddress += 3)
     { 
@@ -67,13 +128,15 @@ struct BruteForce3D : public IRayTracer
       const float  e1dpv = dot(edge1, pvec);
       const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
       const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
-    
+
       const float v = dot(tvec, pvec)*invDet;
       const float u = dot(qvec, ray_dir)*invDet;
       const float t = dot(edge2, qvec)*invDet;
     
       if (v > 0.0f && u > 0.0f && (u + v < 1.0f) && t > tNear && t < hit.t)
       {
+        //const float u2 = BarU(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
+        //const float v2 = BarV(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
         hit.t      = t;
         hit.faceId = triAddress/3;
         hit.u      = 1.0f-u-v;    // v0

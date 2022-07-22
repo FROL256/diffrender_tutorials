@@ -1,3 +1,5 @@
+#pragma once
+
 #include "dmesh.h"
 #include <memory>
 
@@ -36,7 +38,7 @@ struct IRayTracer
 
   virtual void        Init(const TriangleMesh* pMesh) = 0;
   virtual void        SetCamera(const CamInfo& cam)   = 0;
-  virtual SurfaceInfo CastSingleRay(float x, float y) = 0;
+  virtual SurfaceInfo CastSingleRay(float x, float y, float3* outPos = nullptr, float3* outDir = nullptr) = 0;
 };
 
 std::shared_ptr<IRayTracer> MakeRayTracer2D(const char* className);

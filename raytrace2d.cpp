@@ -45,7 +45,7 @@ struct BruteForce2D : public IRayTracer
       m_pMesh2D = m_pMesh;
   }
 
-  SurfaceInfo CastSingleRay(float x, float y) override
+  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
   {
     SurfaceInfo hit;
     hit.faceId = unsigned(-1);
