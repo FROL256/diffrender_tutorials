@@ -269,46 +269,53 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               d_colors[C*3+2] += GradReal(contribC.z);
               
               ////// backpropagate color change to positions
-              //if(0)
-              //{
-              //  const float3 v0 = mesh.vertices[A];
-              //  const float3 v1 = mesh.vertices[B];
-              //  const float3 v2 = mesh.vertices[C];
-              //  
-              //  float3 dF_dU = (v0-v2);
-              //  float3 dF_dV = (v1-v2);
-              //
-              //  float3 dU_dvert[3] = {};
-              //  float3 dV_dvert[3] = {};
-              //  
-              //  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
-              //  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
-              //
-              //  auto contribVA = contribA*(dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]);
-              //  auto contribVB = contribB*(dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]);
-              //  auto contribVC = contribC*(dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]);
-              //  
-              //  #pragma omp atomic
-              //  d_pos[A*3+0] += GradReal(contribVA.x);
-              //  #pragma omp atomic
-              //  d_pos[A*3+1] += GradReal(contribVA.y);
-              //  #pragma omp atomic
-              //  d_pos[A*3+2] += GradReal(contribVA.z);
-              //  
-              //  #pragma omp atomic
-              //  d_pos[B*3+0] += GradReal(contribVB.x);
-              //  #pragma omp atomic
-              //  d_pos[B*3+1] += GradReal(contribVB.y);
-              //  #pragma omp atomic
-              //  d_pos[B*3+2] += GradReal(contribVB.z);
-              //  
-              //  #pragma omp atomic
-              //  d_pos[C*3+0] += GradReal(contribVC.x);
-              //  #pragma omp atomic
-              //  d_pos[C*3+1] += GradReal(contribVC.y);
-              //  #pragma omp atomic
-              //  d_pos[C*3+2] += GradReal(contribVC.z);
-              //}
+              if(0)
+              {
+                const float3 c0 = mesh.colors[A];
+                const float3 c1 = mesh.colors[B];
+                const float3 c2 = mesh.colors[C];
+                
+                const float dF_dU = dot((c0-c2), val);
+                const float dF_dV = dot((c1-c2), val);
+                
+                if(dF_dU > 0.0f || dF_dV > 0.0f) 
+                {
+                  const float3 v0 = mesh.vertices[A];
+                  const float3 v1 = mesh.vertices[B];
+                  const float3 v2 = mesh.vertices[C];
+
+                  float3 dU_dvert[3] = {};
+                  float3 dV_dvert[3] = {};
+                  
+                  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
+                  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
+                
+                  auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]); // *contribA;
+                  auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]); // *contribB;
+                  auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]); // *contribC;
+                  
+                  #pragma omp atomic
+                  d_pos[A*3+0] += GradReal(contribVA.x);
+                  #pragma omp atomic
+                  d_pos[A*3+1] += GradReal(contribVA.y);
+                  #pragma omp atomic
+                  d_pos[A*3+2] += GradReal(contribVA.z);
+                  
+                  #pragma omp atomic
+                  d_pos[B*3+0] += GradReal(contribVB.x);
+                  #pragma omp atomic
+                  d_pos[B*3+1] += GradReal(contribVB.y);
+                  #pragma omp atomic
+                  d_pos[B*3+2] += GradReal(contribVB.z);
+                  
+                  #pragma omp atomic
+                  d_pos[C*3+0] += GradReal(contribVC.x);
+                  #pragma omp atomic
+                  d_pos[C*3+1] += GradReal(contribVC.y);
+                  #pragma omp atomic
+                  d_pos[C*3+2] += GradReal(contribVC.z);
+                }
+              }
             }
             else
             {
@@ -593,9 +600,9 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D_White(initialMesh, targetMesh);
+  scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  scn05_Pyramid3D(initialMesh, targetMesh);
+  //scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
   g_tracer = MakeRayTracer3D("");
@@ -611,7 +618,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
