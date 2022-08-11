@@ -130,15 +130,8 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
     
-    auto diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "posx_" << i << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), diffImage);
-    }
-    float3 summColor = SummOfPixels(diffImage); 
+    auto diffImageX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
+    float3 summColor = SummOfPixels(diffImageX); 
     d_mesh.vertices_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
     
     // dy
@@ -148,15 +141,8 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
 
-    diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "posy_" << i << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), diffImage);
-    }
-    summColor = SummOfPixels(diffImage); 
+    auto diffImageY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
+    summColor = SummOfPixels(diffImageY); 
     d_mesh.vertices_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // dz 
@@ -166,15 +152,20 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
 
-    diffImage = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
+    auto diffImageZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
+    Img diffImage(diffImageX.width(), diffImageX.height()); 
+    for(int y=0;y<diffImageX.height();y++)
+      for(int x=0;x<diffImageX.width();x++)
+        diffImage[int2(x,y)] = float3(diffImageX[int2(x,y)].x, diffImageY[int2(x,y)].x, diffImageZ[int2(x,y)].x);
+
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
-      strOut << outFolder << "/" << "posz_" << i << ".bmp";
+      strOut << outFolder << "/" << "pos_xyz_" << i << ".bmp";
       auto path = strOut.str();
       LiteImage::SaveImage(path.c_str(), diffImage);
     }
-    summColor = SummOfPixels(diffImage); 
+    summColor = SummOfPixels(diffImageZ); 
     d_mesh.vertices_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
   
@@ -191,15 +182,8 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
     
-    auto diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "colr_" << i << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), diffToTarget);
-    }
-    float3 summColor = SummOfPixels(diffToTarget); 
+    auto diffToTargetX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
+    float3 summColor = SummOfPixels(diffToTargetX); 
     d_mesh.colors_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_green
@@ -209,15 +193,8 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
     
-    diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
-    if(outFolder != nullptr)
-    {
-      std::stringstream strOut;
-      strOut << outFolder << "/" << "colg_" << i << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), diffToTarget);
-    }
-    summColor = SummOfPixels(diffToTarget); 
+    auto diffToTargetY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
+    summColor = SummOfPixels(diffToTargetY); 
     d_mesh.colors_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_blue
@@ -227,15 +204,22 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     img.clear(float3{0,0,0});
     render(copy, SAM_PER_PIXEL, img);
     
-    diffToTarget = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
+    auto diffToTargetZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
+    Img diffImage(diffToTargetX.width(), diffToTargetX.height()); 
+    for(int y=0;y<diffToTargetX.height();y++)
+      for(int x=0;x<diffToTargetX.width();x++)
+        diffImage[int2(x,y)] = float3(diffToTargetX[int2(x,y)].x + diffToTargetX[int2(x,y)].y + diffToTargetX[int2(x,y)].z, 
+                                      diffToTargetY[int2(x,y)].x + diffToTargetY[int2(x,y)].y + diffToTargetY[int2(x,y)].z, 
+                                      diffToTargetZ[int2(x,y)].x + diffToTargetZ[int2(x,y)].y + diffToTargetZ[int2(x,y)].z)*0.3334f;
+
     if(outFolder != nullptr)
     {
       std::stringstream strOut;
-      strOut << outFolder << "/" << "colb_" << i << ".bmp";
+      strOut << outFolder << "/" << "col_" << i << ".bmp";
       auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), diffToTarget); // 
+      LiteImage::SaveImage(path.c_str(), diffImage); // 
     }
-    summColor = SummOfPixels(diffToTarget); 
+    summColor = SummOfPixels(diffToTargetZ); 
     d_mesh.colors_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
 

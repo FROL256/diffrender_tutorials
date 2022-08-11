@@ -218,7 +218,9 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
 void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
-                                  GradReal* d_colors, GradReal* d_pos) {
+                                  GradReal* d_colors, GradReal* d_pos,
+                                  Img* debugImages, int debugImageNum) 
+{
     auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
     samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
@@ -269,7 +271,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               d_colors[C*3+2] += GradReal(contribC.z);
               
               ////// backpropagate color change to positions
-              if(0)
+              if(1)
               {
                 const float3 c0 = mesh.colors[A];
                 const float3 c1 = mesh.colors[B];
@@ -287,13 +289,27 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                   float3 dU_dvert[3] = {};
                   float3 dV_dvert[3] = {};
                   
-                  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
-                  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M,  /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
+                  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
+                  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
                 
                   auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]); // *contribA;
                   auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]); // *contribB;
                   auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]); // *contribC;
                   
+                  for(int debugId=0; debugId<3; debugId++) 
+                  {
+                    if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
+                    {
+                      auto contrib = contribVA;
+                      if(G_DEBUG_VERT_ID+debugId == B)
+                        contrib = contribVB;
+                      else if(G_DEBUG_VERT_ID+debugId == C)
+                        contrib = contribVC;
+                      if(debugImageNum > debugId && debugImages!= nullptr)
+                        debugImages[debugId][int2(x,y)] += contrib;
+                    }
+                  }
+
                   #pragma omp atomic
                   d_pos[A*3+0] += GradReal(contribVA.x);
                   #pragma omp atomic
@@ -341,8 +357,7 @@ void compute_edge_derivatives(
         const Img &adjoint,
         const int num_edge_samples, bool a_3dProj,
         GradReal* d_vertices,
-        Img* debugImages, 
-        int debugImageNum) 
+        Img* debugImages, int debugImageNum) 
 {
    
     prng::RandomGen gens[MAXTHREADS];
@@ -426,25 +441,20 @@ void compute_edge_derivatives(
         const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y;
         const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x;
         const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
-
-        //if(G_DEBUG_VERT_ID == edge.v0)
-        //{
-        //  if(debugImageNum > 0)
-        //    debugImages[0][int2(xi,yi)] += float3(dv0_dx,dv0_dx,dv0_dx);
-        //  if(debugImageNum > 1)
-        //    debugImages[1][int2(xi,yi)] += float3(dv0_dy,dv0_dy,dv0_dy);
-        //  if(debugImageNum > 2)
-        //    debugImages[2][int2(xi,yi)] += float3(dv0_dz,dv0_dz,dv0_dz);
-        //}
-        //else if(G_DEBUG_VERT_ID == edge.v1)
-        //{
-        //  if(debugImageNum > 0)
-        //    debugImages[0][int2(xi,yi)] += float3(dv1_dx,dv1_dx,dv1_dx);
-        //  if(debugImageNum > 1)
-        //    debugImages[1][int2(xi,yi)] += float3(dv1_dy,dv1_dy,dv1_dy);
-        //  if(debugImageNum > 2)
-        //    debugImages[2][int2(xi,yi)] += float3(dv1_dz,dv1_dz,dv1_dz);
-        //}
+        
+        for(int debugId=0; debugId<3; debugId++) 
+        {
+          if(G_DEBUG_VERT_ID + debugId == edge.v0)
+          {
+            if(debugImageNum > 0 && debugImages!= nullptr)
+              debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
+          }
+          else if(G_DEBUG_VERT_ID + debugId == edge.v1)
+          {
+            if(debugImageNum > 0)
+              debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
+          }
+        }
 
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -487,8 +497,7 @@ void d_render(const TriangleMesh &mesh,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
               DTriangleMesh &d_mesh,
-              Img* debugImages, 
-              int debugImageNum) {
+              Img* debugImages, int debugImageNum) {
 
   const TriangleMesh copy   = mesh;
   const TriangleMesh* pMesh = &mesh;
@@ -517,7 +526,7 @@ void d_render(const TriangleMesh &mesh,
   // (1)
   //
   compute_interior_derivatives(copy, interior_samples_per_pixel, adjoint, // pass always 3d mesh?
-                               d_mesh.colors_s(), d_mesh.vertices_s());
+                               d_mesh.colors_s(), d_mesh.vertices_s(), debugImages, debugImageNum);
     
   // (2)
   //
@@ -600,8 +609,8 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D_White(initialMesh, targetMesh);
-  //scn04_Triangle3D_Colored(initialMesh, targetMesh);
+  //scn03_Triangle3D_White(initialMesh, targetMesh);
+  scn04_Triangle3D_Colored(initialMesh, targetMesh);
   //scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
@@ -637,18 +646,17 @@ int main(int argc, char *argv[])
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), 
              grad1, dxyzDebug, 3);
     
-    //std::string prefixNames[3] = {"posx_", "posy_", "posz_"};
-    //for(int j=0;j<3;j++)
-    //{
-    //  std::stringstream strOut;
-    //  strOut << "our_diff/" << prefixNames[j] << G_DEBUG_VERT_ID << ".bmp";
-    //  auto path = strOut.str();
-    //  LiteImage::SaveImage(path.c_str(), dxyzDebug[j]);
-    //}
+    for(int i=0;i<3;i++)
+    {
+      std::stringstream strOut;
+      strOut << "our_diff/pos_xyz_" << G_DEBUG_VERT_ID+i << ".bmp";
+      auto path = strOut.str();
+      LiteImage::SaveImage(path.c_str(), dxyzDebug[i]);
+    }
 
     const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
-    d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
-    //d_finDiff2(initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    //d_finDiff (initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
+    d_finDiff2(initialMesh, "fin_diff", img, target, grad2, dPos, 0.01f);
     
     double totalError = 0.0;
     double posError = 0.0;
