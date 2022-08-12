@@ -45,7 +45,7 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-#define DEBUG_RENDER 1
+#define DEBUG_RENDER 0
 
 #if DEBUG_RENDER
 constexpr static int  MAXTHREADS    = 1;
@@ -276,7 +276,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             d_colors[C*3+1] += GradReal(contribC.y);
             d_colors[C*3+2] += GradReal(contribC.z);
           
-            if(0) // backpropagate color change to positions
+            if(mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D) // backpropagate color change to positions
             {
               const float3 c0 = mesh.colors[A];
               const float3 c1 = mesh.colors[B];
@@ -605,13 +605,13 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
 
-  g_tracer = MakeRayTracer2D("");  
-  //g_tracer = MakeRayTracer3D("");
+  //g_tracer = MakeRayTracer2D("");  
+  g_tracer = MakeRayTracer3D("");
 
   if(1)
   {
@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
