@@ -175,7 +175,7 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
     const auto  C = mesh.indices[surfInfo.faceId*3+2];
     const float u = surfInfo.u;
     const float v = surfInfo.v;
-    return mesh.colors[A]*u + mesh.colors[B]*v + (1.0f-u-v)*mesh.colors[C]; 
+    return mesh.colors[A]*(1.0f-u-v) + mesh.colors[B]*v + u*mesh.colors[C]; 
   }
   else
     return mesh.colors[surfInfo.faceId]; 
@@ -260,9 +260,9 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             auto B = mesh.indices[surfElem.faceId*3+1];
             auto C = mesh.indices[surfElem.faceId*3+2];
             
-            auto contribA = surfElem.u*val;
+            auto contribA = (1.0f-surfElem.u-surfElem.v)*val;
             auto contribB = surfElem.v*val;
-            auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
+            auto contribC = surfElem.u*val;
               
             d_colors[A*3+0] += GradReal(contribA.x);
             d_colors[A*3+1] += GradReal(contribA.y);
@@ -276,7 +276,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             d_colors[C*3+1] += GradReal(contribC.y);
             d_colors[C*3+2] += GradReal(contribC.z);
           
-            if(1) // backpropagate color change to positions
+            if(0) // backpropagate color change to positions
             {
               const float3 c0 = mesh.colors[A];
               const float3 c1 = mesh.colors[B];
@@ -605,13 +605,13 @@ int main(int argc, char *argv[])
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+  scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
-  scn04_Triangle3D_Colored(initialMesh, targetMesh);
+  //scn04_Triangle3D_Colored(initialMesh, targetMesh);
   //scn05_Pyramid3D(initialMesh, targetMesh);
 
-  //g_tracer = MakeRayTracer2D("");  
-  g_tracer = MakeRayTracer3D("");
+  g_tracer = MakeRayTracer2D("");  
+  //g_tracer = MakeRayTracer3D("");
 
   if(1)
   {

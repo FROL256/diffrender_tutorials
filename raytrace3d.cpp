@@ -139,8 +139,8 @@ struct BruteForce3D : public IRayTracer
         //const float v2 = BarV(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
         hit.t      = t;
         hit.faceId = triAddress/3;
-        hit.u      = 1.0f-u-v;    // v0
-        hit.v      = v;           // v1
+        hit.u      = u;    // v2
+        hit.v      = v;    // v1
       }
     }
   

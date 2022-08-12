@@ -81,10 +81,10 @@ struct BruteForce2D : public IRayTracer
         hit.faceId = (i/3);
   
         const float areaInv = 1.0f / edgeFunction(v0, v1, v2); 
-        //const float e0      = edgeFunction(v0, v1, screen_pos);
-        const float e1      = edgeFunction(v1, v2, screen_pos);
+        const float e0      = edgeFunction(v0, v1, screen_pos);
+        //const float e1      = edgeFunction(v1, v2, screen_pos);
         const float e2      = edgeFunction(v2, v0, screen_pos);
-        hit.u = e1*areaInv; // v0
+        hit.u = e0*areaInv; // v2
         hit.v = e2*areaInv; // v1 
       }
     }
