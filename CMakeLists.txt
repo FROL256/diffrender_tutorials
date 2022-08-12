@@ -11,8 +11,8 @@ if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
 endif()
 
-find_package(OpenMP)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp ")
+find_package(OpenMP REQUIRED)
+#et(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp ")
 
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
@@ -26,3 +26,7 @@ add_executable(drender 2d_triangles.cpp
                        raytrace3d.cpp
                        optimizer_simple.cpp
                        LiteMath/Image2d.cpp)
+
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX)
+endif()

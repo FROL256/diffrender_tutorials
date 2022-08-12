@@ -48,16 +48,12 @@ using LiteMath::normalize;
 #define DEBUG_RENDER 0
 
 constexpr static int  SAM_PER_PIXEL = 16;
-constexpr static int  MAXTHREADS    = 8;
+constexpr static int  MAXTHREADS    = 14;
 constexpr static bool G_USE3DRT     = false;
 constexpr static int  G_DEBUG_VERT_ID = 0;
 
-
-
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
-
-
 
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
 CamInfo g_uniforms;
@@ -95,7 +91,6 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
   const float xmax = ymax * aspectRatio;
   glhFrustumf3(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
-
 
 /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////
@@ -195,7 +190,7 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
     g_tracer->Init(&mesh);
     g_tracer->SetCamera(g_uniforms);
 
-    //#pragma omp parallel for collapse (2)
+    #pragma omp parallel for collapse (2) num_threads(MAXTHREADS) 
     for (int y = 0; y < img.height(); y++) { // for each pixel 
       for (int x = 0; x < img.width(); x++) {
         
@@ -223,141 +218,131 @@ void render(const TriangleMesh &mesh, int samples_per_pixel,
 void compute_interior_derivatives(const TriangleMesh &mesh,
                                   int samples_per_pixel,
                                   const Img &adjoint,
-                                  GradReal* d_colors, GradReal* d_pos,
+                                  DTriangleMesh &d_mesh,
                                   Img* debugImages, int debugImageNum) 
 {
-    auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
-    samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
+  auto sqrt_num_samples = (int)sqrt((float)samples_per_pixel);
+  samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
+  
+  DTriangleMesh grads[MAXTHREADS];
+  for(int i=0;i<MAXTHREADS;i++) {
+    grads[i] = d_mesh;
+    //grads[i].clear(); // don't have to do this explicitly because 'compute_interior_derivatives' is called in the first pass and gradient is already 0.0
+  }
 
-    //#pragma omp parallel for num_threads(MAXTHREADS)
-    for (int y = 0; y < adjoint.height(); y++) { // for each pixel
-      for (int x = 0; x < adjoint.width(); x++) {
-      
-        for (int samId = 0; samId < samples_per_pixel; samId++) // for each subpixel
-        {         
-          float xoff = g_hammSamples[2*samId+0];
-          float yoff = g_hammSamples[2*samId+1];
-
-          float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
-          auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff, &ray_pos, &ray_dir);
-                    
-          if (surfElem.faceId != unsigned(-1)) 
-          {          
-            auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            if(mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)                // shade_back( => val)
+  #pragma omp parallel for collapse (2) num_threads(MAXTHREADS)
+  for (int y = 0; y < adjoint.height(); y++) // for each pixel
+  { 
+    for (int x = 0; x < adjoint.width(); x++) 
+    {
+      GradReal* d_colors = grads[omp_get_thread_num()].colors_s();
+      GradReal* d_pos    = grads[omp_get_thread_num()].vertices_s();
+      for (int samId = 0; samId < samples_per_pixel; samId++) // for each subpixel
+      {         
+        float xoff = g_hammSamples[2*samId+0];
+        float yoff = g_hammSamples[2*samId+1];
+        float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
+        auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff, &ray_pos, &ray_dir);
+        //if(x == 110 && y == 100)
+        //{
+        //  int a = 2;
+        //}
+        if (surfElem.faceId != unsigned(-1)) 
+        {          
+          auto val = adjoint[int2(x,y)] / samples_per_pixel;
+          if(mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)                // shade_back( => val)
+          {
+            auto A = mesh.indices[surfElem.faceId*3+0];
+            auto B = mesh.indices[surfElem.faceId*3+1];
+            auto C = mesh.indices[surfElem.faceId*3+2];
+            
+            auto contribA = surfElem.u*val;
+            auto contribB = surfElem.v*val;
+            auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
+              
+            d_colors[A*3+0] += GradReal(contribA.x);
+            d_colors[A*3+1] += GradReal(contribA.y);
+            d_colors[A*3+2] += GradReal(contribA.z);
+            
+            d_colors[B*3+0] += GradReal(contribB.x);
+            d_colors[B*3+1] += GradReal(contribB.y);
+            d_colors[B*3+2] += GradReal(contribB.z);
+            
+            d_colors[C*3+0] += GradReal(contribC.x);
+            d_colors[C*3+1] += GradReal(contribC.y);
+            d_colors[C*3+2] += GradReal(contribC.z);
+          
+            if(1) // backpropagate color change to positions
             {
-              auto A = mesh.indices[surfElem.faceId*3+0];
-              auto B = mesh.indices[surfElem.faceId*3+1];
-              auto C = mesh.indices[surfElem.faceId*3+2];
+              const float3 c0 = mesh.colors[A];
+              const float3 c1 = mesh.colors[B];
+              const float3 c2 = mesh.colors[C];
               
-              auto contribA = surfElem.u*val;
-              auto contribB = surfElem.v*val;
-              auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
-
-              #pragma omp atomic
-              d_colors[A*3+0] += GradReal(contribA.x);
-              #pragma omp atomic
-              d_colors[A*3+1] += GradReal(contribA.y);
-              #pragma omp atomic
-              d_colors[A*3+2] += GradReal(contribA.z);
+              const float dF_dU = dot((c0-c2), val);
+              const float dF_dV = dot((c1-c2), val);
               
-              #pragma omp atomic
-              d_colors[B*3+0] += GradReal(contribB.x);
-              #pragma omp atomic
-              d_colors[B*3+1] += GradReal(contribB.y);
-              #pragma omp atomic
-              d_colors[B*3+2] += GradReal(contribB.z);
-              
-              #pragma omp atomic
-              d_colors[C*3+0] += GradReal(contribC.x);
-              #pragma omp atomic
-              d_colors[C*3+1] += GradReal(contribC.y);
-              #pragma omp atomic
-              d_colors[C*3+2] += GradReal(contribC.z);
-              
-              ////// backpropagate color change to positions
-              if(1)
+              if(dF_dU > 0.0f || dF_dV > 0.0f) 
               {
-                const float3 c0 = mesh.colors[A];
-                const float3 c1 = mesh.colors[B];
-                const float3 c2 = mesh.colors[C];
+                const float3 v0 = mesh.vertices[A];
+                const float3 v1 = mesh.vertices[B];
+                const float3 v2 = mesh.vertices[C];
+                float3 dU_dvert[3] = {};
+                float3 dV_dvert[3] = {};
                 
-                const float dF_dU = dot((c0-c2), val);
-                const float dF_dV = dot((c1-c2), val);
-                //const float dF_dW = dot((c1-c0), val);
+                BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
+                BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
+              
+                auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]);  
+                auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]);  
+                auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]);  
                 
-                if(dF_dU > 0.0f || dF_dV > 0.0f) // || dF_dW > 0.0f) 
+                #if DEBUG_RENDER
+                for(int debugId=0; debugId<3; debugId++) 
                 {
-                  const float3 v0 = mesh.vertices[A];
-                  const float3 v1 = mesh.vertices[B];
-                  const float3 v2 = mesh.vertices[C];
-
-                  float3 dU_dvert[3] = {};
-                  float3 dV_dvert[3] = {};
-                  //float3 dW_dvert[3] = {};
-                  
-                  BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
-                  BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
-                  //BarW_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dW_dvert[0].M, dW_dvert[1].M, dW_dvert[2].M);
-                
-                  auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]); // + dF_dW*dW_dvert[0]); 
-                  auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]); // + dF_dW*dW_dvert[1]); 
-                  auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]); // + dF_dW*dW_dvert[2]); 
-                  
-                  #if DEBUG_RENDER
-                  for(int debugId=0; debugId<3; debugId++) 
+                  if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
                   {
-                    if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
-                    {
-                      auto contrib = contribVA;
-                      if(G_DEBUG_VERT_ID+debugId == B)
-                        contrib = contribVB;
-                      else if(G_DEBUG_VERT_ID+debugId == C)
-                        contrib = contribVC;
-                      //contrib *= float3(0.1f, 0.1f, 1.0f);
-                      if(debugImageNum > debugId && debugImages!= nullptr)
-                        debugImages[debugId][int2(x,y)] += contrib;
-                    }
+                    auto contrib = contribVA;
+                    if(G_DEBUG_VERT_ID+debugId == B)
+                      contrib = contribVB;
+                    else if(G_DEBUG_VERT_ID+debugId == C)
+                      contrib = contribVC;
+                    //contrib *= float3(0.1f, 0.1f, 1.0f);
+                    if(debugImageNum > debugId && debugImages!= nullptr)
+                      debugImages[debugId][int2(x,y)] += contrib;
                   }
-                  #endif
-
-                  #pragma omp atomic
-                  d_pos[A*3+0] += GradReal(contribVA.x);
-                  #pragma omp atomic
-                  d_pos[A*3+1] += GradReal(contribVA.y);
-                  #pragma omp atomic
-                  d_pos[A*3+2] += GradReal(contribVA.z);
-                  
-                  #pragma omp atomic
-                  d_pos[B*3+0] += GradReal(contribVB.x);
-                  #pragma omp atomic
-                  d_pos[B*3+1] += GradReal(contribVB.y);
-                  #pragma omp atomic
-                  d_pos[B*3+2] += GradReal(contribVB.z);
-                  
-                  #pragma omp atomic
-                  d_pos[C*3+0] += GradReal(contribVC.x);
-                  #pragma omp atomic
-                  d_pos[C*3+1] += GradReal(contribVC.y);
-                  #pragma omp atomic
-                  d_pos[C*3+2] += GradReal(contribVC.z);
                 }
+                #endif
+                d_pos[A*3+0] += GradReal(contribVA.x);
+                d_pos[A*3+1] += GradReal(contribVA.y);
+                d_pos[A*3+2] += GradReal(contribVA.z);
+                
+                d_pos[B*3+0] += GradReal(contribVB.x);
+                d_pos[B*3+1] += GradReal(contribVB.y);
+                d_pos[B*3+2] += GradReal(contribVB.z);
+                
+                d_pos[C*3+0] += GradReal(contribVC.x);
+                d_pos[C*3+1] += GradReal(contribVC.y);
+                d_pos[C*3+2] += GradReal(contribVC.z);
               }
             }
-            else
-            {
-              #pragma omp atomic
-              d_colors[surfElem.faceId*3+0] += GradReal(val.x); 
-              #pragma omp atomic
-              d_colors[surfElem.faceId*3+1] += GradReal(val.y);
-              #pragma omp atomic
-              d_colors[surfElem.faceId*3+2] += GradReal(val.z);
-            }
-          } //if (faceIndex != unsigned(-1))         
-               
-        } // for (int samId = 0; samId < samples_per_pixel; samId++)
-      }
+          }
+          else
+          {
+            d_colors[surfElem.faceId*3+0] += GradReal(val.x); 
+            d_colors[surfElem.faceId*3+1] += GradReal(val.y);
+            d_colors[surfElem.faceId*3+2] += GradReal(val.z);
+          }
+        } //if (faceIndex != unsigned(-1))         
+             
+      } // for (int samId = 0; samId < samples_per_pixel; samId++)
     }
+  }
+  
+  // accumulate gradient from different threads (parallel reduction/hist)
+  //
+  for(int i=0;i<MAXTHREADS;i++) 
+    for(size_t j=0;j<d_mesh.size(); j++)
+      d_mesh[j] += grads[i][j];
 }
 
 void compute_edge_derivatives(
@@ -367,142 +352,137 @@ void compute_edge_derivatives(
         const Sampler &edge_sampler,
         const Img &adjoint,
         const int num_edge_samples, bool a_3dProj,
-        GradReal* d_vertices,
+        DTriangleMesh &d_mesh,
         Img* debugImages, int debugImageNum) 
 {
    
-    prng::RandomGen gens[MAXTHREADS];
-    for(int i=0;i<MAXTHREADS;i++)
-      gens[i] = prng::RandomGenInit(7777 + i*i + 1);
+  prng::RandomGen gens[MAXTHREADS];
+  std::vector<GradReal> grads[MAXTHREADS];
 
-    //float maxRelativeError = 0.0f;
+  for(int i=0;i<MAXTHREADS;i++)
+  {
+    gens [i] = prng::RandomGenInit(7777 + i*i + 1);
+    grads[i].resize(d_mesh.numVerts()*3);
+    memset(grads[i].data(), 0, grads[i].size()*sizeof(GradReal));
+  }
 
-    //#pragma omp parallel for num_threads(MAXTHREADS)
-    for (int i = 0; i < num_edge_samples; i++) 
-    { 
-      auto& gen = gens[omp_get_thread_num()];
-      //const float rnd0 = clamp(qmc::rndFloat(i, 0, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
-      //const float rnd1 = clamp(qmc::rndFloat(i, 1, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
-
-      const float rnd0 = prng::rndFloat(&gen);
-      const float rnd1 = prng::rndFloat(&gen);
-
-      // pick an edge
-      auto edge_id = sample(edge_sampler, rnd0);
-      auto edge    = edges[edge_id];
-      auto pmf     = edge_sampler.pmf[edge_id];
+  //float maxRelativeError = 0.0f;
+  #pragma omp parallel for num_threads(MAXTHREADS)
+  for (int i = 0; i < num_edge_samples; i++) 
+  { 
+    auto& gen = gens[omp_get_thread_num()];
+    //GradReal* d_vertices = grads[omp_get_thread_num()].vertices_s();
+    GradReal* d_vertices = grads[omp_get_thread_num()].data();
+    //const float rnd0 = clamp(qmc::rndFloat(i, 0, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
+    //const float rnd1 = clamp(qmc::rndFloat(i, 1, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
+    const float rnd0 = prng::rndFloat(&gen);
+    const float rnd1 = prng::rndFloat(&gen);
+    // pick an edge
+    auto edge_id = sample(edge_sampler, rnd0);
+    auto edge    = edges[edge_id];
+    auto pmf     = edge_sampler.pmf[edge_id];
+    
+    // pick a point p on the edge
+    auto v0 = LiteMath::to_float2(mesh.vertices[edge.v0]);
+    auto v1 = LiteMath::to_float2(mesh.vertices[edge.v1]);
+    auto t = rnd1;
+    auto p = v0 + t * (v1 - v0);
+    int xi = int(p.x); 
+    int yi = int(p.y); // integer coordinates
+    if (xi < 0 || yi < 0 || xi >= adjoint.width() || yi >= adjoint.height()) {
+        continue;
+    }
+    // sample the two sides of the edge
+    auto n = normal2D((v1 - v0) / length(v1 - v0));
+    
+    const float2 coordIn  = p - 1e-3f * n;
+    const float2 coordOut = p + 1e-3f * n;
+    
+    const auto surfIn    = g_tracer->CastSingleRay(coordIn.x, coordIn.y);
+    const auto surfOut   = g_tracer->CastSingleRay(coordOut.x, coordOut.y);
+    const auto color_in  = shade(mesh, surfIn);
+    const auto color_out = shade(mesh, surfOut);
+    // get corresponding adjoint from the adjoint image,
+    // multiply with the color difference and divide by the pdf & number of samples.
+    float pdf    = pmf  / (length(v1 - v0));
+    float weight = 1.0f / (pdf * float(num_edge_samples));
+    float adj    = dot(color_in - color_out, adjoint[int2(xi,yi)]);
+    // the boundary point is p = v0 + t * (v1 - v0)
+    // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
+    // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
+    // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
+    
+    if(a_3dProj) 
+    {
+      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
+      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
+      float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
+      float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
       
-      // pick a point p on the edge
-      auto v0 = LiteMath::to_float2(mesh.vertices[edge.v0]);
-      auto v1 = LiteMath::to_float2(mesh.vertices[edge.v1]);
-
-      auto t = rnd1;
-      auto p = v0 + t * (v1 - v0);
-      int xi = int(p.x); 
-      int yi = int(p.y); // integer coordinates
-      if (xi < 0 || yi < 0 || xi >= adjoint.width() || yi >= adjoint.height()) {
-          continue;
-      }
-      // sample the two sides of the edge
-      auto n = normal2D((v1 - v0) / length(v1 - v0));
+      float3 v0_3d = mesh3d.vertices[edge.v0];
+      float3 v1_3d = mesh3d.vertices[edge.v1];
+      VS_X_grad(v0_3d.M, g_uniforms, v0_d[0].M);
+      VS_Y_grad(v0_3d.M, g_uniforms, v0_d[1].M);
+      VS_X_grad(v1_3d.M, g_uniforms, v1_d[0].M);
+      VS_Y_grad(v1_3d.M, g_uniforms, v1_d[1].M);
       
-      const float2 coordIn  = p - 1e-3f * n;
-      const float2 coordOut = p + 1e-3f * n;
+      //float temp[2]={};
+      //VertexShader_jac(g_uniforms, v0_3d.x, v0_3d.y, v0_3d.z, temp, v0_d[0].M);
+      //VertexShader_jac(g_uniforms, v1_3d.x, v1_3d.y, v1_3d.z, temp, v1_d[0].M); 
+       
+      const float dv0_dx = v0_d[0].x*d_v0.x; //  + v0_dx.y*d_v0.y;
+      const float dv0_dy = v0_d[1].y*d_v0.y; //  + v0_dy.x*d_v0.x;
+      const float dv0_dz = (v0_d[0].z*d_v0.x + v0_d[1].z*d_v0.y); 
+       
+      const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y;
+      const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x;
+      const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
       
-      const auto surfIn    = g_tracer->CastSingleRay(coordIn.x, coordIn.y);
-      const auto surfOut   = g_tracer->CastSingleRay(coordOut.x, coordOut.y);
-
-      const auto color_in  = shade(mesh, surfIn);
-      const auto color_out = shade(mesh, surfOut);
-
-      // get corresponding adjoint from the adjoint image,
-      // multiply with the color difference and divide by the pdf & number of samples.
-      float pdf    = pmf  / (length(v1 - v0));
-      float weight = 1.0f / (pdf * float(num_edge_samples));
-      float adj    = dot(color_in - color_out, adjoint[int2(xi,yi)]);
-      // the boundary point is p = v0 + t * (v1 - v0)
-      // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
-      // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
-      // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
-      
-      if(a_3dProj) 
+      #if DEBUG_RENDER
+      for(int debugId=0; debugId<3; debugId++) 
       {
-        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
-        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
-
-        float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
-        float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
-        
-        float3 v0_3d = mesh3d.vertices[edge.v0];
-        float3 v1_3d = mesh3d.vertices[edge.v1];
-
-        VS_X_grad(v0_3d.M, g_uniforms, v0_d[0].M);
-        VS_Y_grad(v0_3d.M, g_uniforms, v0_d[1].M);
-        VS_X_grad(v1_3d.M, g_uniforms, v1_d[0].M);
-        VS_Y_grad(v1_3d.M, g_uniforms, v1_d[1].M);
-        
-        //float temp[2]={};
-        //VertexShader_jac(g_uniforms, v0_3d.x, v0_3d.y, v0_3d.z, temp, v0_d[0].M);
-        //VertexShader_jac(g_uniforms, v1_3d.x, v1_3d.y, v1_3d.z, temp, v1_d[0].M); 
-         
-        const float dv0_dx = v0_d[0].x*d_v0.x; //  + v0_dx.y*d_v0.y;
-        const float dv0_dy = v0_d[1].y*d_v0.y; //  + v0_dy.x*d_v0.x;
-        const float dv0_dz = (v0_d[0].z*d_v0.x + v0_d[1].z*d_v0.y); 
-         
-        const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y;
-        const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x;
-        const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
-        
-        #if DEBUG_RENDER
-        for(int debugId=0; debugId<3; debugId++) 
+        if(G_DEBUG_VERT_ID + debugId == edge.v0)
         {
-          if(G_DEBUG_VERT_ID + debugId == edge.v0)
-          {
-            if(debugImageNum > 0 && debugImages!= nullptr)
-              debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
-          }
-          else if(G_DEBUG_VERT_ID + debugId == edge.v1)
-          {
-            if(debugImageNum > 0)
-              debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
-          }
+          if(debugImageNum > 0 && debugImages!= nullptr)
+            debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
         }
-        #endif
-
-        // if running in parallel, use atomic add here.
-        #pragma omp atomic
-        d_vertices[edge.v0*3+0] += GradReal(dv0_dx);
-        #pragma omp atomic
-        d_vertices[edge.v0*3+1] += GradReal(dv0_dy);
-        #pragma omp atomic
-        d_vertices[edge.v0*3+2] += GradReal(dv0_dz);
-        
-        #pragma omp atomic
-        d_vertices[edge.v1*3+0] += GradReal(dv1_dx);
-        #pragma omp atomic
-        d_vertices[edge.v1*3+1] += GradReal(dv1_dy);
-        #pragma omp atomic
-        d_vertices[edge.v1*3+2] += GradReal(dv1_dz);
+        else if(G_DEBUG_VERT_ID + debugId == edge.v1)
+        {
+          if(debugImageNum > 0)
+            debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
+        }
       }
-      else
-      {
-        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
-  
-        // if running in parallel, use atomic add here.
-        #pragma omp atomic
-        d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
-        #pragma omp atomic
-        d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
-        
-        #pragma omp atomic
-        d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
-        #pragma omp atomic
-        d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
-      }
-    }    
+      #endif
+      // if running in parallel, use atomic add here.
+      d_vertices[edge.v0*3+0] += GradReal(dv0_dx);
+      d_vertices[edge.v0*3+1] += GradReal(dv0_dy);
+      d_vertices[edge.v0*3+2] += GradReal(dv0_dz);
+      
+      d_vertices[edge.v1*3+0] += GradReal(dv1_dx);
+      d_vertices[edge.v1*3+1] += GradReal(dv1_dy);
+      d_vertices[edge.v1*3+2] += GradReal(dv1_dz);
+    }
+    else
+    {
+      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
+      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
 
-    //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
+      // if running in parallel, use atomic add here.
+      d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
+      d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
+      
+      d_vertices[edge.v1*3+0] += GradReal(d_v1.x);
+      d_vertices[edge.v1*3+1] += GradReal(d_v1.y);
+    }
+  }    
+
+  //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
+
+  // accumulate gradient from different threads (parallel reduction/hist)
+  //
+  for(int i=0;i<MAXTHREADS;i++) 
+    for(size_t j=0;j<d_mesh.numVerts()*3; j++)
+      d_mesh[j] += grads[i][j];
 }
 
 void d_render(const TriangleMesh &mesh,
@@ -539,14 +519,14 @@ void d_render(const TriangleMesh &mesh,
   // (1)
   //
   compute_interior_derivatives(copy, interior_samples_per_pixel, adjoint, // pass always 3d mesh?
-                               d_mesh.colors_s(), d_mesh.vertices_s(), debugImages, debugImageNum);
+                               d_mesh, debugImages, debugImageNum);
     
   // (2)
   //
   auto edges        = collect_edges(*pMesh);
   auto edge_sampler = build_edge_sampler(*pMesh, edges);
   compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D),
-                           d_mesh.vertices_s(), debugImages, debugImageNum);
+                           d_mesh, debugImages, debugImageNum);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -698,8 +678,8 @@ int main(int argc, char *argv[])
       colError   += diff;
       totalError += diff;
       colLengthL1 += std::abs(subvecCol2[i]);
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[subvecPos1.size() + i] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[subvecPos1.size() + i] << std::endl;
     }
   
     std::cout << "==========================" << std::endl;

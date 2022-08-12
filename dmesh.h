@@ -56,6 +56,7 @@ struct GammaVec
 */
 struct DTriangleMesh 
 {
+  DTriangleMesh(){}
   DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPES a_gType = GEOM_TYPES::TRIANGLE_2D) 
   {
     m_meshType = a_meshType;
