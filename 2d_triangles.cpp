@@ -272,7 +272,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             d_colors[C*3+1] += GradReal(contribC.y);
             d_colors[C*3+2] += GradReal(contribC.z);
           
-            if(1) // backpropagate color change to positions
+            if(mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D) // backpropagate color change to positions
             {
               const float3 c0 = mesh.colors[A];
               const float3 c1 = mesh.colors[B];
