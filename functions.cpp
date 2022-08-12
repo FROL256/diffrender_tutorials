@@ -209,7 +209,7 @@ static inline float BarV(const float ray_pos[3], const float ray_dir[3], const f
 }
 */
 
-void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
+void BarW_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
                float* _d_A, float* _d_B, float* _d_C) 
 {
     float _d_edge1X = 0;
@@ -748,7 +748,7 @@ void BarV_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
     }
 }
 
-void BarW_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
+void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
                float* _d_A, float* _d_B, float* _d_C) 
 {
     float _d_edge1X = 0;
