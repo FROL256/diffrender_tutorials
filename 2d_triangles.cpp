@@ -277,7 +277,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               const float3 c0 = mesh.colors[A];
               const float3 c1 = mesh.colors[B];
               const float3 c2 = mesh.colors[C];
-              
+
               const float dF_dU = dot((c0-c2), val);
               const float dF_dV = dot((c1-c2), val);
               
