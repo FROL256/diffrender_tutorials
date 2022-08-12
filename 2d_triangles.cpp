@@ -305,6 +305,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                         contrib = contribVB;
                       else if(G_DEBUG_VERT_ID+debugId == C)
                         contrib = contribVC;
+                      //contrib *= float3(0.1f, 0.1f, 1.0f);
                       if(debugImageNum > debugId && debugImages!= nullptr)
                         debugImages[debugId][int2(x,y)] += contrib;
                     }

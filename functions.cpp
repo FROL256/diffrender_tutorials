@@ -145,57 +145,69 @@ void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3])
     }
 }
 
+/*
+inline float sign(float x) { return (x >= 0) ? 1 : -1; }
 
-//float BarU(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
-//{
-//  const float edge1X = B[0] - A[0];
-//  const float edge1Y = B[1] - A[1];
-//  const float edge1Z = B[2] - A[2];
-//
-//  const float edge2X = C[0] - A[0];
-//  const float edge2Y = C[1] - A[1];
-//  const float edge2Z = C[2] - A[2];
-//  
-//  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
-//  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
-//  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
-//
-//  const float tvecX  = ray_pos[0] - A[0];
-//  const float tvecY  = ray_pos[1] - A[1];
-//  const float tvecZ  = ray_pos[2] - A[2];
-//
-//  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
-//  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
-//  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
-//
-//  return (qvecX*ray_dir[0] + qvecY*ray_dir[1] + qvecZ*ray_dir[2])/std::abs(edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ);
-//}
-//
-//float BarV(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
-//{
-//  const float edge1X = B[0] - A[0];
-//  const float edge1Y = B[1] - A[1];
-//  const float edge1Z = B[2] - A[2];
-//
-//  const float edge2X = C[0] - A[0];
-//  const float edge2Y = C[1] - A[1];
-//  const float edge2Z = C[2] - A[2];
-//
-//  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
-//  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
-//  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
-//
-//  const float tvecX  = ray_pos[0] - A[0];
-//  const float tvecY  = ray_pos[1] - A[1];
-//  const float tvecZ  = ray_pos[2] - A[2];
-//
-//  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
-//  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
-//  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
-//
-//  return (tvecX*pvecX + tvecY*pvecY + tvecZ*pvecZ)/std::abs(edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ); 
-//}
+static inline float BarU( const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
+{
+  const float edge1X = B[0] - A[0];
+  const float edge1Y = B[1] - A[1];
+  const float edge1Z = B[2] - A[2];
 
+  const float edge2X = C[0] - A[0];
+  const float edge2Y = C[1] - A[1];
+  const float edge2Z = C[2] - A[2];
+  
+  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
+  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
+  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
+
+  const float tvecX  = ray_pos[0] - A[0];
+  const float tvecY  = ray_pos[1] - A[1];
+  const float tvecZ  = ray_pos[2] - A[2];
+
+  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
+  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
+  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
+
+  const float e1dp   = edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ;
+  const float signv  = sign(e1dp); // put 1.0 to enable triangle clippin
+
+  const float div = e1dp*signv;
+  const float u = signv*(qvecX*ray_dir[0] + qvecY*ray_dir[1] + qvecZ*ray_dir[2])/div;
+  const float v = signv*(tvecX*pvecX + tvecY*pvecY + tvecZ*pvecZ)/div;
+  
+  return 1.0f - u - v;
+}
+
+static inline float BarV(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
+{
+  const float edge1X = B[0] - A[0];
+  const float edge1Y = B[1] - A[1];
+  const float edge1Z = B[2] - A[2];
+
+  const float edge2X = C[0] - A[0];
+  const float edge2Y = C[1] - A[1];
+  const float edge2Z = C[2] - A[2];
+
+  const float pvecZ = ray_dir[0]*edge2Y - ray_dir[1]*edge2X;
+  const float pvecX = ray_dir[1]*edge2Z - ray_dir[2]*edge2Y;
+  const float pvecY = ray_dir[2]*edge2X - ray_dir[0]*edge2Z;
+
+  const float tvecX  = ray_pos[0] - A[0];
+  const float tvecY  = ray_pos[1] - A[1];
+  const float tvecZ  = ray_pos[2] - A[2];
+
+  const float qvecZ  = tvecX*edge1Y - tvecY*edge1X;
+  const float qvecX  = tvecY*edge1Z - tvecZ*edge1Y;
+  const float qvecY  = tvecZ*edge1X - tvecX*edge1Z;
+
+  const float e1dp   = edge1X*pvecX + edge1Y*pvecY + edge1Z*pvecZ;
+  const float signv  = sign(e1dp); // put 1.0 to enable triangle clippin
+
+  return signv*(tvecX*pvecX + tvecY*pvecY + tvecZ*pvecZ)/(signv*e1dp); 
+}
+*/
 
 void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
                float* _d_A, float* _d_B, float* _d_C) 
@@ -250,6 +262,7 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
     float _d_signv = 0;
     float _t31;
     float _t32;
+    float _d_div = 0;
     float _t33;
     float _t34;
     float _t35;
@@ -260,6 +273,18 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
     float _t40;
     float _t41;
     float _t42;
+    float _d_u = 0;
+    float _t43;
+    float _t44;
+    float _t45;
+    float _t46;
+    float _t47;
+    float _t48;
+    float _t49;
+    float _t50;
+    float _t51;
+    float _t52;
+    float _d_v = 0;
     const float edge1X = B[0] - A[0];
     const float edge1Y = B[1] - A[1];
     const float edge1Z = B[2] - A[2];
@@ -308,38 +333,78 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
     const float e1dp = _t25 * _t24 + _t27 * _t26 + _t29 * _t28;
     _t30 = e1dp;
     const float signv = LiteMath::sign(_t30);
-    _t33 = signv;
-    _t35 = qvecX;
-    _t34 = ray_dir[0];
-    _t37 = qvecY;
-    _t36 = ray_dir[1];
-    _t39 = qvecZ;
-    _t38 = ray_dir[2];
-    _t32 = (_t35 * _t34 + _t37 * _t36 + _t39 * _t38);
-    _t40 = _t33 * _t32;
-    _t42 = e1dp;
-    _t41 = signv;
-    _t31 = (_t42 * _t41);
-    float BarU_return = _t40 / _t31;
+    _t32 = e1dp;
+    _t31 = signv;
+    const float div0 = _t32 * _t31;
+    _t35 = signv;
+    _t37 = qvecX;
+    _t36 = ray_dir[0];
+    _t39 = qvecY;
+    _t38 = ray_dir[1];
+    _t41 = qvecZ;
+    _t40 = ray_dir[2];
+    _t34 = (_t37 * _t36 + _t39 * _t38 + _t41 * _t40);
+    _t42 = _t35 * _t34;
+    _t33 = div0;
+    const float u = _t42 / _t33;
+    _t45 = signv;
+    _t47 = tvecX;
+    _t46 = pvecX;
+    _t49 = tvecY;
+    _t48 = pvecY;
+    _t51 = tvecZ;
+    _t50 = pvecZ;
+    _t44 = (_t47 * _t46 + _t49 * _t48 + _t51 * _t50);
+    _t52 = _t45 * _t44;
+    _t43 = div0;
+    const float v = _t52 / _t43;
+    float BarU_return = 1.F - u - v;
     {
-        float _r31 = 1 / _t31;
-        float _r32 = _r31 * _t32;
-        _d_signv += _r32;
-        float _r33 = _t33 * _r31;
+        _d_u += -1;
+        _d_v += -1;
+    }
+    {
+        float _r43 = _d_v / _t43;
+        float _r44 = _r43 * _t44;
+        _d_signv += _r44;
+        float _r45 = _t45 * _r43;
+        float _r46 = _r45 * _t46;
+        _d_tvecX += _r46;
+        float _r47 = _t47 * _r45;
+        _d_pvecX += _r47;
+        float _r48 = _r45 * _t48;
+        _d_tvecY += _r48;
+        float _r49 = _t49 * _r45;
+        _d_pvecY += _r49;
+        float _r50 = _r45 * _t50;
+        _d_tvecZ += _r50;
+        float _r51 = _t51 * _r45;
+        _d_pvecZ += _r51;
+        float _r52 = _d_v * -_t52 / (_t43 * _t43);
+        _d_div += _r52;
+    }
+    {
+        float _r33 = _d_u / _t33;
         float _r34 = _r33 * _t34;
-        _d_qvecX += _r34;
+        _d_signv += _r34;
         float _r35 = _t35 * _r33;
-        float _r36 = _r33 * _t36;
-        _d_qvecY += _r36;
-        float _r37 = _t37 * _r33;
-        float _r38 = _r33 * _t38;
-        _d_qvecZ += _r38;
-        float _r39 = _t39 * _r33;
-        float _r40 = 1 * -_t40 / (_t31 * _t31);
-        float _r41 = _r40 * _t41;
-        _d_e1dp += _r41;
-        float _r42 = _t42 * _r40;
-        _d_signv += _r42;
+        float _r36 = _r35 * _t36;
+        _d_qvecX += _r36;
+        float _r37 = _t37 * _r35;
+        float _r38 = _r35 * _t38;
+        _d_qvecY += _r38;
+        float _r39 = _t39 * _r35;
+        float _r40 = _r35 * _t40;
+        _d_qvecZ += _r40;
+        float _r41 = _t41 * _r35;
+        float _r42 = _d_u * -_t42 / (_t33 * _t33);
+        _d_div += _r42;
+    }
+    {
+        float _r31 = _d_div * _t31;
+        _d_e1dp += _r31;
+        float _r32 = _t32 * _d_div;
+        _d_signv += _r32;
     }
     {
         float _r24 = _d_e1dp * _t24;
@@ -437,6 +502,7 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
         _d_A[0] += -_d_edge1X;
     }
 }
+
 
 void BarV_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
                float* _d_A, float* _d_B, float* _d_C) 
