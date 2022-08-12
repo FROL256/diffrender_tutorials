@@ -33,3 +33,6 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
 
 void BarV_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
                float* _d_A, float* _d_B, float* _d_C);
+
+void BarW_grad(const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3], 
+               float* _d_A, float* _d_B, float* _d_C);

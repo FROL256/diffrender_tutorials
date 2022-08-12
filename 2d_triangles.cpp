@@ -45,13 +45,18 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
+#define DEBUG_RENDER 0
+
 constexpr static int  SAM_PER_PIXEL = 16;
 constexpr static int  MAXTHREADS    = 8;
 constexpr static bool G_USE3DRT     = false;
 constexpr static int  G_DEBUG_VERT_ID = 0;
 
+
+
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
+
 
 
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
@@ -279,8 +284,9 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                 
                 const float dF_dU = dot((c0-c2), val);
                 const float dF_dV = dot((c1-c2), val);
+                //const float dF_dW = dot((c1-c0), val);
                 
-                if(dF_dU > 0.0f || dF_dV > 0.0f) 
+                if(dF_dU > 0.0f || dF_dV > 0.0f) // || dF_dW > 0.0f) 
                 {
                   const float3 v0 = mesh.vertices[A];
                   const float3 v1 = mesh.vertices[B];
@@ -288,14 +294,17 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
 
                   float3 dU_dvert[3] = {};
                   float3 dV_dvert[3] = {};
+                  //float3 dW_dvert[3] = {};
                   
                   BarU_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dU_dvert[0].M, dU_dvert[1].M, dU_dvert[2].M);
                   BarV_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dV_dvert[0].M, dV_dvert[1].M, dV_dvert[2].M);
+                  //BarW_grad(ray_pos.M, ray_dir.M, v0.M, v1.M, v2.M, /* --> */ dW_dvert[0].M, dW_dvert[1].M, dW_dvert[2].M);
                 
-                  auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]); // *contribA;
-                  auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]); // *contribB;
-                  auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]); // *contribC;
+                  auto contribVA = (dF_dU*dU_dvert[0] + dF_dV*dV_dvert[0]); // + dF_dW*dW_dvert[0]); 
+                  auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]); // + dF_dW*dW_dvert[1]); 
+                  auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]); // + dF_dW*dW_dvert[2]); 
                   
+                  #if DEBUG_RENDER
                   for(int debugId=0; debugId<3; debugId++) 
                   {
                     if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
@@ -310,6 +319,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
                         debugImages[debugId][int2(x,y)] += contrib;
                     }
                   }
+                  #endif
 
                   #pragma omp atomic
                   d_pos[A*3+0] += GradReal(contribVA.x);
@@ -443,6 +453,7 @@ void compute_edge_derivatives(
         const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x;
         const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
         
+        #if DEBUG_RENDER
         for(int debugId=0; debugId<3; debugId++) 
         {
           if(G_DEBUG_VERT_ID + debugId == edge.v0)
@@ -456,6 +467,7 @@ void compute_edge_derivatives(
               debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
           }
         }
+        #endif
 
         // if running in parallel, use atomic add here.
         #pragma omp atomic
@@ -611,8 +623,8 @@ int main(int argc, char *argv[])
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
-  scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  //scn04_Triangle3D_Colored(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
   g_tracer = MakeRayTracer3D("");
@@ -628,7 +640,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
