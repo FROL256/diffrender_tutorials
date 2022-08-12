@@ -131,10 +131,16 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
        {-1.0f, -1.0f, 1.0f},  
        },
 
+      //// color
+      //{{1.0f, 0.0f, 0.0f}, 
+      // {1.0f, 1.0f, 0.0f}, 
+      // {0.0f, 0.0f, 1.0f},
+      // },
+
       // color
       {{1.0f, 0.0f, 0.0f}, 
-       {1.0f, 1.0f, 0.0f}, 
-       {0.0f, 0.0f, 1.0f},
+       {1.0f, 0.0f, 0.0f}, 
+       {0.0f, 0.0f, 0.0f},
        },
 
       // indices
@@ -149,10 +155,11 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
        },
 
       // color
-      {{0.0f, 1.0f, 0.0f}, 
-       {1.0f, 0.0f, 1.0f}, 
+      {{0.1f, 1.0f, 0.1f}, 
+       {1.0f, 0.1f, 1.0f}, 
        {0.25f, 0.25f, 0.25f},
        },
+       
 
       // indices
       {0, 1, 2}
