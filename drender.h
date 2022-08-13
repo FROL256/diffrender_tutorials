@@ -422,8 +422,8 @@ struct DiffRender
     interior_derivatives(mesh, adjoint, 
                          d_mesh);
     
-    //edge_derivatives(mesh, adjoint, edge_samples_in_total,
-    //                 d_mesh, debugImages, debugImageNum);
+    edge_derivatives(mesh, adjoint, edge_samples_in_total,
+                     d_mesh);
   }
 
 private:
@@ -542,10 +542,10 @@ private:
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
     
-      float3 ray_posIn = {0,0,0}, ray_dirIn = {0,0,0};
-      float3 ray_posOut = {0,0,0}, ray_dirOut = {0,0,0};
-      const auto surfIn    = m_pTracer->CastSingleRay(coordIn.x, coordIn.y, &ray_posIn, &ray_dirIn);
-      const auto surfOut   = m_pTracer->CastSingleRay(coordOut.x, coordOut.y, &ray_posOut, &ray_dirOut);
+      float3 ray_posIn   = {0,0,0}, ray_dirIn  = {0,0,0};
+      float3 ray_posOut  = {0,0,0}, ray_dirOut = {0,0,0};
+      const auto surfIn  = m_pTracer->CastSingleRay(coordIn.x, coordIn.y, &ray_posIn, &ray_dirIn);
+      const auto surfOut = m_pTracer->CastSingleRay(coordOut.x, coordOut.y, &ray_posOut, &ray_dirOut);
 
       const auto color_in  = Model::shade(mesh, surfIn, ray_posIn, ray_dirIn);
       const auto color_out = Model::shade(mesh, surfOut, ray_posOut, ray_dirOut);
@@ -555,6 +555,7 @@ private:
       float pdf    = pmf  / (length(v1 - v0));
       float weight = 1.0f / (pdf * float(num_edge_samples));
       float adj    = dot(color_in - color_out, adjoint[int2(xi,yi)]);
+
       // the boundary point is p = v0 + t * (v1 - v0)
       // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
       // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
