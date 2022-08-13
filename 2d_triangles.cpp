@@ -45,7 +45,7 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-#define DEBUG_RENDER 1
+#define DEBUG_RENDER 0
 
 #if DEBUG_RENDER
 constexpr static int  MAXTHREADS    = 1;
@@ -235,12 +235,12 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
   }
 
   #pragma omp parallel for collapse (2) num_threads(MAXTHREADS)
-  for (int y = 0; y < adjoint.height(); y++) // for each pixel
-  { 
-    for (int x = 0; x < adjoint.width(); x++) 
-    {
+  for (int y = 0; y < adjoint.height(); y++) { // for each pixel  
+    for (int x = 0; x < adjoint.width(); x++)  {
+
       GradReal* d_colors = grads[omp_get_thread_num()].colors_s();
       GradReal* d_pos    = grads[omp_get_thread_num()].vertices_s();
+
       for (int samId = 0; samId < samples_per_pixel; samId++) // for each subpixel
       {         
         float xoff = g_hammSamples[2*samId+0];
@@ -347,16 +347,38 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
 }
 
 void compute_edge_derivatives(
-        const TriangleMesh &mesh,
         const TriangleMesh &mesh3d,
-        const vector<Edge> &edges,
-        const Sampler &edge_sampler,
         const Img &adjoint,
-        const int num_edge_samples, bool a_3dProj,
+        const int num_edge_samples,
         DTriangleMesh &d_mesh,
         Img* debugImages, int debugImageNum) 
 {
-   
+  // (1) if we have 3d mesh, need to project it to screen for correct edje sampling
+  //  
+  const TriangleMesh copy   = mesh3d;
+  const TriangleMesh* pMesh = &mesh3d;
+  
+  TriangleMesh localMesh;
+  if(mesh3d.m_geomType == GEOM_TYPES::TRIANGLE_3D)
+  {
+    localMesh = mesh3d;
+    for(auto& v : localMesh.vertices) {
+      auto vCopy = v;
+      VertexShader(g_uniforms, vCopy.x, vCopy.y, vCopy.z, 
+                   v.M);
+    }
+    localMesh.m_geomType = GEOM_TYPES::TRIANGLE_2D;
+    pMesh = &localMesh;
+  }
+  const TriangleMesh& mesh = *pMesh;
+
+  // (2) prepare edjes
+  //
+  auto edges        = collect_edges(mesh);
+  auto edge_sampler = build_edge_sampler(mesh, edges);
+
+  // (3) do edje sampling
+  // 
   prng::RandomGen gens[MAXTHREADS];
   std::vector<GradReal> grads[MAXTHREADS];
 
@@ -413,7 +435,7 @@ void compute_edge_derivatives(
     // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
     // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
     
-    if(a_3dProj) 
+    if(d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D) 
     {
       auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
       auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
@@ -491,39 +513,17 @@ void d_render(const TriangleMesh &mesh,
               const int interior_samples_per_pixel,
               const int edge_samples_in_total,
               DTriangleMesh &d_mesh,
-              Img* debugImages, int debugImageNum) {
-
-  const TriangleMesh copy   = mesh;
-  const TriangleMesh* pMesh = &mesh;
-    
-  TriangleMesh localMesh;
-  if(mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D)
-  {
-    localMesh = mesh;
-    for(auto& v : localMesh.vertices) {
-      auto vCopy = v;
-      VertexShader(g_uniforms, vCopy.x, vCopy.y, vCopy.z, 
-                   v.M);
-    }
-    localMesh.m_geomType = GEOM_TYPES::TRIANGLE_2D;
-    pMesh = &localMesh;
-  }
-  
-  // (0) Build Acceleration structurres and e.t.c. if needed
+              Img* debugImages, int debugImageNum) 
+{  
+  // Build Acceleration structurres and e.t.c. if needed
   //
   g_tracer->Init(&mesh);
   g_tracer->SetCamera(g_uniforms);
 
-  // (1)
-  //
-  compute_interior_derivatives(copy, interior_samples_per_pixel, adjoint, // pass always 3d mesh?
+  compute_interior_derivatives(mesh, interior_samples_per_pixel, adjoint, 
                                d_mesh, debugImages, debugImageNum);
-    
-  // (2)
-  //
-  auto edges        = collect_edges(*pMesh);
-  auto edge_sampler = build_edge_sampler(*pMesh, edges);
-  compute_edge_derivatives(*pMesh, copy, edges, edge_sampler, adjoint, edge_samples_in_total, (d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D),
+  
+  compute_edge_derivatives(mesh, adjoint, edge_samples_in_total,
                            d_mesh, debugImages, debugImageNum);
 }
 
@@ -601,8 +601,8 @@ int main(int argc, char *argv[])
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
-  scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  //scn04_Triangle3D_Colored(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
 
   //g_tracer = MakeRayTracer2D("");  
   g_tracer = MakeRayTracer3D("");
@@ -618,7 +618,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});

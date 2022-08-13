@@ -33,10 +33,8 @@ struct TriangleMesh
   std::vector<unsigned>   indices;
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPES  m_geomType = GEOM_TYPES::TRIANGLE_2D;
+  GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
 };
-
-typedef float GradReal;
 
 /**
 \brief gamma multiplier for gradient descend
@@ -49,6 +47,8 @@ struct GammaVec
   float pos;
   float color;
 };
+
+typedef float GradReal;
 
 /**
 \brief gradient of mesh
@@ -102,16 +102,16 @@ struct DTriangleMesh
   size_t size() const { return m_allParams.size(); } 
 
   MESH_TYPES getMeshType() const { return m_meshType; }
-  GEOM_TYPES  getGeomType() const { return m_geomType; }
+  GEOM_TYPES getGeomType() const { return m_geomType; }
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPES  m_geomType = GEOM_TYPES::TRIANGLE_2D;
+  GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
 
   inline const GradReal* data() const { return m_allParams.data(); }
   inline GradReal*       data()       { return m_allParams.data(); }
 
-  inline float& operator[](size_t i)       { return m_allParams[i]; }
-  inline float  operator[](size_t i) const { return m_allParams[i]; }
+  inline GradReal& operator[](size_t i)       { return m_allParams[i]; }
+  inline GradReal  operator[](size_t i) const { return m_allParams[i]; }
 
 protected:
 
