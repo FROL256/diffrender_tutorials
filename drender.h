@@ -15,7 +15,7 @@ constexpr static int  MAXTHREADS    = 14;
 
 struct AuxData
 {
-  CamInfo* pCamInfo = nullptr;
+  const CamInfo* pCamInfo = nullptr;
   Img* debugImages  = nullptr;
   int debugImageNum = 0;
 };
@@ -312,6 +312,7 @@ namespace MODELS
 #include "qmc.h"
 #include <vector>
 #include <set>
+#include <memory>
 
 using LiteMath::float2;
 using LiteMath::float3;
@@ -352,8 +353,18 @@ std::vector<Edge> collect_edges(const TriangleMesh &mesh);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct IDiffRender
+{
+  virtual void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) = 0;
+  virtual void d_render(const TriangleMesh &mesh, const CamInfo& cam,
+                        const Img &adjoint,
+                        const int edge_samples_in_total,
+                        DTriangleMesh &d_mesh,
+                        Img* debugImages, int debugImageNum) = 0;
+};
+
 template<class Model>
-struct DiffRender
+struct DiffRender : public IDiffRender
 {
   void init(const TriangleMesh &a_mesh, int a_samplesPerPixel)
   {
@@ -369,7 +380,7 @@ struct DiffRender
     qmc::planeHammersley(m_hammSamples.data(), a_samplesPerPixel);
   }
 
-  void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) // TODO: add BSPImage rendering
+  void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) override // TODO: add BSPImage rendering
   {
     auto sqrt_num_samples  = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
@@ -408,7 +419,7 @@ struct DiffRender
                 const Img &adjoint,
                 const int edge_samples_in_total,
                 DTriangleMesh &d_mesh,
-                Img* debugImages, int debugImageNum) 
+                Img* debugImages, int debugImageNum) override
   {  
     // Build Acceleration structurres and e.t.c. if needed
     //
@@ -419,11 +430,8 @@ struct DiffRender
     m_aux.debugImages   = debugImages;
     m_aux.debugImageNum = debugImageNum;
   
-    interior_derivatives(mesh, adjoint, 
-                         d_mesh);
-    
-    edge_derivatives(mesh, adjoint, edge_samples_in_total,
-                     d_mesh);
+    interior_derivatives(mesh, adjoint, d_mesh);
+    edge_derivatives(mesh, adjoint, edge_samples_in_total, d_mesh);
   }
 
 private:
@@ -586,3 +594,5 @@ private:
   std::vector<float> m_hammSamples;
 };
 
+
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, int a_samplesPerPixel);

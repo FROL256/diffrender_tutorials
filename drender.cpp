@@ -43,3 +43,40 @@ std::vector<Edge> collect_edges(const TriangleMesh &mesh)
   }
   return std::vector<Edge>(edges.begin(), edges.end());
 }
+
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, int a_samplesPerPixel)
+{
+  if(a_mesh.m_meshType == MODELS::TRIANGLE2D_FACE_COLOR::getMeshType() && 
+     a_mesh.m_geomType == MODELS::TRIANGLE2D_FACE_COLOR::getGeomType())
+  {
+    auto impl = std::make_shared< DiffRender<MODELS::TRIANGLE2D_FACE_COLOR> >();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+  }
+  
+  if(a_mesh.m_meshType == MODELS::TRIANGLE2D_VERT_COLOR::getMeshType() && 
+     a_mesh.m_geomType == MODELS::TRIANGLE2D_VERT_COLOR::getGeomType())
+  {
+    auto impl = std::make_shared< DiffRender<MODELS::TRIANGLE2D_VERT_COLOR> >();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+  }
+
+  if(a_mesh.m_meshType == MODELS::TRIANGLE3D_FACE_COLOR::getMeshType() && 
+     a_mesh.m_geomType == MODELS::TRIANGLE3D_FACE_COLOR::getGeomType())
+  {
+    auto impl = std::make_shared< DiffRender<MODELS::TRIANGLE3D_FACE_COLOR> >();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+  }
+
+  if(a_mesh.m_meshType == MODELS::TRIANGLE3D_VERT_COLOR::getMeshType() && 
+     a_mesh.m_geomType == MODELS::TRIANGLE3D_VERT_COLOR::getGeomType())
+  {
+    auto impl = std::make_shared< DiffRender<MODELS::TRIANGLE3D_VERT_COLOR> >();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+  }
+
+  return nullptr;
+}
