@@ -216,7 +216,7 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
        {1.0f, 1.0f, 0.0f}, 
        {0.0f, 0.0f, 1.0f},
        {0.0f, 1.0f, 0.0f}, 
-       {0.0f, 0.0f, 1.0f}, 
+       {0.0f, 1.0f, 1.0f}, 
        },
 
       // indices

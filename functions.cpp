@@ -1,6 +1,22 @@
 #include "functions.h"
 #include "LiteMath.h"
 
+/*
+static inline float VS_X(float V[3], const CamInfo& data) // same as VertexShader().x
+{
+  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
+  return (xNDC*0.5f + 0.5f)*data.width;
+}
+
+static inline float VS_Y(float V[3], const CamInfo& data) // // same as VertexShader().y
+{
+  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
+  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
+  return (xNDC*0.5f + 0.5f)*data.height;
+}
+*/
+
 void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3]) 
 {
     float _t0;

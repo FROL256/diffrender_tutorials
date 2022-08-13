@@ -27,6 +27,7 @@
 #include "scenes.h"
 
 #include "qmc.h"
+#include "drender.h"
 
 using std::for_each;
 using std::upper_bound;
@@ -101,16 +102,11 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
 /////////////////////////////////////////////////////////
 
 
-struct Edge {
-    int v0, v1; // vertex ID, v0 < v1
-
-    Edge(int a_v0, int a_v1) : v0(min(a_v0, a_v1)), v1(max(a_v0, a_v1)) {}
-    //Edge(int a_v0, int a_v1) : v0(a_v0), v1(a_v1) {}
-
-    // for sorting edges
-    bool operator<(const Edge &e) const {
-        return this->v0 != e.v0 ? this->v0 < e.v0 : this->v1 < e.v1;
-    }
+struct Edge 
+{
+  int v0, v1; // vertex ID, v0 < v1
+  Edge(int a_v0, int a_v1) : v0(min(a_v0, a_v1)), v1(max(a_v0, a_v1)) {}
+  bool operator<(const Edge &e) const { return this->v0 != e.v0 ? this->v0 < e.v0 : this->v1 < e.v1; } // for sorting edges
 };
 
 // for sampling edges with inverse transform sampling
@@ -435,10 +431,11 @@ void compute_edge_derivatives(
     // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
     // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
     
+    auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
+    auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
+
     if(d_mesh.m_geomType == GEOM_TYPES::TRIANGLE_3D) 
     {
-      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
-      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
       float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
       float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
       
@@ -476,7 +473,7 @@ void compute_edge_derivatives(
         }
       }
       #endif
-      // if running in parallel, use atomic add here.
+      
       d_vertices[edge.v0*3+0] += GradReal(dv0_dx);
       d_vertices[edge.v0*3+1] += GradReal(dv0_dy);
       d_vertices[edge.v0*3+2] += GradReal(dv0_dz);
@@ -487,10 +484,6 @@ void compute_edge_derivatives(
     }
     else
     {
-      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight;
-      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight;
-
-      // if running in parallel, use atomic add here.
       d_vertices[edge.v0*3+0] += GradReal(d_v0.x);
       d_vertices[edge.v0*3+1] += GradReal(d_v0.y);
       
@@ -602,9 +595,9 @@ int main(int argc, char *argv[])
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);
-  scn07_Cube3D_FColor(initialMesh, targetMesh);
+  //scn07_Cube3D_FColor(initialMesh, targetMesh);
   
   if(initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D)
     g_tracer = MakeRayTracer2D("");  
