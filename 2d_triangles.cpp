@@ -47,9 +47,13 @@ using LiteMath::normalize;
 
 #define DEBUG_RENDER 1
 
-constexpr static int  SAM_PER_PIXEL = 16;
+#if DEBUG_RENDER
+constexpr static int  MAXTHREADS    = 1;
+#else
 constexpr static int  MAXTHREADS    = 14;
-constexpr static bool G_USE3DRT     = false;
+#endif
+
+constexpr static int  SAM_PER_PIXEL = 16;
 constexpr static int  G_DEBUG_VERT_ID = 0;
 
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
@@ -171,7 +175,7 @@ inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
     const auto  C = mesh.indices[surfInfo.faceId*3+2];
     const float u = surfInfo.u;
     const float v = surfInfo.v;
-    return mesh.colors[A]*u + mesh.colors[B]*v + (1.0f-u-v)*mesh.colors[C]; 
+    return mesh.colors[A]*(1.0f-u-v) + mesh.colors[B]*v + u*mesh.colors[C]; 
   }
   else
     return mesh.colors[surfInfo.faceId]; 
@@ -256,9 +260,9 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
             auto B = mesh.indices[surfElem.faceId*3+1];
             auto C = mesh.indices[surfElem.faceId*3+2];
             
-            auto contribA = surfElem.u*val;
+            auto contribA = (1.0f-surfElem.u-surfElem.v)*val;
             auto contribB = surfElem.v*val;
-            auto contribC = (1.0f-surfElem.u-surfElem.v)*val;
+            auto contribC = surfElem.u*val;
               
             d_colors[A*3+0] += GradReal(contribA.x);
             d_colors[A*3+1] += GradReal(contribA.y);
@@ -278,8 +282,8 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
               const float3 c1 = mesh.colors[B];
               const float3 c2 = mesh.colors[C];
 
-              const float dF_dU = dot((c0-c2), val);
-              const float dF_dV = dot((c1-c2), val);
+              const float dF_dU = dot((c2-c0), val);
+              const float dF_dV = dot((c1-c0), val);
               
               if(dF_dU*dF_dU > 0.0f || dF_dV*dF_dV > 0.0f) 
               {
@@ -510,9 +514,6 @@ void d_render(const TriangleMesh &mesh,
   
   // (0) Build Acceleration structurres and e.t.c. if needed
   //
-  //if(G_USE3DRT)
-  //  g_tracer->Init(&copy);
-  //else
   g_tracer->Init(&mesh);
   g_tracer->SetCamera(g_uniforms);
 
