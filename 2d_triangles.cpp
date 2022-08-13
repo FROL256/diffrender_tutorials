@@ -247,10 +247,7 @@ void compute_interior_derivatives(const TriangleMesh &mesh,
         float yoff = g_hammSamples[2*samId+1];
         float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
         auto surfElem = g_tracer->CastSingleRay(x + xoff, y + yoff, &ray_pos, &ray_dir);
-        //if(x == 110 && y == 100)
-        //{
-        //  int a = 2;
-        //}
+
         if (surfElem.faceId != unsigned(-1)) 
         {          
           auto val = adjoint[int2(x,y)] / samples_per_pixel;
