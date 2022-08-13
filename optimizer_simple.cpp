@@ -77,8 +77,8 @@ void  OptSimple::StepDecay(int a_iterId, GammaVec& a_gamma) const
   else if(m_params.alg >= GD_AdaGrad)
   {
     if(a_iterId >= 100 && a_iterId % m_params.decayPeriod == 0) {
-      a_gamma.pos   = a_gamma.pos*0.75f;
-      a_gamma.color = a_gamma.color*0.75f;
+      a_gamma.pos   = a_gamma.pos*0.85f;
+      a_gamma.color = a_gamma.color*0.85f;
     }
   }
 }

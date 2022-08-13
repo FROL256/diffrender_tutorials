@@ -603,7 +603,8 @@ int main(int argc, char *argv[])
   //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
   //scn05_Pyramid3D(initialMesh, targetMesh);
-  scn06_Cube3D(initialMesh, targetMesh);
+  //scn06_Cube3D_VColor(initialMesh, targetMesh);
+  scn07_Cube3D_FColor(initialMesh, targetMesh);
   
   if(initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D)
     g_tracer = MakeRayTracer2D("");  
