@@ -46,13 +46,6 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-#define DEBUG_RENDER 0
-
-#if DEBUG_RENDER
-constexpr static int  MAXTHREADS    = 1;
-#else
-constexpr static int  MAXTHREADS    = 14;
-#endif
 
 constexpr static int  SAM_PER_PIXEL = 16;
 constexpr static int  G_DEBUG_VERT_ID = 0;
@@ -96,68 +89,6 @@ void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear,
   const float xmax = ymax * aspectRatio;
   glhFrustumf3(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
-
-/////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////
-
-
-struct Edge 
-{
-  int v0, v1; // vertex ID, v0 < v1
-  Edge(int a_v0, int a_v1) : v0(min(a_v0, a_v1)), v1(max(a_v0, a_v1)) {}
-  bool operator<(const Edge &e) const { return this->v0 != e.v0 ? this->v0 < e.v0 : this->v1 < e.v1; } // for sorting edges
-};
-
-// for sampling edges with inverse transform sampling
-struct Sampler {
-    vector<float> pmf; // probability mass function
-    vector<float> cdf;
-};
-
-// build a discrete CDF using edge length
-Sampler build_edge_sampler(const TriangleMesh &mesh,
-                           const vector<Edge> &edges) {
-    vector<float> pmf;
-    vector<float> cdf;
-    pmf.reserve(edges.size());
-    cdf.reserve(edges.size() + 1);
-    cdf.push_back(0);
-    for (auto edge : edges) {
-        auto v0 = mesh.vertices[edge.v0];
-        auto v1 = mesh.vertices[edge.v1];
-        pmf.push_back(length(v1 - v0));
-        cdf.push_back(pmf.back() + cdf.back());
-    }
-    auto length_sum = cdf.back();
-    for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
-    for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
-    return Sampler{pmf, cdf};
-}
-
-// binary search for inverting the CDF in the sampler
-int sample(const Sampler &sampler, const float u) {
-    auto cdf = sampler.cdf;
-    return clamp(upper_bound(
-        cdf.begin(), cdf.end(), u) - cdf.begin() - 1,
-        0, cdf.size() - 2);
-}
-
-// given a triangle mesh, collect all edges.
-vector<Edge> collect_edges(const TriangleMesh &mesh) {
-    set<Edge> edges;
-    for (size_t i=0; i<mesh.indices.size();i+=3) 
-    {
-      auto A = mesh.indices[i+0];
-      auto B = mesh.indices[i+1];
-      auto C = mesh.indices[i+2];  
-      edges.insert(Edge(A, B));
-      edges.insert(Edge(B, C));
-      edges.insert(Edge(C, A));
-    }
-    return vector<Edge>(edges.begin(), edges.end());
-}
-
 
 inline float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo)
 {
