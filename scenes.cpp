@@ -200,8 +200,6 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
   std::cout << "]" << std::endl << std::endl;
 }
 
-
-
 void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh pyramid{
@@ -245,6 +243,117 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
   LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-30.0f);
   LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+50.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+  auto mTransform2 = mTranslate*mRotate2;
+
+  for(auto& v : initial.vertices)
+    v = mTransform1*v;
+
+  for(auto& v : target.vertices)
+    v = mTransform2*v;
+}
+
+
+void scn06_Cube3D(TriangleMesh& initial, TriangleMesh& target)
+{
+  TriangleMesh cube{
+    // vertices
+    {{1.0f, 1.0f, -1.0f},    // Top
+     {-1.0f, 1.0f, -1.0f},  
+     {-1.0f, 1.0f, 1.0f},
+     {1.0f, 1.0f, 1.0f},
+      
+     {1.0f, -1.0f, 1.0f},    // Bottom
+     {-1.0f, -1.0f, 1.0f},
+     {-1.0f, -1.0f, -1.0f},
+     {1.0f, -1.0f, -1.0f},
+
+     {1.0f, 1.0f, 1.0f},     // Front
+     {-1.0f, 1.0f, 1.0f},
+     {-1.0f, -1.0f, 1.0f},
+     {1.0f, -1.0f, 1.0f},
+
+     {1.0f, -1.0f, -1.0f},   // Back
+     {-1.0f, -1.0f, -1.0f},
+     {-1.0f, 1.0f, -1.0f},
+     {1.0f, 1.0f, -1.0f},
+
+     {-1.0f, 1.0f, 1.0f},    // Left
+     {-1.0f, 1.0f, -1.0f},
+     {-1.0f, -1.0f, -1.0f},
+     {-1.0f, -1.0f, 1.0f},
+
+     {1.0f, 1.0f, -1.0f},    // Right
+     {1.0f, 1.0f, 1.0f}, 
+     {1.0f, -1.0f, 1.0f},
+     {1.0f, -1.0f, -1.0f},
+
+    },
+
+    // color
+    {{0.0f, 1.0f, 0.0f},    // Top
+     {0.0f, 1.0f, 0.0f}, 
+     {0.0f, 1.0f, 0.0f},
+     {0.0f, 1.0f, 0.0f},
+
+     {1.0f, 0.5f, 0.0f},    // Bottom
+     {1.0f, 0.5f, 0.0f}, 
+     {1.0f, 0.5f, 0.0f},
+     {1.0f, 0.5f, 0.0f},
+
+     {1.0f, 0.0f, 0.0f},    // Front
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+
+     {1.0f, 1.0f, 0.0f},    // Back
+     {1.0f, 1.0f, 0.0f},
+     {1.0f, 1.0f, 0.0f},
+     {1.0f, 1.0f, 0.0f},
+
+     {0.0f, 0.0f, 1.0f},    // Left
+     {0.0f, 0.0f, 1.0f},
+     {0.0f, 0.0f, 1.0f},
+     {0.0f, 0.0f, 1.0f},
+
+     {1.0f, 0.0f, 1.0f},    // Right
+     {1.0f, 0.0f, 1.0f},
+     {1.0f, 0.0f, 1.0f},
+     {1.0f, 0.0f, 1.0f},
+
+    },
+
+  };
+
+  cube.indices.resize(6*2*3); // 6 faces, 2 triangles per face, 3 indices per triangle 
+
+  for(int face=0; face < 6; face++) // GL_QUADS
+  {  
+    cube.indices[face*6+0] = face*4+0;
+    cube.indices[face*6+1] = face*4+1;
+    cube.indices[face*6+2] = face*4+2;
+
+    cube.indices[face*6+3] = face*4+0;
+    cube.indices[face*6+4] = face*4+2;
+    cube.indices[face*6+5] = face*4+3;
+  }
+
+  cube.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
+  cube.m_geomType = GEOM_TYPES::TRIANGLE_3D;
+
+
+  initial = cube;
+  target  = cube;
+  
+  for(auto& c : initial.colors)
+    c = float3(0.25f, 0.25f, 0.25f);
+
+  // apply transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,-5.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-40.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*60.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-20.0f);;
   
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
