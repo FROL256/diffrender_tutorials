@@ -522,11 +522,11 @@ int main(int argc, char *argv[])
   glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
 
   TriangleMesh initialMesh, targetMesh;
-  //scn01_TwoTrisFlat(initialMesh, targetMesh);
+  scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  scn05_Pyramid3D(initialMesh, targetMesh);
+  //scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);
   //scn07_Cube3D_FColor(initialMesh, targetMesh);
   
@@ -535,18 +535,22 @@ int main(int argc, char *argv[])
   else
     g_tracer = MakeRayTracer3D("");
 
+  auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
+
   if(1)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
-    render(initialMesh, SAM_PER_PIXEL, initial);
-    render(targetMesh, SAM_PER_PIXEL, target);
+    //render(initialMesh, SAM_PER_PIXEL, initial);
+    //render(targetMesh, SAM_PER_PIXEL, target);
+    pDRender->render(initialMesh, g_uniforms, initial);
+    pDRender->render(targetMesh, g_uniforms, target);
     LiteImage::SaveImage("rendered/initial.bmp", initial);
     LiteImage::SaveImage("rendered/target.bmp", target);
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
@@ -555,8 +559,10 @@ int main(int argc, char *argv[])
     for(int i=0;i<3;i++)
       dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
 
-    render(initialMesh, SAM_PER_PIXEL, img);
-    render(targetMesh, SAM_PER_PIXEL, target);
+    //render(initialMesh, SAM_PER_PIXEL, img);
+    //render(targetMesh, SAM_PER_PIXEL, target);
+    pDRender->render(initialMesh, g_uniforms, img);
+    pDRender->render(targetMesh, g_uniforms, target);
     
     DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
@@ -565,6 +571,9 @@ int main(int argc, char *argv[])
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), 
              grad1, dxyzDebug, 3);
     
+    //pDRender->d_render(initialMesh, g_uniforms, adjoint, img.width()*img.height(), 
+    //                   grad1, dxyzDebug, 3);
+
     for(int i=0;i<3;i++)
     {
       std::stringstream strOut;
