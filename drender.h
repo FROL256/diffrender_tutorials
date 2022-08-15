@@ -6,6 +6,7 @@
 #include "functions.h"
 
 #define DEBUG_RENDER 0
+constexpr static int  G_DEBUG_VERT_ID = 0;
 
 #if DEBUG_RENDER
 constexpr static int  MAXTHREADS    = 1;
@@ -177,21 +178,21 @@ namespace MODELS
       const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x; ==> 0
       const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
       
-      #if DEBUG_RENDER
-      for(int debugId=0; debugId<3; debugId++) 
-      {
-        if(G_DEBUG_VERT_ID + debugId == v0)
-        {
-          if(aux.debugImageNum > 0 && aux.debugImages!= nullptr)
-            aux.debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
-        }
-        else if(G_DEBUG_VERT_ID + debugId == v1)
-        {
-          if(aux.debugImageNum > 0)
-            aux.debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
-        }
-      }
-      #endif
+      //#if DEBUG_RENDER
+      //for(int debugId=0; debugId<3; debugId++) 
+      //{
+      //  if(G_DEBUG_VERT_ID + debugId == v0)
+      //  {
+      //    if(aux.debugImageNum > 0 && aux.debugImages!= nullptr)
+      //      aux.debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
+      //  }
+      //  else if(G_DEBUG_VERT_ID + debugId == v1)
+      //  {
+      //    if(aux.debugImageNum > 0)
+      //      aux.debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
+      //  }
+      //}
+      //#endif
       
       d_pos[v0*3+0] += GradReal(dv0_dx);
       d_pos[v0*3+1] += GradReal(dv0_dy);
@@ -259,22 +260,22 @@ namespace MODELS
         auto contribVB = (dF_dU*dU_dvert[1] + dF_dV*dV_dvert[1]);  
         auto contribVC = (dF_dU*dU_dvert[2] + dF_dV*dV_dvert[2]);  
         
-        #if DEBUG_RENDER
-        for(int debugId=0; debugId<3; debugId++) 
-        {
-          if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
-          {
-            auto contrib = contribVA;
-            if(G_DEBUG_VERT_ID+debugId == B)
-              contrib = contribVB;
-            else if(G_DEBUG_VERT_ID+debugId == C)
-              contrib = contribVC;
-            //contrib *= float3(0.1f, 0.1f, 1.0f);
-            if(aux.debugImageNum > debugId && aux.debugImages!= nullptr)
-              aux.debugImages[debugId][int2(x,y)] += contrib;
-          }
-        }
-        #endif
+        //#if DEBUG_RENDER
+        //for(int debugId=0; debugId<3; debugId++) 
+        //{
+        //  if(G_DEBUG_VERT_ID+debugId == A || G_DEBUG_VERT_ID+debugId == B || G_DEBUG_VERT_ID+debugId == C)
+        //  {
+        //    auto contrib = contribVA;
+        //    if(G_DEBUG_VERT_ID+debugId == B)
+        //      contrib = contribVB;
+        //    else if(G_DEBUG_VERT_ID+debugId == C)
+        //      contrib = contribVC;
+        //    //contrib *= float3(0.1f, 0.1f, 1.0f);
+        //    if(aux.debugImageNum > debugId && aux.debugImages!= nullptr)
+        //      aux.debugImages[debugId][int2(x,y)] += contrib;
+        //  }
+        //}
+        //#endif
 
         d_pos[A*3+0] += GradReal(contribVA.x);
         d_pos[A*3+1] += GradReal(contribVA.y);
@@ -387,8 +388,10 @@ struct DiffRender : public IDiffRender
 
     m_pTracer->Init(&mesh);
     m_pTracer->SetCamera(cam);
-
+    
+    #if (DEBUG_RENDER==0)
     #pragma omp parallel for collapse (2) num_threads(MAXTHREADS) 
+    #endif 
     for (int y = 0; y < img.height(); y++) { // for each pixel 
       for (int x = 0; x < img.width(); x++) {
         
@@ -431,6 +434,7 @@ struct DiffRender : public IDiffRender
     m_aux.debugImageNum = debugImageNum;
   
     interior_derivatives(mesh, adjoint, d_mesh);
+
     edge_derivatives(mesh, adjoint, edge_samples_in_total, d_mesh);
   }
 
@@ -447,8 +451,10 @@ private:
       grads[i] = d_mesh;
       //grads[i].clear(); // don't have to do this explicitly because 'compute_interior_derivatives' is called in the first pass and gradient is already 0.0
     }
-
+    
+    #if (DEBUG_RENDER==0)
     #pragma omp parallel for collapse (2) num_threads(MAXTHREADS)
+    #endif
     for (int y = 0; y < adjoint.height(); y++) { // for each pixel  
       for (int x = 0; x < adjoint.width(); x++)  {
   
@@ -520,7 +526,9 @@ private:
     }
   
     //float maxRelativeError = 0.0f;
+    #if (DEBUG_RENDER==0)
     #pragma omp parallel for num_threads(MAXTHREADS)
+    #endif
     for (int i = 0; i < num_edge_samples; i++) 
     { 
       auto& gen = gens[omp_get_thread_num()];
@@ -572,7 +580,7 @@ private:
       auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
       auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
   
-      Model::edge_grad(mesh, edge.v0, edge.v1, d_v0, d_v1, m_aux, 
+      Model::edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, 
                        grads[omp_get_thread_num()]);
     }    
   

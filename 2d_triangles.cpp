@@ -46,9 +46,7 @@ using LiteMath::int2;
 using LiteMath::clamp;
 using LiteMath::normalize;
 
-
 constexpr static int  SAM_PER_PIXEL = 16;
-constexpr static int  G_DEBUG_VERT_ID = 0;
 
 unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
 float g_hammSamples[2*SAM_PER_PIXEL];
@@ -522,11 +520,11 @@ int main(int argc, char *argv[])
   glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
 
   TriangleMesh initialMesh, targetMesh;
-  scn01_TwoTrisFlat(initialMesh, targetMesh);
+  //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh);
-  //scn05_Pyramid3D(initialMesh, targetMesh);
+  scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);
   //scn07_Cube3D_FColor(initialMesh, targetMesh);
   
@@ -570,7 +568,7 @@ int main(int argc, char *argv[])
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
     d_render(initialMesh, adjoint, SAM_PER_PIXEL, img.width()*img.height(), 
              grad1, dxyzDebug, 3);
-    
+
     //pDRender->d_render(initialMesh, g_uniforms, adjoint, img.width()*img.height(), 
     //                   grad1, dxyzDebug, 3);
 

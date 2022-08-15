@@ -151,6 +151,19 @@ void d_render(const TriangleMesh &mesh,
               Img* debugImages = nullptr, 
               int debugImageNum = 0);
 
+void compute_interior_derivatives(const TriangleMesh &mesh,
+                                  int samples_per_pixel,
+                                  const Img &adjoint,
+                                  DTriangleMesh &d_mesh,
+                                  Img* debugImages, int debugImageNum);
+
+
+void compute_edge_derivatives(const TriangleMesh &mesh3d,
+                              const Img &adjoint,
+                              const int num_edge_samples,
+                              DTriangleMesh &d_mesh,
+                              Img* debugImages, int debugImageNum); 
+
 void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor, 
               TriangleMesh *mesh);
 
