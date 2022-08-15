@@ -17,7 +17,7 @@ find_package(OpenMP REQUIRED)
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
-add_executable(drender 2d_triangles.cpp
+add_executable(drender main.cpp
                        drender.cpp
                        functions.cpp
                        fin_diff.cpp
