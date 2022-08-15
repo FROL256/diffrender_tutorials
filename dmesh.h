@@ -140,35 +140,6 @@ static inline float3 SummOfPixels(const Img& a_image)
 
 float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff);
 
-void render(const TriangleMesh &mesh, int samples_per_pixel,
-            Img &img) ;
-
-void d_render(const TriangleMesh &mesh,
-              const Img &adjoint,
-              const int interior_samples_per_pixel,
-              const int edge_samples_in_total,
-              DTriangleMesh &d_mesh,
-              Img* debugImages = nullptr, 
-              int debugImageNum = 0);
-
-void compute_interior_derivatives(const TriangleMesh &mesh,
-                                  int samples_per_pixel,
-                                  const Img &adjoint,
-                                  DTriangleMesh &d_mesh,
-                                  Img* debugImages, int debugImageNum);
-
-
-void compute_edge_derivatives(const TriangleMesh &mesh3d,
-                              const Img &adjoint,
-                              const int num_edge_samples,
-                              DTriangleMesh &d_mesh,
-                              Img* debugImages, int debugImageNum); 
-
-void opt_step(const DTriangleMesh &gradMesh, float alphaPos, float alphaColor, 
-              TriangleMesh *mesh);
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline float2 normal2D(const float2 &v) {return float2{-v.y, v.x};} 
 static inline float  edgeFunction(float2 a, float2 b, float2 c) { return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x); }  // actuattly just a mixed product ... :)

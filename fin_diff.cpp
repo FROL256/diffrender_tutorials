@@ -21,11 +21,12 @@ using namespace LiteMath;
 #include <iomanip>
 
 #include "dmesh.h"
+#include "drender.h"
 
 constexpr static int SAM_PER_PIXEL = 16;
 
-void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
-                 DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f) 
+void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
+               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f) 
 {
   Img img(origin.width(), origin.height());
 
@@ -44,7 +45,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].x += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
     d_mesh.vertices_s()[i*3+0] += GradReal(diffToTarget*scale);
@@ -54,7 +55,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].y += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
     d_mesh.vertices_s()[3*i+1] += GradReal(diffToTarget*scale);
@@ -64,7 +65,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].z += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
     d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
@@ -81,7 +82,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].x += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
     d_mesh.colors_s()[i*3+0] += GradReal(diffToTarget*scale);
@@ -91,7 +92,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].y += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
     d_mesh.colors_s()[i*3+1] += GradReal(diffToTarget*scale);
@@ -101,7 +102,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].z += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
     d_mesh.colors_s()[i*3+2] += GradReal(diffToTarget*scale);
@@ -109,7 +110,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 
 }
 
-void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
+void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
                 DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f) 
 {
   Img img(origin.width(), origin.height());
@@ -128,7 +129,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].x += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffImageX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     float3 summColor = SummOfPixels(diffImageX); 
@@ -139,7 +140,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].y += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
 
     auto diffImageY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     summColor = SummOfPixels(diffImageY); 
@@ -150,7 +151,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].z += dPos;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
 
     auto diffImageZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     Img diffImage(diffImageX.width(), diffImageX.height()); 
@@ -180,7 +181,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].x += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     float3 summColor = SummOfPixels(diffToTargetX); 
@@ -191,7 +192,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].y += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     summColor = SummOfPixels(diffToTargetY); 
@@ -202,7 +203,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].z += dCol;
     img.clear(float3{0,0,0});
-    render(copy, SAM_PER_PIXEL, img);
+    a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     Img diffImage(diffToTargetX.width(), diffToTargetX.height()); 

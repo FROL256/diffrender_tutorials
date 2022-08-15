@@ -11,7 +11,7 @@ struct OptSimple : public IOptimizer
 {
   OptSimple(){}
 
-  void         Init(const TriangleMesh& a_mesh, const Img& a_image, OptimizerParameters a_params) override;
+  void         Init(const TriangleMesh& a_mesh, const Img& a_image, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData, OptimizerParameters a_params) override;
   TriangleMesh Run (size_t a_numIters = 100) override;
 
 protected:
@@ -29,6 +29,9 @@ protected:
 
   std::vector<GradReal> m_GSquare; ///<! m_GSquare is a vector of the sum of the squared gradients at or before iteration 'i'
   std::vector<GradReal> m_vec; 
+
+  std::shared_ptr<IDiffRender> m_pDR = nullptr;
+  CamInfo                      m_camData;
 };
 
 IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
@@ -149,7 +152,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   const int samples_per_pixel = 16;
 
   Img img(256, 256);
-  render(mesh, samples_per_pixel, img);
+  m_pDR->render(mesh, m_camData, img);
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
@@ -160,8 +163,8 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
-  d_render(mesh, adjoint, samples_per_pixel, img.width() * img.height(),
-           gradMesh);
+  m_pDR->d_render(mesh, m_camData, adjoint, img.width() * img.height(),
+                  gradMesh, nullptr, 0);
 
   //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
   //d_finDiff (mesh, "fin_diff", img, m_targetImage, gradMesh, dPos, 0.01f);
@@ -170,12 +173,14 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   return mse;
 }
 
-void OptSimple::Init(const TriangleMesh& a_mesh, const Img& a_image, OptimizerParameters a_params) 
+void OptSimple::Init(const TriangleMesh& a_mesh, const Img& a_image, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData, OptimizerParameters a_params) 
 { 
   m_mesh        = a_mesh; 
   m_targetImage = a_image; 
   m_iter        = 0; 
   m_params      = a_params;
+  m_pDR         = a_pDRImpl;
+  m_camData     = a_camData;
 }
 
 TriangleMesh OptSimple::Run(size_t a_numIters) 
