@@ -370,36 +370,15 @@ void scn07_Cube3D_FColor(TriangleMesh& initial, TriangleMesh& target)
 {
    TriangleMesh cube{
     // vertices
-    {{1.0f, 1.0f, -1.0f},    // Top
-     {-1.0f, 1.0f, -1.0f},  
-     {-1.0f, 1.0f, 1.0f},
-     {1.0f, 1.0f, 1.0f},
+    {{1.0f, 1.0f, -1.0f},    // 0 Top
+     {-1.0f, 1.0f, -1.0f},   // 1
+     {-1.0f, 1.0f, 1.0f},    // 2
+     {1.0f, 1.0f, 1.0f},     // 3
       
-     {1.0f, -1.0f, 1.0f},    // Bottom
-     {-1.0f, -1.0f, 1.0f},
-     {-1.0f, -1.0f, -1.0f},
-     {1.0f, -1.0f, -1.0f},
-
-     {1.0f, 1.0f, 1.0f},     // Front
-     {-1.0f, 1.0f, 1.0f},
-     {-1.0f, -1.0f, 1.0f},
-     {1.0f, -1.0f, 1.0f},
-
-     {1.0f, -1.0f, -1.0f},   // Back
-     {-1.0f, -1.0f, -1.0f},
-     {-1.0f, 1.0f, -1.0f},
-     {1.0f, 1.0f, -1.0f},
-
-     {-1.0f, 1.0f, 1.0f},    // Left
-     {-1.0f, 1.0f, -1.0f},
-     {-1.0f, -1.0f, -1.0f},
-     {-1.0f, -1.0f, 1.0f},
-
-     {1.0f, 1.0f, -1.0f},    // Right
-     {1.0f, 1.0f, 1.0f}, 
-     {1.0f, -1.0f, 1.0f},
-     {1.0f, -1.0f, -1.0f},
-
+     {1.0f, -1.0f, 1.0f},    // 4 Bottom
+     {-1.0f, -1.0f, 1.0f},   // 5
+     {-1.0f, -1.0f, -1.0f},  // 6
+     {1.0f, -1.0f, -1.0f},   // 7
     },
 
     // color
@@ -426,20 +405,17 @@ void scn07_Cube3D_FColor(TriangleMesh& initial, TriangleMesh& target)
 
   cube.indices.resize(6*2*3); // 6 faces, 2 triangles per face, 3 indices per triangle 
 
-  for(int face=0; face < 6; face++) // GL_QUADS
-  {  
-    cube.indices[face*6+0] = face*4+0;
-    cube.indices[face*6+1] = face*4+1;
-    cube.indices[face*6+2] = face*4+2;
+  cube.indices[0] = 0; cube.indices[1] = 1; cube.indices[2] = 2;        cube.indices[3] = 0; cube.indices[4] = 2; cube.indices[5] = 3;
+  cube.indices[6] = 4; cube.indices[7] = 5; cube.indices[8] = 6;        cube.indices[9] = 4; cube.indices[10] = 6; cube.indices[11] = 7;
 
-    cube.indices[face*6+3] = face*4+0;
-    cube.indices[face*6+4] = face*4+2;
-    cube.indices[face*6+5] = face*4+3;
-  }
+  cube.indices[12] = 1; cube.indices[13] = 6; cube.indices[14] = 7;     cube.indices[15] = 1; cube.indices[16] = 7; cube.indices[17] = 0;
+  cube.indices[18] = 3; cube.indices[19] = 4; cube.indices[20] = 5;     cube.indices[21] = 3; cube.indices[22] = 5; cube.indices[23] = 2; 
+
+  cube.indices[24] = 2; cube.indices[25] = 1; cube.indices[26] = 6;     cube.indices[27] = 2; cube.indices[28] = 6; cube.indices[29] = 5;
+  cube.indices[30] = 0; cube.indices[31] = 3; cube.indices[32] = 4;     cube.indices[33] = 0; cube.indices[34] = 4; cube.indices[35] = 7; 
 
   cube.m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
   cube.m_geomType = GEOM_TYPES::TRIANGLE_3D;
-
 
   initial = cube;
   target  = cube;
@@ -450,8 +426,8 @@ void scn07_Cube3D_FColor(TriangleMesh& initial, TriangleMesh& target)
   // apply transforms
   //
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,-5.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-40.0f);
-  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*60.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-20.0f);;
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-15.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-30.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-30.0f);
   
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
