@@ -43,3 +43,13 @@ struct IRayTracer
 
 std::shared_ptr<IRayTracer> MakeRayTracer2D(const char* className);
 std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static inline float3 EyeRayDirNormalized(float x, float y, LiteMath::float4x4 a_mViewProjInv)
+{
+  float4 pos = float4(2.0f*x - 1.0f, -2.0f*y + 1.0f, 0.0f, 1.0f );
+  pos = a_mViewProjInv * pos;
+  pos /= pos.w;
+  return normalize(to_float3(pos));
+}

@@ -8,13 +8,7 @@ using LiteMath::normalize;
 using LiteMath::inverse4x4;
 using LiteMath::to_float3;
 
-static inline float3 EyeRayDirNormalized(float x, float y, float4x4 a_mViewProjInv)
-{
-  float4 pos = float4(2.0f*x - 1.0f, -2.0f*y + 1.0f, 0.0f, 1.0f );
-  pos = a_mViewProjInv * pos;
-  pos /= pos.w;
-  return normalize(to_float3(pos));
-}
+//#include <iostream>
 
 //static inline float BarU( const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
 //{
@@ -80,6 +74,7 @@ struct BruteForce3D : public IRayTracer
   void Init(const TriangleMesh* pMesh) override 
   {
     m_pMesh = pMesh;
+    //std::cout << "[BruteForce3D]: Init done" << std::endl;
   }
 
   void SetCamera(const CamInfo& cam) override
@@ -153,7 +148,9 @@ struct BruteForce3D : public IRayTracer
 
 };
 
-std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className)
-{
-  return std::make_shared<BruteForce3D>();
-}
+#ifdef USE_EMBREE
+std::shared_ptr<IRayTracer> MakeEmbreeRT3D();
+std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return MakeEmbreeRT3D(); }
+#else
+std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return std::make_shared<BruteForce3D>(); }
+#endif
