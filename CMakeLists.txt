@@ -56,7 +56,7 @@ add_executable(drender main.cpp
                        qmc.cpp 
                        ${SOURCE_RT}
                        optimizer_simple.cpp
-                       LiteMath/Image2d.cpp)
+                       include/Image2d.cpp)
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS})
