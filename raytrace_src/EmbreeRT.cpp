@@ -13,10 +13,9 @@ public:
   ~EmbreeRT();
   void ClearGeom() override;
   
-  uint32_t AddGeom_Triangles4f(const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel) override;
-  uint32_t AddGeom_Triangles3f(const float           * a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride) override;
 
-  void     UpdateGeom_Triangles4f(uint32_t a_geomId, const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber) override;
+  uint32_t AddGeom_Triangles3f(const float * a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride) override;
+  void     UpdateGeom_Triangles3f(uint32_t a_geomId, const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride) override;
 
   void ClearScene() override; 
   void CommitScene  (BuildQuality a_qualityLevel) override; 
@@ -31,7 +30,15 @@ protected:
   RTCDevice m_device = nullptr;
   RTCScene  m_scene  = nullptr;
 
+  struct BlasInfo
+  {
+    size_t verticesNum = 0;
+    size_t indicesNum  = 0;
+    size_t vByteStride = 0;
+  };
+
   std::vector<RTCScene>    m_blas;
+  std::vector<BlasInfo>    m_blasInfo;
   std::vector<RTCGeometry> m_inst;
   std::vector<uint32_t>    m_geomIdByInstId;
 };
@@ -86,6 +93,7 @@ EmbreeRT::EmbreeRT()
   
   rtcSetDeviceErrorFunction(m_device, error_handler, nullptr);
   m_blas.reserve(1024);
+  m_blasInfo.reserve(m_blas.capacity());
   m_inst.reserve(2048);
   m_geomIdByInstId.reserve(m_inst.capacity());
 }
@@ -108,45 +116,9 @@ void EmbreeRT::ClearGeom()
   m_blas.resize(0);
   m_inst.resize(0);
   m_geomIdByInstId.resize(0);
+  m_blasInfo.resize(0);
 }
   
-uint32_t EmbreeRT::AddGeom_Triangles4f(const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel)
-{ 
-  if(a_vpos4f == nullptr)
-  {
-    std::cout << "[EmbreeRT]::AddGeom_Triangles4f, nullptr input: a_vpos4f" << std::endl;
-    return uint32_t(-1);
-  }
-
-  if(a_triIndices == nullptr)
-  {
-    std::cout << "[EmbreeRT]::AddGeom_Triangles4f, nullptr input: a_triIndices" << std::endl;
-    return uint32_t(-1);
-  }
-
-  RTCGeometry geom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-  float* vertices   = (float*)    rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 4*sizeof(float),    a_vertNumber);
-  unsigned* indices = (unsigned*) rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX,  0,  RTC_FORMAT_UINT3, 3*sizeof(unsigned), a_indNumber/3);
-
-  memcpy(vertices, a_vpos4f, a_vertNumber*4*sizeof(float));
-  memcpy(indices,  a_triIndices, a_indNumber*sizeof(unsigned));
-
-  rtcCommitGeometry(geom);
-
-  // attach 'geom' to 'meshScene' and then remember 'meshScene' in 'm_blas'
-  //
-  auto meshScene = rtcNewScene(m_device);
-  rtcSetSceneBuildQuality(meshScene, TransformBuildQ(a_qualityLevel));
-  
-  /*uint32_t geomId = */
-  rtcAttachGeometry(meshScene, geom);
-  rtcReleaseGeometry(geom);
-  m_blas.push_back(meshScene);
-
-  rtcCommitScene(meshScene);
-  return uint32_t(m_blas.size()-1);
-}
 
 uint32_t EmbreeRT::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride)
 {
@@ -191,13 +163,54 @@ uint32_t EmbreeRT::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumbe
   rtcReleaseGeometry(geom);
   m_blas.push_back(meshScene);
 
+  BlasInfo info;
+  info.indicesNum  = a_indNumber;
+  info.verticesNum = a_vertNumber;
+  info.vByteStride = vByteStride;
+  m_blasInfo.push_back(info);
+
   rtcCommitScene(meshScene);
   return uint32_t(m_blas.size()-1);
 }
 
-void EmbreeRT::UpdateGeom_Triangles4f(uint32_t a_geomId, const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber)
+void EmbreeRT::UpdateGeom_Triangles3f(uint32_t a_geomId, const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride)
 {
-  std::cout << "[EmbreeRT]::UpdateGeom_Triangles4f is not implemented yet!" << std::endl;  
+  //std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f is not implemented yet!" << std::endl;  
+  //return;
+  if(a_geomId >= m_blas.size())
+  {
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, nullptr input: a_triIndices" << std::endl;
+    return;
+  }
+  auto meshInfo = m_blasInfo[a_geomId];
+  if(a_indNumber > meshInfo.indicesNum)
+  {
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'index buffer', this is not supported" << std::endl;
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.indicesNum << ", new size = " << a_indNumber << std::endl;
+    return;
+  }
+  if(a_vertNumber > meshInfo.verticesNum)
+  {
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'vertex buffer', this is not supported" << std::endl;
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.verticesNum << ", new size = " << a_vertNumber << std::endl;
+    return;
+  }
+  if(vByteStride != meshInfo.vByteStride)
+  {
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't change stride for 'vertex buffer', this is not supported by 'EmbreeRT' impl;" << std::endl;
+    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old stride = " << meshInfo.vByteStride << ", new stride = " << vByteStride << std::endl;
+    return;
+  }
+
+  auto mesh      = rtcGetGeometry(m_blas[a_geomId], 0);
+  auto* vertices = rtcGetGeometryBufferData(mesh, RTC_BUFFER_TYPE_VERTEX, 0);
+  auto* indices  = rtcGetGeometryBufferData(mesh, RTC_BUFFER_TYPE_INDEX,  0);
+
+  memcpy(vertices, a_vpos3f, a_vertNumber*vByteStride);
+  memcpy(indices, a_triIndices, a_indNumber*sizeof(unsigned));
+
+  rtcUpdateGeometryBuffer(mesh, RTC_BUFFER_TYPE_VERTEX, 0);
+  rtcCommitGeometry(mesh);
 }
 
 void EmbreeRT::ClearScene()
@@ -216,7 +229,7 @@ uint32_t EmbreeRT::AddInstance(uint32_t a_geomId, const LiteMath::float4x4& a_ma
 
   RTCGeometry instanceGeom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_INSTANCE);
   rtcSetGeometryInstancedScene(instanceGeom, m_blas[a_geomId]);                   // say that 'instanceGeom' is an instance of 'm_blas[a_geomId]'
-  //rtcSetGeometryTimeStepCount(instanceGeom, 1);                                   // don't know wtf is that
+  //rtcSetGeometryTimeStepCount(instanceGeom, 1);                                 // don't know wtf is that
   
   rtcAttachGeometry(m_scene,instanceGeom);                                        // attach our instance to global scene 
   rtcReleaseGeometry(instanceGeom);
