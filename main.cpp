@@ -266,6 +266,7 @@ int main(int argc, char *argv[])
   }
 
   img.clear(float3{0,0,0});
+  pDRender->prepare(targetMesh);
   pDRender->render(targetMesh, g_uniforms, img);
   LiteImage::SaveImage("rendered_opt/z_target.bmp", img);
   
@@ -281,6 +282,7 @@ int main(int argc, char *argv[])
   TriangleMesh mesh3 = pOpt->Run(300);
   
   img.clear(float3{0,0,0});
+  pDRender->prepare(mesh3);
   pDRender->render(mesh3, g_uniforms, img);
   LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
   
