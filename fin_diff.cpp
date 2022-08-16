@@ -45,6 +45,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].x += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -55,6 +56,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].y += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -65,6 +67,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.vertices[i].z += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
@@ -82,6 +85,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].x += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -92,6 +96,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].y += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -102,6 +107,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     copy = mesh;
     copy.colors[i].z += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
@@ -129,6 +135,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].x += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffImageX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
@@ -140,6 +147,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].y += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
 
     auto diffImageY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
@@ -151,6 +159,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.vertices[i].z += dPos;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
 
     auto diffImageZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
@@ -181,6 +190,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].x += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
@@ -192,6 +202,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].y += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
@@ -203,6 +214,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     copy = mesh;
     copy.colors[i].z += dCol;
     img.clear(float3{0,0,0});
+    a_pDRImpl->prepare(copy);
     a_pDRImpl->render(copy, a_camData, img);
     
     auto diffToTargetZ = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;

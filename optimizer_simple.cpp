@@ -152,6 +152,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   const int samples_per_pixel = 16;
 
   Img img(256, 256);
+  m_pDR->prepare(mesh);
   m_pDR->render(mesh, m_camData, img);
   
   std::stringstream strOut;

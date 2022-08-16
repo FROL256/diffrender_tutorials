@@ -16,6 +16,7 @@ constexpr static int  MAXTHREADS    = 14;
 #include <vector>
 #include <set>
 #include <memory>
+#include <iostream>
 
 using LiteMath::float2;
 using LiteMath::float3;
@@ -58,6 +59,7 @@ std::vector<Edge> collect_edges(const TriangleMesh &mesh);
 
 struct IDiffRender
 {
+  virtual void prepare(const TriangleMesh &mesh) = 0;
   virtual void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) = 0;
   virtual void d_render(const TriangleMesh &mesh, const CamInfo& cam,
                         const Img &adjoint,
@@ -82,13 +84,25 @@ struct DiffRender : public IDiffRender
     qmc::init(m_table);
     qmc::planeHammersley(m_hammSamples.data(), a_samplesPerPixel);
   }
+  
+  
+  void prepare(const TriangleMesh &mesh) 
+  {
+    m_pTracer->Init(&mesh); // Build Acceleration structurres and e.t.c. if needed
+    m_pLastPreparedMesh = &mesh;
+  }
 
   void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) override // TODO: add BSPImage rendering
   {
     auto sqrt_num_samples  = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
-    m_pTracer->Init(&mesh);
+    if(&mesh != m_pLastPreparedMesh)
+    {
+      std::cout << "[DiffRender::render]: error, renderer was not prepared for this mesh!" << std::endl;
+      return;
+    }
+
     m_pTracer->SetCamera(cam);
     
     #if (DEBUG_RENDER==0)
@@ -126,9 +140,12 @@ struct DiffRender : public IDiffRender
                 DTriangleMesh &d_mesh,
                 Img* debugImages, int debugImageNum) override
   {  
-    // Build Acceleration structurres and e.t.c. if needed
-    //
-    m_pTracer->Init(&mesh);
+    if(&mesh != m_pLastPreparedMesh)
+    {
+      std::cout << "[DiffRender::render]: error, renderer was not prepared for this mesh!" << std::endl;
+      return;
+    }
+
     m_pTracer->SetCamera(cam);
 
     m_aux.pCamInfo      = &cam;
@@ -141,6 +158,8 @@ struct DiffRender : public IDiffRender
   }
 
 private:
+
+  const TriangleMesh* m_pLastPreparedMesh = nullptr;
 
   void interior_derivatives(const TriangleMesh &mesh, const Img &adjoint,
                             DTriangleMesh &d_mesh) 

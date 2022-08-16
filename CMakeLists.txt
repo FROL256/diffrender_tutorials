@@ -7,7 +7,7 @@ option(USE_EMBREE "Use Embree RT" OFF)
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-set (CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 14)
 include_directories(".", "include", "LiteMath", "raytrace_src")
 
 if(WIN32)

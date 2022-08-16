@@ -28,15 +28,11 @@ struct EmbreeRT3D : public IRayTracer
     m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateSceneRT(""));
     m_pAccelStruct->ClearGeom();
 
-    std::vector<float4> vertCopy(m_pMesh->vertices.size());
-    for(size_t i=0;i<vertCopy.size();i++)
-      vertCopy[i] = to_float4(m_pMesh->vertices[i], 1.0f);
-
-    auto geomId = m_pAccelStruct->AddGeom_Triangles4f(vertCopy.data(), vertCopy.size(), m_pMesh->indices.data(), m_pMesh->indices.size()); // TODO: AddGeom_Triangles3f also, we need this
+    auto geomId = m_pAccelStruct->AddGeom_Triangles3f((const float*)m_pMesh->vertices.data(), m_pMesh->vertices.size(), m_pMesh->indices.data(), m_pMesh->indices.size(), BUILD_MEDIUM); 
 
     m_pAccelStruct->ClearScene();
     m_pAccelStruct->AddInstance(geomId, LiteMath::float4x4()); // with identity matrix
-    m_pAccelStruct->CommitScene();
+    m_pAccelStruct->CommitScene(BUILD_MEDIUM);
     //std::cout << "[EmbreeRT3D]: Init done" << std::endl;
   }
 

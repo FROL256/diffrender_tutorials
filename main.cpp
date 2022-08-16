@@ -180,8 +180,12 @@ int main(int argc, char *argv[])
     Img target(img.width(), img.height(), float3{0, 0, 0});
     //render(initialMesh, SAM_PER_PIXEL, initial);
     //render(targetMesh, SAM_PER_PIXEL, target);
+    pDRender->prepare(initialMesh);
     pDRender->render(initialMesh, g_uniforms, initial);
+
+    pDRender->prepare(targetMesh);
     pDRender->render(targetMesh, g_uniforms, target);
+    
     LiteImage::SaveImage("rendered/initial.bmp", initial);
     LiteImage::SaveImage("rendered/target.bmp", target);
     //return 0;
@@ -198,8 +202,11 @@ int main(int argc, char *argv[])
 
     //render(initialMesh, SAM_PER_PIXEL, img);
     //render(targetMesh, SAM_PER_PIXEL, target);
-    pDRender->render(initialMesh, g_uniforms, img);
+    pDRender->prepare(targetMesh);
     pDRender->render(targetMesh, g_uniforms, target);
+    
+    pDRender->prepare(initialMesh);
+    pDRender->render(initialMesh, g_uniforms, img);
     
     DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
