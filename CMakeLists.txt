@@ -5,7 +5,7 @@ project (diffrender)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set (CMAKE_CXX_STANDARD 14)
-include_directories(".", "include", "LiteMath")
+include_directories(".", "include", "LiteMath", "raytrace_src")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -23,8 +23,8 @@ add_executable(drender main.cpp
                        fin_diff.cpp
                        scenes.cpp
                        qmc.cpp 
-                       raytrace2d.cpp
-                       raytrace3d.cpp
+                       raytrace_src/raytrace2d.cpp
+                       raytrace_src/raytrace3d.cpp
                        optimizer_simple.cpp
                        LiteMath/Image2d.cpp)
 
