@@ -116,11 +116,11 @@ int main(int argc, char *argv[])
   g_uniforms.width  = float(img.width());
   g_uniforms.height = float(img.height());
 
-  float4x4 mRot; //       = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*10.0f);
+  float4x4 mRot       = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*15.0f);
   float4x4 mTranslate = LiteMath::translate4x4(float3(0,0,-5));  // float3(0,0,-0.1f)
 
   g_uniforms.mProj      = LiteMath::perspectiveMatrix(45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
-  g_uniforms.mWorldView = mTranslate;
+  g_uniforms.mWorldView = mTranslate; //*mRot;
   g_uniforms.commit();
 
 
