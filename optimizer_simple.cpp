@@ -12,7 +12,7 @@ struct OptSimple : public IOptimizer
   OptSimple(){}
 
   void         Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
-                    const Img* a_images, const CamInfo* a_cams, int a_numViews, OptimizerParameters a_params) override;
+                    const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) override;
 
   TriangleMesh Run (size_t a_numIters = 100) override;
 
@@ -183,11 +183,11 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   //d_finDiff (mesh, "fin_diff", img, m_targetImage, gradMesh, dPos, 0.01f);
 
   m_iter++;
-  return mse;
+  return mse/float(m_numViews);
 }
 
 void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
-                     const Img* a_images, const CamInfo* a_cams, int a_numViews, OptimizerParameters a_params) 
+                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) 
 { 
   m_mesh        = a_mesh; 
   m_iter        = 0; 

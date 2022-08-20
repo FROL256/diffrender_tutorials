@@ -138,11 +138,11 @@ int main(int argc, char *argv[])
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  scn03_Triangle3D_White(initialMesh, targetMesh);
+  //scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
   //scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad
-  //scn07_Cube3D_FColor(initialMesh, targetMesh);      
+  scn07_Cube3D_FColor(initialMesh, targetMesh);      
 
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
   #endif
 
   //pOpt->Init(initialMesh, img, {30,GD_Naive}); 
-  pOpt->Init(initialMesh, pDRender, targets, cameras, 1, {100,GD_Adam}); //  {30,GD_Naive}
+  pOpt->Init(initialMesh, pDRender, cameras, targets, 1, {100,GD_Adam}); //  {30,GD_Naive}
 
   TriangleMesh mesh3 = pOpt->Run(300);
   
