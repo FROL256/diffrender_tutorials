@@ -47,9 +47,6 @@ using LiteMath::normalize;
 
 constexpr static int  SAM_PER_PIXEL = 16;
 
-std::shared_ptr<IRayTracer> g_tracer = nullptr;
-CamInfo g_uniforms;
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,17 +109,31 @@ int main(int argc, char *argv[])
   #endif
 
   Img img(256, 256);
+  
+  constexpr int camsNum = 3;
+  CamInfo cameras[camsNum] = {};
+  for(int i=0;i<camsNum;i++) {
+    cameras[i].width  = float(img.width());
+    cameras[i].height = float(img.height());
+    cameras[i].mWorldView.identity();
+    cameras[i].mProj.identity();
+  }
 
-  g_uniforms.width  = float(img.width());
-  g_uniforms.height = float(img.height());
+  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
 
-  float4x4 mRot       = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*15.0f);
-  float4x4 mTranslate = LiteMath::translate4x4(float3(0,0,-5));  // float3(0,0,-0.1f)
+  cameras[0].mProj      = mProj;
+  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-5));
 
-  g_uniforms.mProj      = LiteMath::perspectiveMatrix(45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
-  g_uniforms.mWorldView = mTranslate; //*mRot;
-  g_uniforms.commit();
+  cameras[1].mProj      = mProj;
+  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*45.0f);
 
+  cameras[2].mProj      = mProj;
+  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-45.0f));
+
+  for(int i=0;i<camsNum;i++)
+    cameras[i].commit();
+
+  auto g_uniforms = cameras[2];
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
@@ -132,11 +143,6 @@ int main(int argc, char *argv[])
   //scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad
   scn07_Cube3D_FColor(initialMesh, targetMesh);      
-  
-  if(initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D)
-    g_tracer = MakeRayTracer2D("");  
-  else
-    g_tracer = MakeRayTracer3D("");
 
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
