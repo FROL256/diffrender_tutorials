@@ -29,8 +29,6 @@
 #include "qmc.h"
 #include "drender.h"
 
-using std::for_each;
-using std::upper_bound;
 using std::vector;
 using std::string;
 using std::min;
@@ -48,9 +46,6 @@ using LiteMath::clamp;
 using LiteMath::normalize;
 
 constexpr static int  SAM_PER_PIXEL = 16;
-
-unsigned int g_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
-float g_hammSamples[2*SAM_PER_PIXEL];
 
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
 CamInfo g_uniforms;
@@ -116,19 +111,17 @@ int main(int argc, char *argv[])
   mkdir("fin_diff",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
 
-  qmc::init(g_table);
-  qmc::planeHammersley(g_hammSamples, SAM_PER_PIXEL);
-
   Img img(256, 256);
 
   g_uniforms.width  = float(img.width());
   g_uniforms.height = float(img.height());
 
-  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
   float4x4 mRot; //       = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*10.0f);
-  float4x4 mTranslate = LiteMath::translate4x4(float3(0,0,0));  // float3(0,0,-0.1f)
-  float4x4 mTransform = mProj*mTranslate*mRot;
-  memcpy(g_uniforms.projM, (float*)&mTransform, 16*sizeof(float));
+  float4x4 mTranslate = LiteMath::translate4x4(float3(0,0,-5));  // float3(0,0,-0.1f)
+
+  g_uniforms.mProj      = LiteMath::perspectiveMatrix(45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
+  g_uniforms.mWorldView = mTranslate;
+  g_uniforms.commit();
 
 
   TriangleMesh initialMesh, targetMesh;
@@ -164,7 +157,7 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
+  if(1) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});

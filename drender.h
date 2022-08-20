@@ -254,8 +254,6 @@ private:
     { 
       auto& gen = gens[omp_get_thread_num()];
 
-      //const float rnd0 = clamp(qmc::rndFloat(i, 0, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
-      //const float rnd1 = clamp(qmc::rndFloat(i, 1, &g_table[0][0]) + 0.1f*(2.0f*prng::rndFloat(&gen)-1.0f), 0.0f, 1.0f);
       const float rnd0 = prng::rndFloat(&gen);
       const float rnd1 = prng::rndFloat(&gen);
       // pick an edge

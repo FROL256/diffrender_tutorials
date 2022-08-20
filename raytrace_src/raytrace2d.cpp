@@ -5,15 +5,15 @@ using LiteMath::float4x4;
 
 static inline float VS_X(float V[3], const CamInfo& data)
 {
-  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
+  const float W    =  V[0] * data.mWVP[3] + V[1] * data.mWVP[7] + V[2] * data.mWVP[11] + data.mWVP[15]; 
+  const float xNDC = (V[0] * data.mWVP[0] + V[1] * data.mWVP[4] + V[2] * data.mWVP[ 8] + data.mWVP[12])/W;
   return (xNDC*0.5f + 0.5f)*data.width;
 }
 
 static inline float VS_Y(float V[3], const CamInfo& data)
 {
-  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
+  const float W    =   V[0] * data.mWVP[3] + V[1] * data.mWVP[7] + V[2] * data.mWVP[11] + data.mWVP[15]; 
+  const float xNDC = -(V[0] * data.mWVP[1] + V[1] * data.mWVP[5] + V[2] * data.mWVP[ 9] + data.mWVP[13])/W;
   return (xNDC*0.5f + 0.5f)*data.height;
 }
 

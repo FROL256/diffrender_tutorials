@@ -38,8 +38,8 @@ struct EmbreeRT3D : public IRayTracer
 
   void SetCamera(const CamInfo& cam) override
   {
-    memcpy(m_mViewProjInv.m_col, cam.projM, 16*sizeof(float));
-    m_mViewProjInv = inverse4x4(m_mViewProjInv);
+    m_ProjInv      = inverse4x4(cam.mProj);
+    m_worldViewInv = inverse4x4(cam.mWorldView);
     m_fwidth       = cam.width;
     m_fheight      = cam.height;
   }
@@ -55,9 +55,11 @@ struct EmbreeRT3D : public IRayTracer
     const TriangleMesh& mesh = *m_pMesh;
     const float2 screen_pos(x,y);
   
-    const float3 ray_pos = float3(0,0,0);
-    const float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_mViewProjInv);
-    const float  tNear   = 0.0f;
+    float3 ray_pos = float3(0,0,0);
+    float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_ProjInv);
+    float  tNear   = 0.0f;
+
+    transform_ray3f(m_worldViewInv, &ray_pos, &ray_dir);
 
     if(outPos != nullptr)
       *outPos = ray_pos;
@@ -76,7 +78,8 @@ struct EmbreeRT3D : public IRayTracer
   const TriangleMesh* m_pMesh = nullptr;
   std::shared_ptr<ISceneObject> m_pAccelStruct;
 
-  float4x4 m_mViewProjInv;
+  float4x4 m_ProjInv;
+  float4x4 m_worldViewInv;
   float m_fwidth, m_fheight;
 
 };

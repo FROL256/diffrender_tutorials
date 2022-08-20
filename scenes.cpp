@@ -98,7 +98,7 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
   
   // apply transforms
   //
-  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,-5.0f));
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,0.0f));
   LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
   LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
   

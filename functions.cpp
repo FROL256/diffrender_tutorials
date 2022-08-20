@@ -4,15 +4,15 @@
 /*
 static inline float VS_X(float V[3], const CamInfo& data) // same as VertexShader().x
 {
-  const float W    =  V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = (V[0] * data.projM[0] + V[1] * data.projM[4] + V[2] * data.projM[ 8] + data.projM[12])/W;
+  const float W    =  V[0] * data.mWVP[3] + V[1] * data.mWVP[7] + V[2] * data.mWVP[11] + data.mWVP[15]; 
+  const float xNDC = (V[0] * data.mWVP[0] + V[1] * data.mWVP[4] + V[2] * data.mWVP[ 8] + data.mWVP[12])/W;
   return (xNDC*0.5f + 0.5f)*data.width;
 }
 
 static inline float VS_Y(float V[3], const CamInfo& data) // // same as VertexShader().y
 {
-  const float W    =   V[0] * data.projM[3] + V[1] * data.projM[7] + V[2] * data.projM[11] + data.projM[15]; 
-  const float xNDC = -(V[0] * data.projM[1] + V[1] * data.projM[5] + V[2] * data.projM[ 9] + data.projM[13])/W;
+  const float W    =   V[0] * data.mWVP[3] + V[1] * data.mWVP[7] + V[2] * data.mWVP[11] + data.mWVP[15]; 
+  const float xNDC = -(V[0] * data.mWVP[1] + V[1] * data.mWVP[5] + V[2] * data.mWVP[ 9] + data.mWVP[13])/W;
   return (xNDC*0.5f + 0.5f)*data.height;
 }
 */
@@ -38,19 +38,19 @@ void VS_X_grad(float V[3], const CamInfo &data, float _d_V[3])
     float _t14;
     float _t15;
     _t1 = V[0];
-    _t0 = data.projM[3];
+    _t0 = data.mWVP[3];
     _t3 = V[1];
-    _t2 = data.projM[7];
+    _t2 = data.mWVP[7];
     _t5 = V[2];
-    _t4 = data.projM[11];
-    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t4 = data.mWVP[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.mWVP[15];
     _t8 = V[0];
-    _t7 = data.projM[0];
+    _t7 = data.mWVP[0];
     _t10 = V[1];
-    _t9 = data.projM[4];
+    _t9 = data.mWVP[4];
     _t12 = V[2];
-    _t11 = data.projM[8];
-    _t13 = (_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[12]);
+    _t11 = data.mWVP[8];
+    _t13 = (_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.mWVP[12]);
     _t6 = W;
     const float xNDC = _t13 / _t6;
     _t15 = (xNDC * 0.5F + 0.5F);
@@ -110,19 +110,19 @@ void VS_Y_grad(float V[3], const CamInfo &data, float _d_V[3])
     float _t14;
     float _t15;
     _t1 = V[0];
-    _t0 = data.projM[3];
+    _t0 = data.mWVP[3];
     _t3 = V[1];
-    _t2 = data.projM[7];
+    _t2 = data.mWVP[7];
     _t5 = V[2];
-    _t4 = data.projM[11];
-    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.projM[15];
+    _t4 = data.mWVP[11];
+    const float W = _t1 * _t0 + _t3 * _t2 + _t5 * _t4 + data.mWVP[15];
     _t8 = V[0];
-    _t7 = data.projM[1];
+    _t7 = data.mWVP[1];
     _t10 = V[1];
-    _t9 = data.projM[5];
+    _t9 = data.mWVP[5];
     _t12 = V[2];
-    _t11 = data.projM[9];
-    _t13 = -(_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.projM[13]);
+    _t11 = data.mWVP[9];
+    _t13 = -(_t8 * _t7 + _t10 * _t9 + _t12 * _t11 + data.mWVP[13]);
     _t6 = W;
     const float xNDC = _t13 / _t6;
     _t15 = (xNDC * 0.5F + 0.5F);

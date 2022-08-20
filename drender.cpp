@@ -1,6 +1,5 @@
 #include "drender.h"
 
-
 // build a discrete CDF using edge length
 Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &edges) 
 {
@@ -16,8 +15,8 @@ Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &ed
       cdf.push_back(pmf.back() + cdf.back());
   }
   auto length_sum = cdf.back();
-  for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
-  for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
+  std::for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
+  std::for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
   return Sampler{pmf, cdf};
 }
 

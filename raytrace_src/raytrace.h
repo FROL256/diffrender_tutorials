@@ -25,10 +25,21 @@ struct SurfaceInfo
 
 struct CamInfo
 {
-  float projM[16];
-//float worldViewM[16];
+  LiteMath::float4x4 mWorldView;
+  LiteMath::float4x4 mProj;
+
+  float mWVP[16]; // WorlViewProject := (mProj*(mView*mWorld))
   float width;
   float height;
+  
+  /**
+  \brief make all needed internal computations, prepare for rendering
+  */
+  void commit()
+  {
+    LiteMath::float4x4 mTransform = mProj*mWorldView;
+    memcpy(mWVP, (float*)&mTransform, 16*sizeof(float));
+  }
 };
 
 struct IRayTracer
@@ -44,7 +55,9 @@ struct IRayTracer
 std::shared_ptr<IRayTracer> MakeRayTracer2D(const char* className);
 std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline float3 EyeRayDirNormalized(float x, float y, LiteMath::float4x4 a_mViewProjInv)
 {
@@ -52,4 +65,25 @@ static inline float3 EyeRayDirNormalized(float x, float y, LiteMath::float4x4 a_
   pos = a_mViewProjInv * pos;
   pos /= pos.w;
   return normalize(to_float3(pos));
+}
+
+static inline float3 mul3x3(LiteMath::float4x4 m, float3 v)
+{ 
+  return to_float3(m*to_float4(v, 0.0f));
+}
+
+static inline float3 mul4x3(LiteMath::float4x4 m, float3 v)
+{
+  return to_float3(m*to_float4(v, 1.0f));
+}
+
+static inline void transform_ray3f(LiteMath::float4x4 a_mWorldViewInv, float3* ray_pos, float3* ray_dir) 
+{
+  float3 pos  = mul4x3(a_mWorldViewInv, (*ray_pos));
+  float3 pos2 = mul4x3(a_mWorldViewInv, ((*ray_pos) + 100.0f*(*ray_dir)));
+
+  float3 diff = pos2 - pos;
+
+  (*ray_pos)  = pos;
+  (*ray_dir)  = normalize(diff);
 }
