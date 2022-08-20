@@ -13,7 +13,8 @@ struct OptimizerParameters
 
 struct IOptimizer
 {
-  virtual void         Init(const TriangleMesh& a_mesh, const Img& a_image, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData, OptimizerParameters a_params) = 0;
+  virtual void Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
+                    const Img* a_images, const CamInfo* a_cams, int a_numViews, OptimizerParameters a_params) = 0;
 
   virtual TriangleMesh Run (size_t a_numIters = 100) = 0;
 };

@@ -11,7 +11,9 @@ struct OptSimple : public IOptimizer
 {
   OptSimple(){}
 
-  void         Init(const TriangleMesh& a_mesh, const Img& a_image, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData, OptimizerParameters a_params) override;
+  void         Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
+                    const Img* a_images, const CamInfo* a_cams, int a_numViews, OptimizerParameters a_params) override;
+
   TriangleMesh Run (size_t a_numIters = 100) override;
 
 protected:
@@ -23,7 +25,6 @@ protected:
   void     StepDecay(int a_iterId, GammaVec& a_gamma) const;
 
   TriangleMesh m_mesh; ///<! global mesh optimized mesh
-  Img          m_targetImage;
   size_t       m_iter = 0;
   OptimizerParameters m_params;
 
@@ -31,7 +32,9 @@ protected:
   std::vector<GradReal> m_vec; 
 
   std::shared_ptr<IDiffRender> m_pDR = nullptr;
-  CamInfo                      m_camData;
+  const Img*     m_targets  = nullptr; 
+  const CamInfo* m_cams     = nullptr; 
+  int            m_numViews = 0;
 };
 
 IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
@@ -151,20 +154,29 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
 {
   const int samples_per_pixel = 16;
 
-  Img img(256, 256);
+  std::vector<Img> images(m_numViews);
+  for(auto& im : images)
+    im.resize(256,256);
+
   m_pDR->commit(mesh);
-  m_pDR->render(mesh, &m_camData, &img, 1);
+  m_pDR->render(mesh, m_cams, images.data(), m_numViews);
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
   auto temp = strOut.str();
-  LiteImage::SaveImage(temp.c_str(), img);
+  LiteImage::SaveImage(temp.c_str(), images[0]);
 
-  Img adjoint(img.width(), img.height(), float3{0, 0, 0});
-  float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
+  std::vector<Img> adjoints(m_numViews);
+  for(auto& im : adjoints)
+    im = Img(images[0].width(), images[0].height(), float3{0, 0, 0});
+
+  float mse = 0.0f;
+  #pragma omp parallel for num_threads(m_numViews) reduction(+:mse)
+  for(int i=0;i<m_numViews;i++)
+    mse += LossAndDiffLoss(images[i], m_targets[i], adjoints[i]);
   
   gradMesh.clear();
-  m_pDR->d_render(mesh, &m_camData, &adjoint, 1, img.width() * img.height(),
+  m_pDR->d_render(mesh, m_cams, adjoints.data(), m_numViews, images[0].width() * images[0].height(),
                   gradMesh, nullptr, 0);
 
   //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
@@ -174,14 +186,17 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   return mse;
 }
 
-void OptSimple::Init(const TriangleMesh& a_mesh, const Img& a_image, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData, OptimizerParameters a_params) 
+void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
+                     const Img* a_images, const CamInfo* a_cams, int a_numViews, OptimizerParameters a_params) 
 { 
   m_mesh        = a_mesh; 
-  m_targetImage = a_image; 
   m_iter        = 0; 
-  m_params      = a_params;
   m_pDR         = a_pDRImpl;
-  m_camData     = a_camData;
+
+  m_targets     = a_images;
+  m_cams        = a_cams;
+  m_numViews    = a_numViews;
+  m_params      = a_params;
 }
 
 TriangleMesh OptSimple::Run(size_t a_numIters) 
@@ -198,8 +213,9 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     memset(m_vec.data(), 0, sizeof(GradReal)*m_vec.size());
   }
 
-  auto gamma = EstimateGamma(m_targetImage.width(), gradMesh.m_geomType);
-
+  auto gamma = EstimateGamma(m_targets[0].width(), gradMesh.m_geomType);
+  
+  m_iter = 0; 
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
     float error = EvalFunction(m_mesh, gradMesh);
