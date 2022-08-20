@@ -59,11 +59,9 @@ std::vector<Edge> collect_edges(const TriangleMesh &mesh);
 
 struct IDiffRender
 {
-  virtual void prepare(const TriangleMesh &mesh) = 0;
-  virtual void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) = 0;
-  virtual void d_render(const TriangleMesh &mesh, const CamInfo& cam,
-                        const Img &adjoint,
-                        const int edge_samples_in_total,
+  virtual void commit(const TriangleMesh &mesh) = 0;
+  virtual void render(const TriangleMesh &mesh, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
+  virtual void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                         DTriangleMesh &d_mesh,
                         Img* debugImages, int debugImageNum) = 0;
 };
@@ -86,13 +84,13 @@ struct DiffRender : public IDiffRender
   }
   
   
-  void prepare(const TriangleMesh &mesh) 
+  void commit(const TriangleMesh &mesh) 
   {
     m_pTracer->Init(&mesh); // Build Acceleration structurres and e.t.c. if needed
     m_pLastPreparedMesh = &mesh;
   }
 
-  void render(const TriangleMesh &mesh, const CamInfo& cam, Img &img) override // TODO: add BSPImage rendering
+  void render(const TriangleMesh &mesh, const CamInfo* cams, Img *imgames, int a_viewsNum) override // TODO: add BSPImage rendering
   {
     auto sqrt_num_samples  = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
@@ -102,41 +100,45 @@ struct DiffRender : public IDiffRender
       std::cout << "[DiffRender::render]: error, renderer was not prepared for this mesh!" << std::endl;
       return;
     }
-
-    m_pTracer->SetCamera(cam);
     
-    #if (DEBUG_RENDER==0)
-    #pragma omp parallel for collapse (2) num_threads(MAXTHREADS) 
-    #endif 
-    for (int y = 0; y < img.height(); y++) { // for each pixel 
-      for (int x = 0; x < img.width(); x++) {
-        
-        float3 pixelColor = float3(0,0,0);
+    for(int camId =0; camId<a_viewsNum; camId++) { // TODO: also can make parallel if m_pTracer->clone() is implemented
 
-        for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
-          for (int dx = 0; dx < sqrt_num_samples; dx++) {
+      const CamInfo& cam = cams[camId];
+      Img&           img = imgames[camId];
 
-            auto xoff = (dx + 0.5f) / float(sqrt_num_samples);
-            auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
-            auto screen_pos = float2{x + xoff, y + yoff};
-            
-            float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
-            auto surf  = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-            auto color = Model::shade(mesh, surf, ray_pos, ray_dir);
-
-            pixelColor += (color / samples_per_pixel);
+      m_pTracer->SetCamera(cam);
+      
+      #if (DEBUG_RENDER==0)
+      #pragma omp parallel for collapse (2) num_threads(MAXTHREADS) 
+      #endif 
+      for (int y = 0; y < img.height(); y++) { // for each pixel 
+        for (int x = 0; x < img.width(); x++) {
+          
+          float3 pixelColor = float3(0,0,0);
+  
+          for (int dy = 0; dy < sqrt_num_samples; dy++) { // for each subpixel
+            for (int dx = 0; dx < sqrt_num_samples; dx++) {
+  
+              auto xoff = (dx + 0.5f) / float(sqrt_num_samples);
+              auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
+              auto screen_pos = float2{x + xoff, y + yoff};
+              
+              float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
+              auto surf  = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
+              auto color = Model::shade(mesh, surf, ray_pos, ray_dir);
+  
+              pixelColor += (color / samples_per_pixel);
+            }
           }
+  
+          img[int2(x,y)] = pixelColor;
         }
-
-        img[int2(x,y)] = pixelColor;
       }
     }
   }
 
   
-  void d_render(const TriangleMesh &mesh, const CamInfo& cam,
-                const Img &adjoint,
-                const int edge_samples_in_total,
+  void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                 DTriangleMesh &d_mesh,
                 Img* debugImages, int debugImageNum) override
   {  
@@ -146,15 +148,18 @@ struct DiffRender : public IDiffRender
       return;
     }
 
-    m_pTracer->SetCamera(cam);
-
-    m_aux.pCamInfo      = &cam;
-    m_aux.debugImages   = debugImages;
-    m_aux.debugImageNum = debugImageNum;
+    for(int camId=0; camId<a_viewsNum; camId++) {
+      
+      m_pTracer->SetCamera(cams[camId]);
   
-    interior_derivatives(mesh, adjoint, d_mesh);
-
-    edge_derivatives(mesh, adjoint, edge_samples_in_total, d_mesh);
+      m_aux.pCamInfo      = cams + camId;
+      m_aux.debugImages   = debugImages;
+      m_aux.debugImageNum = debugImageNum;
+    
+      interior_derivatives(mesh, adjoints[camId], d_mesh);
+  
+      edge_derivatives(mesh, adjoints[camId], edge_samples_in_total, d_mesh);
+    }
   }
 
 private:
@@ -170,7 +175,7 @@ private:
     DTriangleMesh grads[MAXTHREADS];
     for(int i=0;i<MAXTHREADS;i++) {
       grads[i] = d_mesh;
-      //grads[i].clear(); // don't have to do this explicitly because 'compute_interior_derivatives' is called in the first pass and gradient is already 0.0
+      grads[i].clear(); // TODO: make this more effitiient
     }
     
     #if (DEBUG_RENDER==0)

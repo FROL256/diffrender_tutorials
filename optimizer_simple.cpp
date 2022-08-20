@@ -152,8 +152,8 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   const int samples_per_pixel = 16;
 
   Img img(256, 256);
-  m_pDR->prepare(mesh);
-  m_pDR->render(mesh, m_camData, img);
+  m_pDR->commit(mesh);
+  m_pDR->render(mesh, &m_camData, &img, 1);
   
   std::stringstream strOut;
   strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
@@ -164,7 +164,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   float mse = LossAndDiffLoss(img, m_targetImage, adjoint);
   
   gradMesh.clear();
-  m_pDR->d_render(mesh, m_camData, adjoint, img.width() * img.height(),
+  m_pDR->d_render(mesh, &m_camData, &adjoint, 1, img.width() * img.height(),
                   gradMesh, nullptr, 0);
 
   //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());

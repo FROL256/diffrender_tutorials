@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
   for(int i=0;i<camsNum;i++)
     cameras[i].commit();
 
-  auto g_uniforms = cameras[2];
+  auto g_uniforms = cameras[0];
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
@@ -152,18 +152,18 @@ int main(int argc, char *argv[])
     Img target(img.width(), img.height(), float3{0, 0, 0});
     //render(initialMesh, SAM_PER_PIXEL, initial);
     //render(targetMesh, SAM_PER_PIXEL, target);
-    pDRender->prepare(initialMesh);
-    pDRender->render(initialMesh, g_uniforms, initial);
+    pDRender->commit(initialMesh);
+    pDRender->render(initialMesh, cameras, &initial, 1);
 
-    pDRender->prepare(targetMesh);
-    pDRender->render(targetMesh, g_uniforms, target);
+    pDRender->commit(targetMesh);
+    pDRender->render(targetMesh, cameras, &target, 1);
     
     LiteImage::SaveImage("rendered/initial.bmp", initial);
     LiteImage::SaveImage("rendered/target.bmp", target);
     //return 0;
   }
 
-  if(1) // check gradients with finite difference method
+  if(0) // check gradients with finite difference method
   {
     Img target(img.width(), img.height(), float3{0, 0, 0});
     Img adjoint(img.width(), img.height(), float3{0, 0, 0});
@@ -174,17 +174,17 @@ int main(int argc, char *argv[])
 
     //render(initialMesh, SAM_PER_PIXEL, img);
     //render(targetMesh, SAM_PER_PIXEL, target);
-    pDRender->prepare(targetMesh);
-    pDRender->render(targetMesh, g_uniforms, target);
+    pDRender->commit(targetMesh);
+    pDRender->render(targetMesh, cameras, &target, 1);
     
-    pDRender->prepare(initialMesh);
-    pDRender->render(initialMesh, g_uniforms, img);
+    pDRender->commit(initialMesh);
+    pDRender->render(initialMesh, cameras, &img, 1);
     
     DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
 
     LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
-    pDRender->d_render(initialMesh, g_uniforms, adjoint, img.width()*img.height(), 
+    pDRender->d_render(initialMesh, cameras, &adjoint, 1, img.width()*img.height(), 
                        grad1, dxyzDebug, 3);
 
     for(int i=0;i<3;i++)
@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
   }
 
   img.clear(float3{0,0,0});
-  pDRender->prepare(targetMesh);
-  pDRender->render(targetMesh, g_uniforms, img);
+  pDRender->commit(targetMesh);
+  pDRender->render(targetMesh, cameras, &img, 1);
   LiteImage::SaveImage("rendered_opt/z_target.bmp", img);
   
   #ifdef COMPLEX_OPT
@@ -254,8 +254,8 @@ int main(int argc, char *argv[])
   TriangleMesh mesh3 = pOpt->Run(300);
   
   img.clear(float3{0,0,0});
-  pDRender->prepare(mesh3);
-  pDRender->render(mesh3, g_uniforms, img);
+  pDRender->commit(mesh3);
+  pDRender->render(mesh3, cameras, &img, 1);
   LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
   
   delete pOpt; pOpt = nullptr;
