@@ -21,14 +21,5 @@
                 "$gcc"
             ]
         },
-        {
-            "label": "BuildMSETest",
-            "type": "shell",
-            "command": "g++ -O3 -std=c++14 image_mse_test.cpp Bitmap.cpp -o z_mse_test",
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
     ]
 }

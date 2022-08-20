@@ -41,6 +41,7 @@ using std::fstream;
 using LiteMath::float2;
 using LiteMath::float3;
 using LiteMath::float4;
+using LiteMath::float4x4;
 using LiteMath::int2;
 
 using LiteMath::clamp;
@@ -53,40 +54,6 @@ float g_hammSamples[2*SAM_PER_PIXEL];
 
 std::shared_ptr<IRayTracer> g_tracer = nullptr;
 CamInfo g_uniforms;
-
-void glhFrustumf3(float *matrix, float left, float right, float bottom, float top, float znear, float zfar)
-{
-  float temp, temp2, temp3, temp4;
-  temp = 2.0f * znear;
-  temp2 = right - left;
-  temp3 = top - bottom;
-  temp4 = zfar - znear;
-  matrix[0] = temp / temp2;
-  matrix[1] = 0.0;
-  matrix[2] = 0.0;
-  matrix[3] = 0.0;
-  matrix[4] = 0.0;
-  matrix[5] = temp / temp3;
-  matrix[6] = 0.0;
-  matrix[7] = 0.0;
-  matrix[8] = (right + left) / temp2;
-  matrix[9] = (top + bottom) / temp3;
-  matrix[10] = (-zfar - znear) / temp4;
-  matrix[11] = -1.0;
-  matrix[12] = 0.0;
-  matrix[13] = 0.0;
-  matrix[14] = (-temp * zfar) / temp4;
-  matrix[15] = 0.0;
-}
-
-// matrix will receive the calculated perspective matrix. You would have to upload to your shader or use glLoadMatrixf if you aren't using shaders
-//
-void glhPerspectivef3(float *matrix, float fovy, float aspectRatio, float znear, float zfar)
-{
-  const float ymax = znear * std::tan(fovy * 3.14159265358979323846f / 360.0f);
-  const float xmax = ymax * aspectRatio;
-  glhFrustumf3(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,16 +123,22 @@ int main(int argc, char *argv[])
 
   g_uniforms.width  = float(img.width());
   g_uniforms.height = float(img.height());
-  glhPerspectivef3(g_uniforms.projM, 45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
+
+  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, g_uniforms.width / g_uniforms.height, 0.1f, 100.0f);
+  float4x4 mRot; //       = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*10.0f);
+  float4x4 mTranslate = LiteMath::translate4x4(float3(0,0,0));  // float3(0,0,-0.1f)
+  float4x4 mTransform = mProj*mTranslate*mRot;
+  memcpy(g_uniforms.projM, (float*)&mTransform, 16*sizeof(float));
+
 
   TriangleMesh initialMesh, targetMesh;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D_White(initialMesh, targetMesh);
+  scn03_Triangle3D_White(initialMesh, targetMesh);
   //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
   //scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad
-  scn07_Cube3D_FColor(initialMesh, targetMesh);      
+  //scn07_Cube3D_FColor(initialMesh, targetMesh);      
   
   if(initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D)
     g_tracer = MakeRayTracer2D("");  

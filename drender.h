@@ -292,17 +292,20 @@ private:
       float pdf    = pmf  / (length(v1 - v0));
       float weight = 1.0f / (pdf * float(num_edge_samples));
       float adj    = dot(color_in - color_out, adjoint[int2(xi,yi)]);
-
-      // the boundary point is p = v0 + t * (v1 - v0)
-      // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
-      // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
-      // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
       
-      auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
-      auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
-  
-      Model::edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, 
-                       grads[omp_get_thread_num()]);
+      if(adj*adj > 0.0f)
+      {
+        // the boundary point is p = v0 + t * (v1 - v0)
+        // according to Reynolds transport theorem, the derivatives w.r.t. q is color_diff * dot(n, dp/dq)
+        // dp/dv0.x = (1 - t, 0), dp/dv0.y = (0, 1 - t)
+        // dp/dv1.x = (    t, 0), dp/dv1.y = (0,     t)
+        
+        auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
+        auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
+        
+        Model::edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, 
+                         grads[omp_get_thread_num()]);
+      }
     }    
   
     //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
