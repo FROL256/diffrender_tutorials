@@ -161,10 +161,12 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   m_pDR->commit(mesh);
   m_pDR->render(mesh, m_cams, images.data(), m_numViews);
   
-  std::stringstream strOut;
-  strOut  << "rendered_opt/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
-  auto temp = strOut.str();
-  LiteImage::SaveImage(temp.c_str(), images[0]);
+  for(int i=0;i<m_numViews;i++) {
+    std::stringstream strOut;
+    strOut  << "rendered_opt" << i << "/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
+    auto temp = strOut.str();
+    LiteImage::SaveImage(temp.c_str(), images[i]);
+  }
 
   std::vector<Img> adjoints(m_numViews);
   for(auto& im : adjoints)
@@ -176,8 +178,10 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
     mse += LossAndDiffLoss(images[i], m_targets[i], adjoints[i]);
   
   gradMesh.clear();
-  m_pDR->d_render(mesh, m_cams, adjoints.data(), m_numViews, images[0].width() * images[0].height(),
-                  gradMesh, nullptr, 0);
+  m_pDR->d_render(mesh, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
+
+  //for(int i=0;i<m_numViews;i++)
+  //   m_pDR->d_render(mesh, m_cams+i, adjoints.data()+i, 1, images[0].width() * images[0].height(), gradMesh);
 
   //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
   //d_finDiff (mesh, "fin_diff", img, m_targetImage, gradMesh, dPos, 0.01f);

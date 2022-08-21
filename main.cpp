@@ -102,12 +102,16 @@ int main(int argc, char *argv[])
 {
   #ifdef WIN32
   mkdir("rendered");
-  mkdir("rendered_opt");
+  mkdir("rendered_opt0");
+  mkdir("rendered_opt1");
+  mkdir("rendered_opt2");
   mkdir("fin_diff");
   #else
-  mkdir("rendered",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("rendered_opt", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("fin_diff",     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered_opt0", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered_opt1", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("rendered_opt2", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("fin_diff",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
 
   Img img(256, 256);
@@ -127,10 +131,10 @@ int main(int argc, char *argv[])
   cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-5));
 
   cameras[1].mProj      = mProj;
-  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*45.0f);
+  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
 
   cameras[2].mProj      = mProj;
-  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-45.0f));
+  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
 
   for(int i=0;i<camsNum;i++)
     cameras[i].commit();
@@ -148,24 +152,7 @@ int main(int argc, char *argv[])
 
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
-  if(0)
-  {
-    Img initial(img.width(), img.height(), float3{0, 0, 0});
-    Img target(img.width(), img.height(), float3{0, 0, 0});
-    //render(initialMesh, SAM_PER_PIXEL, initial);
-    //render(targetMesh, SAM_PER_PIXEL, target);
-    pDRender->commit(initialMesh);
-    pDRender->render(initialMesh, cameras, &initial, 1);
-
-    pDRender->commit(targetMesh);
-    pDRender->render(targetMesh, cameras, &target, 1);
-    
-    LiteImage::SaveImage("rendered/initial.bmp", initial);
-    LiteImage::SaveImage("rendered/target.bmp", target);
-    //return 0;
-  }
-
-  if(1) // check gradients for different image views
+  if(0) // check gradients for different image views
   {
     std::vector<Img> targets(camsNum), images(camsNum), adjoints(camsNum);
     for(int i=0;i<camsNum;i++) {
@@ -204,21 +191,25 @@ int main(int argc, char *argv[])
     {
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
       pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
-      
+
       DTriangleMesh grad_avg(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
       for(size_t i=0;i<grad_avg.size();i++)
-        grad_avg[i] = 0.5f*(grad1[i] + grad2[i]);
+        grad_avg[i] = 1.0f*(grad1[i] + grad2[i]);
       
       DTriangleMesh grad12(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
+      //pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
+      //pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);
+
       
       PrintAndCompareGradients(grad1, grad2);
       std::cout << "********************************************" << std::endl;
       std::cout << "********************************************" << std::endl;
       PrintAndCompareGradients(grad12, grad_avg);
+      return 0;
     }
     
-    if(1) // check gradients with fin.diff
+    if(0) // check gradients with fin.diff
     {
       Img dxyzDebug[3];
       for(int i=0;i<3;i++)
@@ -240,8 +231,8 @@ int main(int argc, char *argv[])
       //d_finDiff2(initialMesh, "fin_diff", images[0], targets[0], pDRender, g_uniforms, grad2, dPos, 0.01f);
       
       PrintAndCompareGradients(grad1, grad2);
+      return 0;
     }
-    return 0;
   }
 
   
@@ -253,23 +244,28 @@ int main(int argc, char *argv[])
 
   pDRender->commit(targetMesh);
   pDRender->render(targetMesh, cameras, targets, camsNum);
-  LiteImage::SaveImage("rendered_opt/z_target.bmp", targets[0]);
-  
+
+  for(int i=0;i<camsNum;i++) {
+    std::stringstream strOut;
+    strOut  << "rendered_opt" << i << "/z_target.bmp";
+    auto temp = strOut.str();
+    LiteImage::SaveImage(temp.c_str(), targets[i]);
+  }
+
   #ifdef COMPLEX_OPT
   IOptimizer* pOpt = CreateComplexOptimizer();
   #else
   IOptimizer* pOpt = CreateSimpleOptimizer();
   #endif
 
-  //pOpt->Init(initialMesh, img, {30,GD_Naive}); 
-  pOpt->Init(initialMesh, pDRender, cameras, targets, 1, {100,GD_Adam}); //  {30,GD_Naive}
+  pOpt->Init(initialMesh, pDRender, cameras, targets, 3, {100,GD_Adam}); //  {30,GD_Naive}
 
   TriangleMesh mesh3 = pOpt->Run(300);
   
-  img.clear(float3{0,0,0});
-  pDRender->commit(mesh3);
-  pDRender->render(mesh3, cameras, &img, 1);
-  LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
+  //img.clear(float3{0,0,0});
+  //pDRender->commit(mesh3);
+  //pDRender->render(mesh3, cameras, &img, 1);
+  //LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
   
   delete pOpt; pOpt = nullptr;
   return 0;

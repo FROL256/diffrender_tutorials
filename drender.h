@@ -160,13 +160,6 @@ struct DiffRender : public IDiffRender
   
       edge_derivatives(mesh, adjoints[camId], edge_samples_in_total, d_mesh);
     }
-
-    if(a_viewsNum > 1) {
-      const float invMullt = 1.0f/float(a_viewsNum);
-      for(size_t i=0;i<d_mesh.size();i++)
-        d_mesh[i] *= invMullt;
-    }
-
   }
 
 private:
