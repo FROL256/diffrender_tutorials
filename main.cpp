@@ -165,46 +165,6 @@ int main(int argc, char *argv[])
     //return 0;
   }
 
-  if(0) // check gradients with finite difference method
-  {
-    Img target(img.width(), img.height(), float3{0, 0, 0});
-    Img adjoint(img.width(), img.height(), float3{0, 0, 0});
-    
-    Img dxyzDebug[3];
-    for(int i=0;i<3;i++)
-      dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
-
-    //render(initialMesh, SAM_PER_PIXEL, img);
-    //render(targetMesh, SAM_PER_PIXEL, target);
-    pDRender->commit(targetMesh);
-    pDRender->render(targetMesh, cameras, &target, 1);
-    
-    pDRender->commit(initialMesh);
-    pDRender->render(initialMesh, cameras, &img, 1);
-    
-    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-
-    LossAndDiffLoss(img, target, adjoint); // put MSE ==> adjoint 
-    pDRender->d_render(initialMesh, cameras, &adjoint, 1, img.width()*img.height(), 
-                       grad1, dxyzDebug, 3);
-
-    for(int i=0;i<3;i++)
-    {
-      std::stringstream strOut;
-      strOut << "our_diff/pos_xyz_" << G_DEBUG_VERT_ID+i << ".bmp";
-      auto path = strOut.str();
-      LiteImage::SaveImage(path.c_str(), dxyzDebug[i]);
-    }
-
-    const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
-    //d_finDiff (initialMesh, "fin_diff", img, target,  pDRender, g_uniforms, grad2, dPos, 0.01f);
-    d_finDiff2(initialMesh, "fin_diff", img, target, pDRender, g_uniforms, grad2, dPos, 0.01f);
-    
-    PrintAndCompareGradients(grad1, grad2);
-    return 0;
-  }
-
   if(1) // check gradients for different image views
   {
     std::vector<Img> targets(camsNum), images(camsNum), adjoints(camsNum);
@@ -239,21 +199,48 @@ int main(int argc, char *argv[])
   
     DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
     DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    
+    if(0) // check gradient obtained from 2 images
+    {
+      pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
+      pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
+      
+      DTriangleMesh grad_avg(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+      for(size_t i=0;i<grad_avg.size();i++)
+        grad_avg[i] = 0.5f*(grad1[i] + grad2[i]);
+      
+      DTriangleMesh grad12(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+      pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
+      
+      PrintAndCompareGradients(grad1, grad2);
+      std::cout << "********************************************" << std::endl;
+      std::cout << "********************************************" << std::endl;
+      PrintAndCompareGradients(grad12, grad_avg);
+    }
+    
+    if(1) // check gradients with fin.diff
+    {
+      Img dxyzDebug[3];
+      for(int i=0;i<3;i++)
+        dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
 
-    pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
-    pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
-    
-    DTriangleMesh grad_avg(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-    for(size_t i=0;i<grad_avg.size();i++)
-      grad_avg[i] = 0.5f*(grad1[i] + grad2[i]);
-    
-    DTriangleMesh grad12(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-    pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
-    
-    PrintAndCompareGradients(grad1, grad2);
-    std::cout << "********************************************" << std::endl;
-    std::cout << "********************************************" << std::endl;
-    PrintAndCompareGradients(grad12, grad_avg);
+      pDRender->d_render(initialMesh, cameras, adjoints.data(), 1, img.width()*img.height(), 
+                         grad1, dxyzDebug, 3);
+  
+      for(int i=0;i<3;i++)
+      {
+        std::stringstream strOut;
+        strOut << "our_diff/pos_xyz_" << G_DEBUG_VERT_ID+i << ".bmp";
+        auto path = strOut.str();
+        LiteImage::SaveImage(path.c_str(), dxyzDebug[i]);
+      }
+  
+      const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
+      d_finDiff (initialMesh, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
+      //d_finDiff2(initialMesh, "fin_diff", images[0], targets[0], pDRender, g_uniforms, grad2, dPos, 0.01f);
+      
+      PrintAndCompareGradients(grad1, grad2);
+    }
     return 0;
   }
 
