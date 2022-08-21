@@ -426,7 +426,7 @@ void scn07_Cube3D_FColor(TriangleMesh& initial, TriangleMesh& target)
   // apply transforms
   //
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-15.0f); // TODO: try +15
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f); // TODO: try +15
   LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-30.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-30.0f);
   
   auto mTransform1 = mTranslate*mRotate1;
