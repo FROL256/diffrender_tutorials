@@ -237,3 +237,42 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
   }
 
 }
+
+void PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& grad2)
+{
+  double totalError = 0.0;
+  double posError = 0.0;
+  double colError = 0.0;
+  double posLengthL1 = 0.0;
+  double colLengthL1 = 0.0;
+
+  auto subvecPos1 = grad1.subvecPos();
+  auto subvecCol1 = grad1.subvecCol();
+
+  auto subvecPos2 = grad2.subvecPos();
+  auto subvecCol2 = grad2.subvecCol();
+
+  for(size_t i=0;i<subvecPos1.size();i++) {
+    double diff = std::abs(double(subvecPos1[i] - subvecPos2[i]));
+    posError    += diff;
+    totalError  += diff;
+    posLengthL1 += std::abs(subvecPos2[i]);
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+  }
+
+  std::cout << "--------------------------" << std::endl;
+  for(size_t i=0;i<subvecCol1.size();i++) {
+    double diff = std::abs(double(subvecCol1[i] - subvecCol2[i]));
+    colError   += diff;
+    totalError += diff;
+    colLengthL1 += std::abs(subvecCol2[i]);
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[subvecPos1.size() + i] << "\t";  
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[subvecPos1.size() + i] << std::endl;
+  }
+  
+  std::cout << "==========================" << std::endl;
+  std::cout << "GradErr[L1](vpos ) = " << posError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
+  std::cout << "GradErr[L1](color) = " << colError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
+  std::cout << "GradErr[L1](total) = " << totalError/double(grad1.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
+}

@@ -63,7 +63,7 @@ struct IDiffRender
   virtual void render(const TriangleMesh &mesh, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
   virtual void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                         DTriangleMesh &d_mesh,
-                        Img* debugImages, int debugImageNum) = 0;
+                        Img* debugImages = nullptr, int debugImageNum = 0) = 0;
 };
 
 template<class Model>

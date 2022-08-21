@@ -61,6 +61,7 @@ void PrintMesh(const DTriangleMesh& a_mesh)
   std::cout << std::endl;
 }
 
+void PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& grad2);
 
 float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
 {
@@ -88,6 +89,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 
 void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
                DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
 
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
-  if(1)
+  if(0)
   {
     Img initial(img.width(), img.height(), float3{0, 0, 0});
     Img target(img.width(), img.height(), float3{0, 0, 0});
@@ -199,41 +201,59 @@ int main(int argc, char *argv[])
     //d_finDiff (initialMesh, "fin_diff", img, target,  pDRender, g_uniforms, grad2, dPos, 0.01f);
     d_finDiff2(initialMesh, "fin_diff", img, target, pDRender, g_uniforms, grad2, dPos, 0.01f);
     
-    double totalError = 0.0;
-    double posError = 0.0;
-    double colError = 0.0;
-    double posLengthL1 = 0.0;
-    double colLengthL1 = 0.0;
+    PrintAndCompareGradients(grad1, grad2);
+    return 0;
+  }
 
-    auto subvecPos1 = grad1.subvecPos();
-    auto subvecCol1 = grad1.subvecCol();
-
-    auto subvecPos2 = grad2.subvecPos();
-    auto subvecCol2 = grad2.subvecCol();
-
-    for(size_t i=0;i<subvecPos1.size();i++) {
-      double diff = std::abs(double(subvecPos1[i] - subvecPos2[i]));
-      posError    += diff;
-      totalError  += diff;
-      posLengthL1 += std::abs(subvecPos2[i]);
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
-    }
-
-    std::cout << "--------------------------" << std::endl;
-    for(size_t i=0;i<subvecCol1.size();i++) {
-      double diff = std::abs(double(subvecCol1[i] - subvecCol2[i]));
-      colError   += diff;
-      totalError += diff;
-      colLengthL1 += std::abs(subvecCol2[i]);
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[subvecPos1.size() + i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[subvecPos1.size() + i] << std::endl;
+  if(1) // check gradients for different image views
+  {
+    std::vector<Img> targets(camsNum), images(camsNum), adjoints(camsNum);
+    for(int i=0;i<camsNum;i++) {
+      targets [i] = Img(img.width(), img.height(), float3{0, 0, 0});
+      images  [i] = Img(img.width(), img.height(), float3{0, 0, 0});
+      adjoints[i] = Img(img.width(), img.height(), float3{0, 0, 0});
     }
   
-    std::cout << "==========================" << std::endl;
-    std::cout << "GradErr[L1](vpos ) = " << posError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
-    std::cout << "GradErr[L1](color) = " << colError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
-    std::cout << "GradErr[L1](total) = " << totalError/double(grad1.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
+    pDRender->commit(targetMesh);
+    pDRender->render(targetMesh, cameras, targets.data(), camsNum);
+    
+    for(int i=0;i<camsNum;i++) {
+      std::stringstream strOut;
+      strOut << "rendered/target" << i << ".bmp";
+      auto fileName = strOut.str();
+      LiteImage::SaveImage(fileName.c_str(), targets[i]);
+    }
+
+    pDRender->commit(initialMesh);
+    pDRender->render(initialMesh, cameras, images.data(), camsNum);
+
+    for(int i=0;i<camsNum;i++) {
+      std::stringstream strOut;
+      strOut << "rendered/initial" << i << ".bmp";
+      auto fileName = strOut.str();
+      LiteImage::SaveImage(fileName.c_str(), images[i]);
+    }
+
+    for(int i=0;i<camsNum;i++)
+      LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
+  
+    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+
+    pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
+    pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
+    
+    DTriangleMesh grad_avg(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    for(size_t i=0;i<grad_avg.size();i++)
+      grad_avg[i] = 0.5f*(grad1[i] + grad2[i]);
+    
+    DTriangleMesh grad12(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
+    
+    PrintAndCompareGradients(grad1, grad2);
+    std::cout << "********************************************" << std::endl;
+    std::cout << "********************************************" << std::endl;
+    PrintAndCompareGradients(grad12, grad_avg);
     return 0;
   }
 
