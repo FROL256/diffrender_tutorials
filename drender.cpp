@@ -77,5 +77,14 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh
     return impl;
   }
 
+  if(a_mesh.m_meshType == MODELS::TRIANGLE3D_TEXTURED::getMeshType() && 
+     a_mesh.m_geomType == MODELS::TRIANGLE3D_TEXTURED::getGeomType())
+  {
+    auto impl = std::make_shared< DiffRender<MODELS::TRIANGLE3D_TEXTURED> >();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+  }
+
+
   return nullptr;
 }

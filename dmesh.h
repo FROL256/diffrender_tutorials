@@ -22,6 +22,37 @@ using LiteMath::float2;
 using LiteMath::float3;
 using LiteMath::float4;
 
+using LiteMath::int2;
+using LiteMath::int3;
+using LiteMath::int4;
+
+struct CPUTexture
+{
+  CPUTexture() = default;
+  CPUTexture(const LiteImage::Image2D<float3> &img)
+  {
+    w = img.width();
+    h = img.height();
+    channels = 3;
+    data = std::vector<float>((float*)img.data(), (float*)img.data() + w*h*channels);
+  }
+
+  /**
+  \brief UNSAFE ACCESS!!!
+
+  */
+  const float *get(int x, int y) const
+  {
+    return data.data() + channels*(y*w + x); 
+  }
+  std::vector<float> data;
+  int w,h,channels;
+};
+
+enum class MATERIAL { UNDEFINED = 0,
+                      DIFFUSE = 1, 
+                      LAMBERT = 2};
+
 /**
 \brief input/output mesh
 
@@ -31,6 +62,10 @@ struct TriangleMesh
   std::vector<float3>     vertices;
   std::vector<float3>     colors; // defined for each face
   std::vector<unsigned>   indices;
+
+  std::vector<float2>     tc; //if m_meshType != TRIANGLE_DIFF_TEX vector is empty
+  MATERIAL material = MATERIAL::UNDEFINED;
+  std::vector<CPUTexture> textures; // an arbitrary number of textures
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
   GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
