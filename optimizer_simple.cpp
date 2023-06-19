@@ -100,6 +100,14 @@ void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, cons
     
     for(int faceId=0; faceId < mesh->colors.size(); faceId++)
       mesh->colors[faceId] -= gradMesh.color_at(faceId)*a_gamma.color;
+    
+    for (int i=0;i<mesh->textures.size();i++)
+    {
+      int sz = mesh->textures[i].data.size();
+      int off = gradMesh.tex_offset(i);
+      for (int j=0;j<sz;j++)
+        mesh->textures[i].data[j] -= gradMesh[off + j]*a_gamma.color;
+    }
   }
   else if(m_params.alg >= GD_AdaGrad)
   {
@@ -146,6 +154,17 @@ void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, cons
       const GradReal divY = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 1] + GradReal(1e-8f)) );
       const GradReal divZ = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 2] + GradReal(1e-8f)) );
       mesh->colors[faceId] -= gradMesh.color_at(faceId)*float3(divX,divY,divZ)*a_gamma.color;
+    }
+
+    for (int i=0;i<mesh->textures.size();i++)
+    {
+      int sz = mesh->textures[i].data.size();
+      int off = gradMesh.tex_offset(i);
+      for (int j=0;j<sz;j++)
+      {
+        GradReal div = GradReal(1.0)/( std::sqrt(m_GSquare[off + j] + GradReal(1e-8f)) );
+        mesh->textures[i].data[j] -= gradMesh[off + j]*div*a_gamma.color;
+      }
     }
   }
 }

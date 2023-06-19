@@ -37,13 +37,15 @@ struct CPUTexture
     data = std::vector<float>((float*)img.data(), (float*)img.data() + w*h*channels);
   }
 
+  inline int pixel_to_offset(int x, int y) const { return channels*(y*w + x); }
+  inline int pixel_to_offset(int2 pixel) const { return channels*(pixel.y*w + pixel.x); }
   /**
   \brief UNSAFE ACCESS!!!
 
   */
   const float *get(int x, int y) const
   {
-    return data.data() + channels*(y*w + x); 
+    return data.data() + pixel_to_offset(x,y); 
   }
   std::vector<float> data;
   int w,h,channels;
@@ -102,9 +104,20 @@ struct DTriangleMesh
     
     if(m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
       m_allParams.resize(m_numVertices*3 + m_numVertices*3);
-    else
+    else if(m_meshType == MESH_TYPES::TRIANGLE_FACE_COL)
       m_allParams.resize(m_numVertices*3 + m_numFaces*3);
-  
+    else if (m_meshType == MESH_TYPES::TRIANGLE_DIFF_TEX)
+    {
+      int off = m_numVertices*3;
+      for (auto &t : mesh.textures)
+      {
+        m_texOffsets.push_back(off);
+        off += t.w*t.h*t.channels;
+      }
+      m_allParams.resize(off);
+    }
+    else
+      assert(false);
     m_colorOffset = m_numVertices*3;
 
     clear();
@@ -146,12 +159,16 @@ struct DTriangleMesh
   inline GradReal& operator[](size_t i)       { return m_allParams[i]; }
   inline GradReal  operator[](size_t i) const { return m_allParams[i]; }
 
+  inline int tex_offset(int tex_n) const { return m_texOffsets[tex_n]; }
+
 protected:
 
   std::vector<GradReal> m_allParams;
   int m_colorOffset;
   int m_numVertices;
   int m_numFaces;
+
+  std::vector<int> m_texOffsets;
 };
 
 using Img = LiteImage::Image2D<float3>;
