@@ -184,19 +184,19 @@ int main(int argc, char *argv[])
     for(int i=0;i<camsNum;i++)
       LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
   
-    DTriangleMesh grad1(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
-    DTriangleMesh grad2(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+    DTriangleMesh grad1; grad1.reset(initialMesh);
+    DTriangleMesh grad2; grad2.reset(initialMesh);
     
     if(0) // check gradient obtained from 2 images
     {
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
       pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
 
-      DTriangleMesh grad_avg(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+      DTriangleMesh grad_avg; grad_avg.reset(initialMesh);
       for(size_t i=0;i<grad_avg.size();i++)
         grad_avg[i] = 1.0f*(grad1[i] + grad2[i]);
       
-      DTriangleMesh grad12(initialMesh.vertices.size(), initialMesh.indices.size()/3, initialMesh.m_meshType, initialMesh.m_geomType);
+      DTriangleMesh grad12; grad12.reset(initialMesh);
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
       //pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
       //pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);

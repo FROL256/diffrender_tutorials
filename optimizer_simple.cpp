@@ -205,8 +205,9 @@ void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_
 
 TriangleMesh OptSimple::Run(size_t a_numIters) 
 { 
-  DTriangleMesh gradMesh(m_mesh.vertices.size(), m_mesh.colors.size(), m_mesh.m_meshType, m_mesh.m_geomType);
-  
+  DTriangleMesh gradMesh;
+  gradMesh.reset(m_mesh);
+
   if(m_params.alg >= GD_AdaGrad) {
     m_GSquare.resize(gradMesh.size());
     memset(m_GSquare.data(), 0, sizeof(GradReal)*m_GSquare.size());

@@ -92,24 +92,22 @@ typedef float GradReal;
 struct DTriangleMesh 
 {
   DTriangleMesh(){}
-  DTriangleMesh(int num_vertices, int num_faces, MESH_TYPES a_meshType = MESH_TYPES::TRIANGLE_FACE_COL, GEOM_TYPES a_gType = GEOM_TYPES::TRIANGLE_2D) 
-  {
-    m_meshType = a_meshType;
-    m_geomType = a_gType;
-    resize(num_vertices, num_faces);
-  }
 
-  void resize(int num_vertices, int num_faces)
+  void reset(const TriangleMesh &mesh)
   {
-    m_numVertices = num_vertices;
-    m_numFaces    = num_faces;  
+    m_meshType = mesh.m_meshType;
+    m_geomType = mesh.m_geomType;
+    m_numVertices = mesh.vertices.size();
+    m_numFaces    = mesh.indices.size()/3;  
     
     if(m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
-      m_allParams.resize(num_vertices*3 + num_vertices*3);
+      m_allParams.resize(m_numVertices*3 + m_numVertices*3);
     else
-      m_allParams.resize(num_vertices*3 + num_faces*3);
+      m_allParams.resize(m_numVertices*3 + m_numFaces*3);
   
-    m_colorOffset = num_vertices*3;
+    m_colorOffset = m_numVertices*3;
+
+    clear();
   }
 
   int numVerts() const { return m_numVertices; }
