@@ -73,18 +73,6 @@ struct TriangleMesh
   GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
 };
 
-/**
-\brief gamma multiplier for gradient descend
-  We could use full-sized vector for gamma parameter, however, in practice of differentriable rendering we can split vector in several parts.
-  And then return single numebr for each part of the vector
-*/
-struct GammaVec 
-{
-  GammaVec(float a_pos, float a_color) : pos(a_pos), color(a_color) {}
-  float pos;
-  float color;
-};
-
 typedef float GradReal;
 
 /**
@@ -158,7 +146,8 @@ struct DTriangleMesh
 
   inline GradReal& operator[](size_t i)       { return m_allParams[i]; }
   inline GradReal  operator[](size_t i) const { return m_allParams[i]; }
-
+  
+  inline int tex_count() const { return m_texOffsets.size(); }
   inline int tex_offset(int tex_n) const { return m_texOffsets[tex_n]; }
 
 protected:

@@ -7,6 +7,18 @@
 
 using namespace LiteMath;
 
+void OptimizerParameters::set_default()
+{
+  if (alg == OPT_ALGORITHM::GD_Adam)
+  {
+    decayPeriod = 100;
+    decay_mult = 0.75;
+    base_lr = 0.1;
+    position_lr = 0.1;
+    textures_lr = 0.1;
+  }
+}
+
 struct OptSimple : public IOptimizer
 {
   OptSimple(){}
@@ -18,11 +30,13 @@ struct OptSimple : public IOptimizer
 
 protected:
   
-  float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh);
-  void  OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, const GammaVec& a_gamma);
+  typedef std::vector<std::pair<int, float>> IntervalLearningRate; //offset, learning rate
 
-  GammaVec EstimateGamma(unsigned imageSize, GEOM_TYPES a_geomType) const;
-  void     StepDecay(int a_iterId, GammaVec& a_gamma) const;
+  float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh);
+  IntervalLearningRate GetLR(DTriangleMesh& gradMesh);
+  void  OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr);
+  void  OptUpdateMesh(const DTriangleMesh &gradMesh, TriangleMesh* mesh);
+  void  StepDecay(int a_iterId, IntervalLearningRate &lr) const;
 
   TriangleMesh m_mesh; ///<! global mesh optimized mesh
   size_t       m_iter = 0;
@@ -40,89 +54,59 @@ protected:
 IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target,
-               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
-
-
-GammaVec OptSimple::EstimateGamma(unsigned imageSize, GEOM_TYPES a_geomType) const 
+OptSimple::IntervalLearningRate OptSimple::GetLR(DTriangleMesh& gradMesh)
 {
-  GammaVec res(0.2f, 4.0f/float(imageSize*imageSize));
-
-  if(m_params.alg == GD_Naive)
-  {
-    res = GammaVec(0.2f, 4.0f/float(imageSize*imageSize));
-    if(a_geomType == GEOM_TYPES::TRIANGLE_3D)
-      res = GammaVec(0.001f/float(imageSize), 0.0);
-  }
-  else if(m_params.alg >= GD_AdaGrad)
-  {
-    res = GammaVec(std::sqrt(imageSize)/2, 0.1f);
-    if(a_geomType == GEOM_TYPES::TRIANGLE_3D)
-      res = GammaVec(0.075f, 0.1f);
-  }
-
-  return res;
+  IntervalLearningRate lr;
+  lr.push_back({0, m_params.position_lr});
+  lr.push_back({gradMesh.color_offs(), m_params.base_lr});
+  if (gradMesh.tex_count() > 0)
+    lr.push_back({gradMesh.tex_offset(0), m_params.textures_lr});
+  return lr;
 }
 
-void  OptSimple::StepDecay(int a_iterId, GammaVec& a_gamma) const
+void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lr) const
 {
-  if(m_params.alg == GD_Naive)
+  if(a_iterId > 0 && a_iterId % m_params.decayPeriod == 0)
   {
-    if(a_iterId >= 50 && a_iterId % m_params.decayPeriod == 0) {
-      a_gamma.pos   = a_gamma.pos*0.5f;
-      a_gamma.color = a_gamma.color*0.75f;
-    }
-    else if(a_iterId % m_params.decayPeriod == 0) {
-      a_gamma.pos   = a_gamma.pos*0.75f;
-      a_gamma.color = a_gamma.color*0.75f;
-    }
-  }
-  else if(m_params.alg >= GD_AdaGrad)
-  {
-    if(a_iterId >= 100 && a_iterId % m_params.decayPeriod == 0) {
-      a_gamma.pos   = a_gamma.pos*0.85f;
-      a_gamma.color = a_gamma.color*0.85f;
-    }
+    for (auto &p : lr)
+      p.second *= m_params.decay_mult;
   }
 }
 
-void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, const GammaVec& a_gamma)
+void OptSimple::OptUpdateMesh(const DTriangleMesh &gradMesh, TriangleMesh* mesh)
 {
-  if(m_params.alg == GD_Naive)
-  { 
-    //xNext[i] = x[i] - gamma*gradF[i];
-    //
     for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
-      mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*a_gamma.pos; //*float3(1,1,1);
+      mesh->vertices[vertId] -= gradMesh.vert_at(vertId);
     
     for(int faceId=0; faceId < mesh->colors.size(); faceId++)
-      mesh->colors[faceId] -= gradMesh.color_at(faceId)*a_gamma.color;
+      mesh->colors[faceId] -= gradMesh.color_at(faceId);
     
     for (int i=0;i<mesh->textures.size();i++)
     {
       int sz = mesh->textures[i].data.size();
       int off = gradMesh.tex_offset(i);
       for (int j=0;j<sz;j++)
-        mesh->textures[i].data[j] -= gradMesh[off + j]*a_gamma.color;
+        mesh->textures[i].data[j] -= gradMesh[off + j];
     }
-  }
-  else if(m_params.alg >= GD_AdaGrad)
+}
+
+void OptSimple::OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr)
+{
+  if(m_params.alg >= OptimizerParameters::GD_AdaGrad)
   {
-    if(m_params.alg == GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
+    if(m_params.alg == OptimizerParameters::GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
     {
       for(size_t i=0;i<gradMesh.size();i++)
         m_GSquare[i] += (gradMesh[i]*gradMesh[i]);
     }
-    else if(m_params.alg == GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
+    else if(m_params.alg == OptimizerParameters::GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
     {
       const float alpha = 0.5f;
       for(size_t i=0;i<gradMesh.size();i++)
         m_GSquare[i] = 2.0f*(m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha)); // does not works without 2.0f
     }
-    else if(m_params.alg == GD_Adam) // ==> Adam(m[i] = b*mPrev[i] + (1-b)*gradF[i], GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i])
+    else if(m_params.alg == OptimizerParameters::GD_Adam) // ==> Adam(m[i] = b*mPrev[i] + (1-b)*gradF[i], GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i])
     {
       const float alpha = 0.5f;
       const float beta  = 0.25f;
@@ -138,34 +122,15 @@ void  OptSimple::OptStep(const DTriangleMesh &gradMesh, TriangleMesh* mesh, cons
     }
     
     //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
-    //
-    for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
-    {
-      const GradReal divX = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+0] + GradReal(1e-8f)));
-      const GradReal divY = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+1] + GradReal(1e-8f)));
-      const GradReal divZ = GradReal(1.0)/( std::sqrt(m_GSquare[vertId*3+2] + GradReal(1e-8f)));
-      mesh->vertices[vertId] -= gradMesh.vert_at(vertId)*float3(divX,divY,divZ)*a_gamma.pos;
-    }
-    
-    const int offset = gradMesh.color_offs();
-    for(int faceId=0; faceId < mesh->colors.size(); faceId++)
-    {
-      const GradReal divX = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 0] + GradReal(1e-8f)) );
-      const GradReal divY = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 1] + GradReal(1e-8f)) );
-      const GradReal divZ = GradReal(1.0)/( std::sqrt(m_GSquare[offset + faceId*3 + 2] + GradReal(1e-8f)) );
-      mesh->colors[faceId] -= gradMesh.color_at(faceId)*float3(divX,divY,divZ)*a_gamma.color;
-    }
-
-    for (int i=0;i<mesh->textures.size();i++)
-    {
-      int sz = mesh->textures[i].data.size();
-      int off = gradMesh.tex_offset(i);
-      for (int j=0;j<sz;j++)
-      {
-        GradReal div = GradReal(1.0)/( std::sqrt(m_GSquare[off + j] + GradReal(1e-8f)) );
-        mesh->textures[i].data[j] -= gradMesh[off + j]*div*a_gamma.color;
-      }
-    }
+    for (int i=0;i<m_vec.size();i++)
+      gradMesh[i] = gradMesh[i]/( std::sqrt(m_GSquare[i] + GradReal(1e-8f)));
+  }
+  
+  for (int i=0;i<lr.size();i++)
+  {
+    int next_offset = (i == lr.size() - 1) ? m_vec.size() : lr[i+1].first;
+    for (int j=lr[i].first; j<next_offset; j++)
+      gradMesh[j] *= lr[i].second;
   }
 }
 
@@ -199,12 +164,6 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   gradMesh.clear();
   m_pDR->d_render(mesh, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
 
-  //for(int i=0;i<m_numViews;i++)
-  //   m_pDR->d_render(mesh, m_cams+i, adjoints.data()+i, 1, images[0].width() * images[0].height(), gradMesh);
-
-  //const float dPos = (mesh.m_geomType == TRIANGLE_2D) ? 1.0f : 4.0f/float(img.width());
-  //d_finDiff (mesh, "fin_diff", img, m_targetImage, gradMesh, dPos, 0.01f);
-
   m_iter++;
   return mse/float(m_numViews);
 }
@@ -227,17 +186,17 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   DTriangleMesh gradMesh;
   gradMesh.reset(m_mesh);
 
-  if(m_params.alg >= GD_AdaGrad) {
+  if(m_params.alg >= OptimizerParameters::GD_AdaGrad) {
     m_GSquare.resize(gradMesh.size());
     memset(m_GSquare.data(), 0, sizeof(GradReal)*m_GSquare.size());
   }
 
-  if(m_params.alg == GD_Adam) {
+  if(m_params.alg == OptimizerParameters::GD_Adam) {
     m_vec.resize(gradMesh.size());
     memset(m_vec.data(), 0, sizeof(GradReal)*m_vec.size());
   }
 
-  auto gamma = EstimateGamma(m_targets[0].width(), gradMesh.m_geomType);
+  auto lr = GetLR(gradMesh);
   
   m_iter = 0; 
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
@@ -245,8 +204,9 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     float error = EvalFunction(m_mesh, gradMesh);
     std::cout << "iter " << trueIter << ", error = " << error << std::endl;
     //PrintMesh(gradMesh);
-    OptStep(gradMesh, &m_mesh, gamma);
-    StepDecay(iter, gamma);
+    OptStep(gradMesh, lr);
+    OptUpdateMesh(gradMesh, &m_mesh);
+    StepDecay(iter, lr);
 
     if(error <= 0.5f && (iter < a_numIters-10)) // perform last 10 iterations and stop
     {
