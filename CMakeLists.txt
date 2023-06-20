@@ -46,14 +46,10 @@ find_package(OpenMP REQUIRED)
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
-add_executable(drender main.cpp
-                       drender.cpp
-                       functions.cpp
-                       fin_diff.cpp
-                       scenes.cpp
-                       qmc.cpp 
+file(GLOB SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "*.cpp")
+
+add_executable(drender ${SOURCES}
                        ${SOURCE_RT}
-                       optimizer_simple.cpp
                        include/Image2d.cpp)
 
 if(OpenMP_CXX_FOUND)
