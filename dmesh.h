@@ -10,9 +10,8 @@
 #include "Image2d.h"
 
 enum class MESH_TYPES {
-    TRIANGLE_FACE_COL = 1,
-    TRIANGLE_VERT_COL = 2,
-    TRIANGLE_DIFF_TEX = 3,
+    TRIANGLE_VERT_COL = 0,
+    TRIANGLE_DIFF_TEX = 1,
 };
 
 using LiteMath::float2;
@@ -66,7 +65,7 @@ struct TriangleMesh
   MATERIAL material = MATERIAL::UNDEFINED;
   std::vector<CPUTexture> textures; // an arbitrary number of textures
 
-  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
+  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 };
 
 typedef float GradReal;
@@ -87,8 +86,6 @@ struct DTriangleMesh
     
     if(m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
       m_allParams.resize(m_numVertices*3 + m_numVertices*3);
-    else if(m_meshType == MESH_TYPES::TRIANGLE_FACE_COL)
-      m_allParams.resize(m_numVertices*3 + m_numFaces*3);
     else if (m_meshType == MESH_TYPES::TRIANGLE_DIFF_TEX)
     {
       int off = m_numVertices*3;
@@ -132,7 +129,7 @@ struct DTriangleMesh
 
   MESH_TYPES getMeshType() const { return m_meshType; }
 
-  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
+  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 
   inline const GradReal* data() const { return m_allParams.data(); }
   inline GradReal*       data()       { return m_allParams.data(); }

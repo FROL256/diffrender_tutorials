@@ -17,77 +17,6 @@ struct AuxData
 
 namespace MODELS
 { 
-  struct TRIANGLE3D_FACE_COLOR
-  {
-    static inline MESH_TYPES getMeshType() { return MESH_TYPES::TRIANGLE_FACE_COL; }
-    
-    static inline float3 shade (const TriangleMesh &mesh, const SurfaceInfo& surfInfo, const float3 ray_pos, const float3 ray_dir)
-    {
-      if (surfInfo.faceId == unsigned(-1))
-        return float3(0,0,0); // BGCOLOR
-      return mesh.colors[surfInfo.faceId]; 
-    }
-
-    static inline void   shade_grad(const TriangleMesh &mesh, const SurfaceInfo& surfElem, const float3 ray_pos, const float3 ray_dir, const float3 val, const AuxData aux, 
-                                    DTriangleMesh& grad) 
-    { 
-      GradReal* d_colors = grad.colors_s();
-
-      d_colors[surfElem.faceId*3+0] += GradReal(val.x); 
-      d_colors[surfElem.faceId*3+1] += GradReal(val.y);
-      d_colors[surfElem.faceId*3+2] += GradReal(val.z);
-    }
-
-    static inline void   edge_grad (const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux, 
-                                    std::vector<GradReal>& d_pos) 
-    { 
-      float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
-      float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
-      
-      float3 v0_3d = mesh.vertices[v0];
-      float3 v1_3d = mesh.vertices[v1];
-      
-      VS_X_grad(v0_3d.M, *(aux.pCamInfo), v0_d[0].M);
-      VS_Y_grad(v0_3d.M, *(aux.pCamInfo), v0_d[1].M);
-      VS_X_grad(v1_3d.M, *(aux.pCamInfo), v1_d[0].M);
-      VS_Y_grad(v1_3d.M, *(aux.pCamInfo), v1_d[1].M);
-      
-      const float dv0_dx = v0_d[0].x*d_v0.x; // + v0_dx.y*d_v0.y; ==> 0
-      const float dv0_dy = v0_d[1].y*d_v0.y; // + v0_dy.x*d_v0.x; ==> 0
-      const float dv0_dz = (v0_d[0].z*d_v0.x + v0_d[1].z*d_v0.y); 
-       
-      const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y; ==> 0
-      const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x; ==> 0
-      const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
-      
-      //#if DEBUG_RENDER
-      //for(int debugId=0; debugId<3; debugId++) 
-      //{
-      //  if(G_DEBUG_VERT_ID + debugId == v0)
-      //  {
-      //    if(aux.debugImageNum > 0 && aux.debugImages!= nullptr)
-      //      aux.debugImages[debugId][int2(xi,yi)] += float3(dv0_dx,dv0_dy,dv0_dz);
-      //  }
-      //  else if(G_DEBUG_VERT_ID + debugId == v1)
-      //  {
-      //    if(aux.debugImageNum > 0)
-      //      aux.debugImages[debugId][int2(xi,yi)] += float3(dv1_dx,dv1_dy,dv1_dz);
-      //  }
-      //}
-      //#endif
-      
-      d_pos[v0*3+0] += GradReal(dv0_dx);
-      d_pos[v0*3+1] += GradReal(dv0_dy);
-      d_pos[v0*3+2] += GradReal(dv0_dz);
-      
-      d_pos[v1*3+0] += GradReal(dv1_dx);
-      d_pos[v1*3+1] += GradReal(dv1_dy);
-      d_pos[v1*3+2] += GradReal(dv1_dz);
-    }
-  };
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
   struct TRIANGLE3D_VERT_COLOR
   {
     static inline MESH_TYPES getMeshType() { return MESH_TYPES::TRIANGLE_VERT_COL; }
@@ -186,8 +115,32 @@ namespace MODELS
     static inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux, 
                                  std::vector<GradReal>& d_pos) 
     {
-      TRIANGLE3D_FACE_COLOR::edge_grad(mesh, v0, v1, d_v0, d_v1, aux, 
-                                       d_pos);
+      float3 v0_d[2] = {{0,0,0},{0,0,0}}; 
+      float3 v1_d[2] = {{0,0,0},{0,0,0}}; 
+      
+      float3 v0_3d = mesh.vertices[v0];
+      float3 v1_3d = mesh.vertices[v1];
+      
+      VS_X_grad(v0_3d.M, *(aux.pCamInfo), v0_d[0].M);
+      VS_Y_grad(v0_3d.M, *(aux.pCamInfo), v0_d[1].M);
+      VS_X_grad(v1_3d.M, *(aux.pCamInfo), v1_d[0].M);
+      VS_Y_grad(v1_3d.M, *(aux.pCamInfo), v1_d[1].M);
+      
+      const float dv0_dx = v0_d[0].x*d_v0.x; // + v0_dx.y*d_v0.y; ==> 0
+      const float dv0_dy = v0_d[1].y*d_v0.y; // + v0_dy.x*d_v0.x; ==> 0
+      const float dv0_dz = (v0_d[0].z*d_v0.x + v0_d[1].z*d_v0.y); 
+       
+      const float dv1_dx = v1_d[0].x*d_v1.x; // + v1_dx.y*d_v1.y; ==> 0
+      const float dv1_dy = v1_d[1].y*d_v1.y; // + v1_dy.x*d_v1.x; ==> 0
+      const float dv1_dz = (v1_d[0].z*d_v1.x + v1_d[1].z*d_v1.y); 
+      
+      d_pos[v0*3+0] += GradReal(dv0_dx);
+      d_pos[v0*3+1] += GradReal(dv0_dy);
+      d_pos[v0*3+2] += GradReal(dv0_dz);
+      
+      d_pos[v1*3+0] += GradReal(dv1_dx);
+      d_pos[v1*3+1] += GradReal(dv1_dy);
+      d_pos[v1*3+2] += GradReal(dv1_dz);
     }
   };
 
@@ -295,8 +248,7 @@ namespace MODELS
     static inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux, 
                                  std::vector<GradReal>& d_pos) 
     {
-      TRIANGLE3D_FACE_COLOR::edge_grad(mesh, v0, v1, d_v0, d_v1, aux, 
-                                       d_pos);
+      TRIANGLE3D_VERT_COLOR::edge_grad(mesh, v0, v1, d_v0, d_v1, aux, d_pos);
     }
   };
 };
