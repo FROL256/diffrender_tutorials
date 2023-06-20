@@ -10,11 +10,6 @@
 #include "Image2d.h"
 #include "utils.h"
 
-enum class MESH_TYPES {
-    TRIANGLE_VERT_COL = 0,
-    TRIANGLE_DIFF_TEX = 1,
-};
-
 struct CPUTexture
 {
   CPUTexture() = default;
@@ -41,8 +36,10 @@ struct CPUTexture
 };
 
 enum class MATERIAL { UNDEFINED = 0,
-                      DIFFUSE = 1, 
-                      LAMBERT = 2};
+                      SILHOUETTE = 1,
+                      VERTEX_COLOR = 2,
+                      DIFFUSE = 3, 
+                      LAMBERT = 4};
 
 /**
 \brief input/output mesh
@@ -50,15 +47,38 @@ enum class MATERIAL { UNDEFINED = 0,
 */
 struct TriangleMesh 
 {
+  TriangleMesh() = default;
+  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float3> &_colors, const std::vector<unsigned> &_indices = {})
+  {
+    vertices = _vertices;
+    colors = _colors;
+    indices = _indices;
+    material = MATERIAL::VERTEX_COLOR;
+  }
+  
+  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float2> &_tc, 
+               MATERIAL mat, const std::vector<unsigned> &_indices = {})
+  {
+    vertices = _vertices;
+    tc = _tc;
+    indices = _indices;
+    material = mat;
+  }
+
+  inline int vertex_count() const { return vertices.size(); }
+  inline int face_count() const { return indices.size()/3; }
+
+  //vertex attributes, some of them might be empty
   std::vector<float3>     vertices;
-  std::vector<float3>     colors; // defined for each face
+  std::vector<float3>     colors;
+  std::vector<float2>     tc;
+  std::vector<float3>     normals;
+  std::vector<float3>     tangents;
+
   std::vector<unsigned>   indices;
 
-  std::vector<float2>     tc; //if m_meshType != TRIANGLE_DIFF_TEX vector is empty
   MATERIAL material = MATERIAL::UNDEFINED;
   std::vector<CPUTexture> textures; // an arbitrary number of textures
-
-  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 };
 
 typedef float GradReal;
@@ -73,13 +93,14 @@ struct DTriangleMesh
 
   void reset(const TriangleMesh &mesh)
   {
-    m_meshType = mesh.m_meshType;
-    m_numVertices = mesh.vertices.size();
-    m_numFaces    = mesh.indices.size()/3;  
+    m_numVertices = mesh.vertex_count();
+    m_numFaces    = mesh.face_count();  
     
-    if(m_meshType == MESH_TYPES::TRIANGLE_VERT_COL)
-      m_allParams.resize(m_numVertices*3 + m_numVertices*3);
-    else if (m_meshType == MESH_TYPES::TRIANGLE_DIFF_TEX)
+    if (mesh.material == MATERIAL::VERTEX_COLOR)
+      m_allParams.resize((3 + 3)*m_numVertices);
+    else if (mesh.material == MATERIAL::SILHOUETTE)
+      m_allParams.resize(3*m_numVertices);
+    else if (mesh.material != MATERIAL::UNDEFINED)
     {
       int off = m_numVertices*3;
       for (auto &t : mesh.textures)
@@ -91,8 +112,8 @@ struct DTriangleMesh
     }
     else
       assert(false);
+    
     m_colorOffset = m_numVertices*3;
-
     clear();
   }
 
@@ -119,10 +140,6 @@ struct DTriangleMesh
 
   void clear() { for(auto& x : m_allParams) x = GradReal(0); }
   size_t size() const { return m_allParams.size(); } 
-
-  MESH_TYPES getMeshType() const { return m_meshType; }
-
-  MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 
   inline const GradReal* data() const { return m_allParams.data(); }
   inline GradReal*       data()       { return m_allParams.data(); }

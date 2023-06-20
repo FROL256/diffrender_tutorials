@@ -35,7 +35,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
   const float MSEOrigin = MSE(origin, target);
   const float scale = float(256*256*3);
 
-  for(size_t i=0; i<mesh.vertices.size();i++)
+  for(size_t i=0; i<mesh.vertex_count();i++)
   {
     TriangleMesh copy;
     
@@ -73,7 +73,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
     d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
   }
   
-  size_t colrsNum = (mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
+  size_t colrsNum = mesh.vertex_count();
   
   for(size_t i=0; i<colrsNum;i++)
   {
@@ -124,7 +124,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
   
   const Img MSEOrigin = LiteImage::MSEImage(origin, target);
 
-  for(size_t i=0; i<mesh.vertices.size();i++)
+  for(size_t i=0; i<mesh.vertex_count();i++)
   {
     TriangleMesh copy;
     
@@ -177,7 +177,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
     d_mesh.vertices_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
   
-  size_t colrsNum = (mesh.m_meshType == MESH_TYPES::TRIANGLE_VERT_COL) ? mesh.vertices.size() : mesh.indices.size()/3;
+  size_t colrsNum = mesh.vertex_count();
   
   for(size_t i=0; i<colrsNum;i++)
   {

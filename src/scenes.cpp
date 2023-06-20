@@ -44,7 +44,6 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5}
   };
   
-  mesh.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
   initial = mesh;
   ///////////////////////////////////////////////////////////////// 
   
@@ -61,7 +60,6 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
        3, 4, 5}
   };
 
-  mesh2.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
   target = mesh2;
 }
 
@@ -90,7 +88,6 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
       {0, 1, 2}
   };
 
-  tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 
   initial = tridata;
   target  = tridata;
@@ -164,10 +161,6 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
       {0, 1, 2}
   };
 
-  tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-
-  tridata2.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-
   initial = tridata;
   target  = tridata2;
   
@@ -226,7 +219,6 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
        //1, 3, 4},
   };
 
-  pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
 
   initial = pyramid;
   target  = pyramid;
@@ -335,9 +327,6 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
     cube.indices[face*6+5] = face*4+3;
   }
 
-  cube.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-
-
   initial = cube;
   target  = cube;
   
@@ -419,7 +408,6 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
     {0.0f, 0.0f},  // 6
     {1.0f, 0.0f,},   // 7
   };
-  cube.material = MATERIAL::DIFFUSE;
 
   {
     int w = 256;
@@ -443,9 +431,6 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
     }
 
   }
-
-
-  cube.m_meshType = MESH_TYPES::TRIANGLE_DIFF_TEX;
 
   initial = cube;
   target  = cube;

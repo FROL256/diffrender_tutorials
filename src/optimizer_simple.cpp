@@ -77,13 +77,21 @@ void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lr) const
 
 void OptSimple::OptUpdateMesh(const DTriangleMesh &gradMesh, TriangleMesh* mesh)
 {
-    for(int vertId=0; vertId< mesh->vertices.size(); vertId++)
-      mesh->vertices[vertId] -= gradMesh.vert_at(vertId);
+    for(int vertId=0; vertId< mesh->vertex_count(); vertId++)
+    {
+      mesh->vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];
+      mesh->vertices[vertId].y -= gradMesh.vertices_s()[3*vertId+1];
+      mesh->vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
+    }
     
     for(int faceId=0; faceId < mesh->colors.size(); faceId++)
-      mesh->colors[faceId] -= gradMesh.color_at(faceId);
+    {
+      mesh->colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
+      mesh->colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
+      mesh->colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
+    }
     
-    for (int i=0;i<mesh->textures.size();i++)
+    for (int i=0;i<gradMesh.tex_count();i++)
     {
       int sz = mesh->textures[i].data.size();
       int off = gradMesh.tex_offset(i);

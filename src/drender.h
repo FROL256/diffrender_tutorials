@@ -42,6 +42,8 @@ int sample(const Sampler &sampler, const float u);
 // given a triangle mesh, collect all edges.
 std::vector<Edge> collect_edges(const TriangleMesh &mesh);
 
+inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
+                      std::vector<GradReal> &d_pos);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +57,7 @@ struct IDiffRender
                         Img* debugImages = nullptr, int debugImageNum = 0) = 0;
 };
 
-template<class Model>
+template<MATERIAL material>
 struct DiffRender : public IDiffRender
 {
   void init(const TriangleMesh &a_mesh, int a_samplesPerPixel)
@@ -110,7 +112,7 @@ struct DiffRender : public IDiffRender
               
               float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
               auto surf  = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-              auto color = Model::shade(mesh, surf, ray_pos, ray_dir);
+              auto color = shade<material>(mesh, surf, ray_pos, ray_dir);
   
               pixelColor += (color / samples_per_pixel);
             }
@@ -140,8 +142,9 @@ struct DiffRender : public IDiffRender
       m_aux.pCamInfo      = cams + camId;
       m_aux.debugImages   = debugImages;
       m_aux.debugImageNum = debugImageNum;
-    
-      interior_derivatives(mesh, adjoints[camId], d_mesh);
+
+      if (material != MATERIAL::SILHOUETTE) //constexpr
+        interior_derivatives(mesh, adjoints[camId], d_mesh);
   
       edge_derivatives(mesh, adjoints[camId], edge_samples_in_total, d_mesh);
     }
@@ -179,8 +182,7 @@ private:
   
           if (surfElem.faceId != unsigned(-1)) {          
             const auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            Model::shade_grad(mesh, surfElem, ray_pos, ray_dir, val, m_aux, 
-                              grads[omp_get_thread_num()]);
+            shade_grad<material>(mesh, surfElem, ray_pos, ray_dir, val, m_aux, grads[omp_get_thread_num()]);
           }      
                
         } // for (int samId = 0; samId < samples_per_pixel; samId++)
@@ -261,8 +263,8 @@ private:
       const auto surfIn  = m_pTracer->CastSingleRay(coordIn.x, coordIn.y, &ray_posIn, &ray_dirIn);
       const auto surfOut = m_pTracer->CastSingleRay(coordOut.x, coordOut.y, &ray_posOut, &ray_dirOut);
 
-      const auto color_in  = Model::shade(mesh2d, surfIn, ray_posIn, ray_dirIn);
-      const auto color_out = Model::shade(mesh2d, surfOut, ray_posOut, ray_dirOut);
+      const auto color_in  = shade<material>(mesh2d, surfIn, ray_posIn, ray_dirIn);
+      const auto color_out = shade<material>(mesh2d, surfOut, ray_posOut, ray_dirOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
@@ -280,8 +282,7 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        Model::edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, 
-                         grads[omp_get_thread_num()]);
+        edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()]);
       }
     }    
   
