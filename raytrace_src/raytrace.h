@@ -52,7 +52,6 @@ struct IRayTracer
   virtual SurfaceInfo CastSingleRay(float x, float y, float3* outPos = nullptr, float3* outDir = nullptr) = 0;
 };
 
-std::shared_ptr<IRayTracer> MakeRayTracer2D(const char* className);
 std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

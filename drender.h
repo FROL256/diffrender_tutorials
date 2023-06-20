@@ -72,11 +72,7 @@ struct DiffRender : public IDiffRender
   void init(const TriangleMesh &a_mesh, int a_samplesPerPixel)
   {
     m_samples_per_pixel = a_samplesPerPixel;
-    if(a_mesh.m_geomType == GEOM_TYPES::TRIANGLE_2D)
-      m_pTracer = MakeRayTracer2D("");  
-    else
-      m_pTracer = MakeRayTracer3D("");
-    
+    m_pTracer = MakeRayTracer3D("");
     m_hammSamples.resize(2*a_samplesPerPixel);
 
     qmc::init(m_table);
@@ -215,29 +211,18 @@ private:
         const int num_edge_samples,
         DTriangleMesh &d_mesh) 
   {
-    // (1) if we have 3d mesh, need to project it to screen for correct edje sampling
-    //  
-    const TriangleMesh copy   = mesh3d;
-    const TriangleMesh* pMesh = &mesh3d;
-    
-    TriangleMesh localMesh;
-    if(mesh3d.m_geomType == GEOM_TYPES::TRIANGLE_3D)
+    // (1) We need to project 3d mesh to screen for correct edje sampling  
+    TriangleMesh mesh2d = mesh3d;
+    for(auto& v : mesh2d.vertices) 
     {
-      localMesh = mesh3d;
-      for(auto& v : localMesh.vertices) {
-        auto vCopy = v;
-        VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, 
-                     v.M);
-      }
-      localMesh.m_geomType = GEOM_TYPES::TRIANGLE_2D;
-      pMesh = &localMesh;
+      auto vCopy = v;
+      VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
     }
-    const TriangleMesh& mesh = *pMesh;
   
     // (2) prepare edjes
     //
-    auto edges        = collect_edges(mesh);
-    auto edge_sampler = build_edge_sampler(mesh, edges);
+    auto edges        = collect_edges(mesh2d);
+    auto edge_sampler = build_edge_sampler(mesh2d, edges);
   
     // (3) do edje sampling
     // 
@@ -267,8 +252,8 @@ private:
       auto pmf     = edge_sampler.pmf[edge_id];
       
       // pick a point p on the edge
-      auto v0 = LiteMath::to_float2(mesh.vertices[edge.v0]);
-      auto v1 = LiteMath::to_float2(mesh.vertices[edge.v1]);
+      auto v0 = LiteMath::to_float2(mesh2d.vertices[edge.v0]);
+      auto v1 = LiteMath::to_float2(mesh2d.vertices[edge.v1]);
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
@@ -287,8 +272,8 @@ private:
       const auto surfIn  = m_pTracer->CastSingleRay(coordIn.x, coordIn.y, &ray_posIn, &ray_dirIn);
       const auto surfOut = m_pTracer->CastSingleRay(coordOut.x, coordOut.y, &ray_posOut, &ray_dirOut);
 
-      const auto color_in  = Model::shade(mesh, surfIn, ray_posIn, ray_dirIn);
-      const auto color_out = Model::shade(mesh, surfOut, ray_posOut, ray_dirOut);
+      const auto color_in  = Model::shade(mesh2d, surfIn, ray_posIn, ray_dirIn);
+      const auto color_out = Model::shade(mesh2d, surfOut, ray_posOut, ray_dirOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.

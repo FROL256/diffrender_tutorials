@@ -91,7 +91,6 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
   };
 
   tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  tridata.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = tridata;
   target  = tridata;
@@ -166,10 +165,8 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
   };
 
   tridata.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  tridata.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   tridata2.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  tridata2.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = tridata;
   target  = tridata2;
@@ -230,7 +227,6 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   };
 
   pyramid.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  pyramid.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = pyramid;
   target  = pyramid;
@@ -340,7 +336,6 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
   }
 
   cube.m_meshType = MESH_TYPES::TRIANGLE_VERT_COL;
-  cube.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
 
   initial = cube;
@@ -415,7 +410,6 @@ void scn07_Cube3D_FColor(TriangleMesh& initial, TriangleMesh& target)
   cube.indices[30] = 0; cube.indices[31] = 3; cube.indices[32] = 4;     cube.indices[33] = 0; cube.indices[34] = 4; cube.indices[35] = 7; 
 
   cube.m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  cube.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = cube;
   target  = cube;
@@ -526,7 +520,6 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
 
   cube.m_meshType = MESH_TYPES::TRIANGLE_DIFF_TEX;
-  cube.m_geomType = GEOM_TYPES::TRIANGLE_3D;
 
   initial = cube;
   target  = cube;

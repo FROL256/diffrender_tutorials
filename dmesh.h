@@ -15,9 +15,6 @@ enum class MESH_TYPES {
     TRIANGLE_DIFF_TEX = 3,
 };
 
-enum class GEOM_TYPES { TRIANGLE_2D = 0, 
-                        TRIANGLE_3D = 1};
-
 using LiteMath::float2;
 using LiteMath::float3;
 using LiteMath::float4;
@@ -70,7 +67,6 @@ struct TriangleMesh
   std::vector<CPUTexture> textures; // an arbitrary number of textures
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
 };
 
 typedef float GradReal;
@@ -86,7 +82,6 @@ struct DTriangleMesh
   void reset(const TriangleMesh &mesh)
   {
     m_meshType = mesh.m_meshType;
-    m_geomType = mesh.m_geomType;
     m_numVertices = mesh.vertices.size();
     m_numFaces    = mesh.indices.size()/3;  
     
@@ -136,10 +131,8 @@ struct DTriangleMesh
   size_t size() const { return m_allParams.size(); } 
 
   MESH_TYPES getMeshType() const { return m_meshType; }
-  GEOM_TYPES getGeomType() const { return m_geomType; }
 
   MESH_TYPES m_meshType = MESH_TYPES::TRIANGLE_FACE_COL;
-  GEOM_TYPES m_geomType = GEOM_TYPES::TRIANGLE_2D;
 
   inline const GradReal* data() const { return m_allParams.data(); }
   inline GradReal*       data()       { return m_allParams.data(); }

@@ -29,14 +29,12 @@ if(USE_EMBREE)
   endif()
 
   set(SOURCE_RT
-      raytrace_src/raytrace2d.cpp
       raytrace_src/raytrace3d_bf.cpp
       raytrace_src/raytrace3d_embree.cpp
       raytrace_src/EmbreeRT.cpp)
 else()
 
   set(SOURCE_RT
-      raytrace_src/raytrace2d.cpp
       raytrace_src/raytrace3d_bf.cpp)
 
   set(RT_EMBREE_LIBS "")

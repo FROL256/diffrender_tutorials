@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
         LiteImage::SaveImage(path.c_str(), dxyzDebug[i]);
       }
   
-      const float dPos = (initialMesh.m_geomType == GEOM_TYPES::TRIANGLE_2D) ? 1.0f : 2.0f/float(img.width());
+      const float dPos = 2.0f/float(img.width());
       d_finDiff (initialMesh, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
       //d_finDiff2(initialMesh, "fin_diff", images[0], targets[0], pDRender, g_uniforms, grad2, dPos, 0.01f);
       
