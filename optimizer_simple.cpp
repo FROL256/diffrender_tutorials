@@ -1,4 +1,5 @@
 #include "optimizer.h"
+#include "utils.h"
 
 #include <cassert>
 #include <iomanip>

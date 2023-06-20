@@ -29,71 +29,11 @@
 #include "qmc.h"
 #include "drender.h"
 
-using std::vector;
-using std::string;
-using std::min;
-using std::max;
-using std::set;
-using std::fstream;
-
-using LiteMath::float2;
-using LiteMath::float3;
-using LiteMath::float4;
-using LiteMath::float4x4;
-using LiteMath::int2;
-
-using LiteMath::clamp;
-using LiteMath::normalize;
+#include "utils.h"
+#include "fin_diff.h"
+#include "Image2d.h"
 
 constexpr static int  SAM_PER_PIXEL = 16;
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void PrintMesh(const DTriangleMesh& a_mesh)
-{
-  for(int i=0; i<a_mesh.numVerts();i++)
-    std::cout << "ver[" << i << "]: " << a_mesh.vert_at(i).x << ", " << a_mesh.vert_at(i).y << std::endl;  
-  std::cout << std::endl;
-  for(size_t i=0; i<a_mesh.numFaces();i++)
-    std::cout << "col[" << i << "]: " << a_mesh.color_at(i).x << ", " << a_mesh.color_at(i).y << ", " << a_mesh.color_at(i).z << std::endl;
-  std::cout << std::endl;
-}
-
-void PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& grad2);
-
-float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
-{
-  assert(a.width()*a.height() == b.width()*b.height());
-  double accumMSE = 0.0f;
-  const size_t imgSize = a.width()*a.height();
-  for(size_t i=0;i<imgSize;i++)
-  {
-    const float3 diffVec = b.data()[i] - a.data()[i];
-    a_outDiff.data()[i] = 2.0f*diffVec;                    // (I[x,y] - I_target[x,y])    // dirrerential of the loss function 
-    accumMSE += double(dot(diffVec, diffVec));             // (I[x,y] - I_target[x,y])^2  // the loss function itself
-  }
-  return float(accumMSE);
-}
-
-float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
-               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
-
-
-void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
-               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f);
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) 
 {
@@ -224,7 +164,6 @@ int main(int argc, char *argv[])
   
       const float dPos = 2.0f/float(img.width());
       d_finDiff (initialMesh, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
-      //d_finDiff2(initialMesh, "fin_diff", images[0], targets[0], pDRender, g_uniforms, grad2, dPos, 0.01f);
       
       PrintAndCompareGradients(grad1, grad2);
       return 0;

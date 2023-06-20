@@ -8,19 +8,12 @@
 
 #include "LiteMath.h"
 #include "Image2d.h"
+#include "utils.h"
 
 enum class MESH_TYPES {
     TRIANGLE_VERT_COL = 0,
     TRIANGLE_DIFF_TEX = 1,
 };
-
-using LiteMath::float2;
-using LiteMath::float3;
-using LiteMath::float4;
-
-using LiteMath::int2;
-using LiteMath::int3;
-using LiteMath::int4;
 
 struct CPUTexture
 {
@@ -150,8 +143,6 @@ protected:
   std::vector<int> m_texOffsets;
 };
 
-using Img = LiteImage::Image2D<float3>;
-
 static inline float3 SummOfPixels(const Img& a_image) 
 {
   const auto& color = a_image.vector();
@@ -166,9 +157,3 @@ static inline float3 SummOfPixels(const Img& a_image)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff);
-
-
-static inline float2 normal2D(const float2 &v) {return float2{-v.y, v.x};} 
-static inline float  edgeFunction(float2 a, float2 b, float2 c) { return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x); }  // actuattly just a mixed product ... :)
