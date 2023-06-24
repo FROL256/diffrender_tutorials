@@ -158,6 +158,9 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
     std::stringstream strOut;
     strOut  << "rendered_opt" << i << "/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
     auto temp = strOut.str();
+    //for (int x = 0; x<images[i].width(); x++ )
+    //  for (int y = 0; y<images[i].height(); y++)
+    //    images[i][int2(x,y)] = float3(mesh.textures[0].get(x,y)[0], mesh.textures[0].get(x,y)[1], mesh.textures[0].get(x,y)[2]);
     LiteImage::SaveImage(temp.c_str(), images[i]);
   }
 

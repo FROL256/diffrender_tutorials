@@ -39,7 +39,8 @@ enum class MATERIAL { UNDEFINED = 0,
                       SILHOUETTE = 1,
                       VERTEX_COLOR = 2,
                       DIFFUSE = 3, 
-                      LAMBERT = 4};
+                      LAMBERT = 4,
+                      PHONG = 5};
 
 /**
 \brief input/output mesh
