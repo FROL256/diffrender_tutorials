@@ -99,6 +99,13 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh
     return impl;
     }
     break;
+  case MATERIAL::LAMBERT:
+    {
+    auto impl = std::make_shared<DiffRender<MATERIAL::LAMBERT>>();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+    }
+    break;
   default:
     assert(false);
     break;
