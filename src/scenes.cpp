@@ -432,6 +432,8 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   }
 
+  cube.material = MATERIAL::DIFFUSE;
+
   initial = cube;
   target  = cube;
   
