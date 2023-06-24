@@ -452,3 +452,111 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   for(auto& v : target.vertices)
     v = mTransform1*v;
 }
+
+void CreateSphere(TriangleMesh &sphere, float radius, int numberSlices)
+{
+  int i, j;
+
+  int numberParallels = numberSlices;
+  int numberVertices  = (numberParallels + 1) * (numberSlices + 1);
+  int numberIndices   = numberParallels * numberSlices * 3;
+
+  float angleStep     = (2.0f * 3.14159265358979323846f) / ((float)numberSlices);
+  //float helpVector[3] = { 0.0f, 1.0f, 0.0f };
+ 
+  sphere.vertices.resize(numberVertices);
+  sphere.normals.resize(numberVertices);
+  sphere.tc.resize(numberVertices);
+  sphere.indices.resize(numberIndices);
+
+
+  for (i = 0; i < numberParallels + 1; i++)
+  {
+    for (j = 0; j < numberSlices + 1; j++)
+    {
+      int ind    = (i * (numberSlices + 1) + j);
+
+      sphere.vertices[ind].x = radius * sinf(angleStep * (float)i) * sinf(angleStep * (float)j);
+      sphere.vertices[ind].y = radius * cosf(angleStep * (float)i);
+      sphere.vertices[ind].z = radius * sinf(angleStep * (float)i) * cosf(angleStep * (float)j);
+
+      sphere.normals[ind] = sphere.vertices[ind] / radius;
+
+      sphere.tc[ind].x = (float)j / (float)numberSlices;
+      sphere.tc[ind].y = (1.0f - (float)i) / (float)(numberParallels - 1);
+    }
+  }
+
+  unsigned* indexBuf = sphere.indices.data();
+
+  for (i = 0; i < numberParallels; i++)
+  {
+    for (j = 0; j < numberSlices; j++)
+    {
+      *indexBuf++ = i * (numberSlices + 1) + j;
+      *indexBuf++ = (i + 1) * (numberSlices + 1) + j;
+      *indexBuf++ = (i + 1) * (numberSlices + 1) + (j + 1);
+
+      *indexBuf++ = i * (numberSlices + 1) + j;
+      *indexBuf++ = (i + 1) * (numberSlices + 1) + (j + 1);
+      *indexBuf++ = i * (numberSlices + 1) + (j + 1);
+      
+      int diff = int(indexBuf - sphere.indices.data());
+      if (diff >= numberIndices)
+        break;
+    }
+
+    int diff = int(indexBuf - sphere.indices.data());
+    if (diff >= numberIndices)
+      break;
+  }
+}
+
+void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
+{
+  TriangleMesh sphere;
+  CreateSphere(sphere, 1, 12);
+
+  {
+    int w = 256;
+    int h = 256;
+    sphere.textures.emplace_back();
+    sphere.textures.back().w = w;
+    sphere.textures.back().h = h;
+    sphere.textures.back().channels = 3;
+    sphere.textures.back().data.resize(w*h*3);
+    for (int j=0;j<h;j++)
+    {
+      for (int i=0;i<w;i++)
+      {
+        float v = 0;
+        if ((i/16)%2 != (j/16)%2)
+          v = 1;
+        sphere.textures.back().data[3*(j*w+i)] = v;
+        sphere.textures.back().data[3*(j*w+i)+1] = 1-v;
+        sphere.textures.back().data[3*(j*w+i)+2] = 0;
+      }
+    }
+
+  }
+
+  sphere.material = MATERIAL::LAMBERT;
+
+  initial = sphere;
+  target  = sphere;
+  
+  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+
+  // testing texture reconstruction, so apply same transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+
+  for(auto& v : initial.vertices)
+    v = mTransform1*v;
+
+  for(auto& v : target.vertices)
+    v = mTransform1*v;
+}
