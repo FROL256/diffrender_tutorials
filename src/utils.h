@@ -9,6 +9,8 @@ using LiteMath::float3;
 using LiteMath::float4;
 using LiteMath::float4x4;
 using LiteMath::int2;
+using LiteMath::int3;
+using LiteMath::int4;
 
 using LiteMath::clamp;
 using LiteMath::normalize;
