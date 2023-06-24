@@ -3,7 +3,7 @@
 #include "shade_common.h"
 
 template <>
-float3 shade<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
@@ -13,14 +13,14 @@ float3 shade<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTrac
 }
 
 template <>
-void shade_grad<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                         const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
 
 }
 
 template <>
-float3 shade<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
@@ -36,7 +36,7 @@ float3 shade<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTr
 }
 
 template <>
-void shade_grad<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                           const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
@@ -106,7 +106,7 @@ void shade_grad<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_
 }
 
 template <>
-float3 shade<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
@@ -124,7 +124,7 @@ float3 shade<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer,
 }
 
 template <>
-void shade_grad<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
   SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);

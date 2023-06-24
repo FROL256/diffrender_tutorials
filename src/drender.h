@@ -57,7 +57,7 @@ struct IDiffRender
                         Img* debugImages = nullptr, int debugImageNum = 0) = 0;
 };
 
-template<MATERIAL material>
+template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
 {
   void init(const TriangleMesh &a_mesh, int a_samplesPerPixel)
@@ -141,7 +141,7 @@ struct DiffRender : public IDiffRender
       m_aux.debugImages   = debugImages;
       m_aux.debugImageNum = debugImageNum;
 
-      if (material != MATERIAL::SILHOUETTE) //constexpr
+      if (material != SHADING_MODEL::SILHOUETTE) //constexpr
         interior_derivatives(mesh, adjoints[camId], d_mesh);
   
       edge_derivatives(mesh, adjoints[camId], edge_samples_in_total, d_mesh);

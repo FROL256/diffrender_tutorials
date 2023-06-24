@@ -432,7 +432,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   }
 
-  cube.material = MATERIAL::DIFFUSE;
+  cube.material = SHADING_MODEL::DIFFUSE;
 
   initial = cube;
   target  = cube;
@@ -540,7 +540,7 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   }
 
-  sphere.material = MATERIAL::PHONG;
+  sphere.material = SHADING_MODEL::PHONG;
 
   initial = sphere;
   target  = sphere;

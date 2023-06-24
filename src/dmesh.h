@@ -35,12 +35,12 @@ struct CPUTexture
   int w,h,channels;
 };
 
-enum class MATERIAL { UNDEFINED = 0,
-                      SILHOUETTE = 1,
-                      VERTEX_COLOR = 2,
-                      DIFFUSE = 3, 
-                      LAMBERT = 4,
-                      PHONG = 5};
+enum class SHADING_MODEL {UNDEFINED = 0,
+                          SILHOUETTE = 1,
+                          VERTEX_COLOR = 2,
+                          DIFFUSE = 3, 
+                          LAMBERT = 4,
+                          PHONG = 5};
 
 /**
 \brief input/output mesh
@@ -54,11 +54,11 @@ struct TriangleMesh
     vertices = _vertices;
     colors = _colors;
     indices = _indices;
-    material = MATERIAL::VERTEX_COLOR;
+    material = SHADING_MODEL::VERTEX_COLOR;
   }
   
   TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float2> &_tc, 
-               MATERIAL mat, const std::vector<unsigned> &_indices = {})
+               SHADING_MODEL mat, const std::vector<unsigned> &_indices = {})
   {
     vertices = _vertices;
     tc = _tc;
@@ -78,7 +78,7 @@ struct TriangleMesh
 
   std::vector<unsigned>   indices;
 
-  MATERIAL material = MATERIAL::UNDEFINED;
+  SHADING_MODEL material = SHADING_MODEL::UNDEFINED;
   std::vector<CPUTexture> textures; // an arbitrary number of textures
 };
 
@@ -97,11 +97,11 @@ struct DTriangleMesh
     m_numVertices = mesh.vertex_count();
     m_numFaces    = mesh.face_count();  
     
-    if (mesh.material == MATERIAL::VERTEX_COLOR)
+    if (mesh.material == SHADING_MODEL::VERTEX_COLOR)
       m_allParams.resize((3 + 3)*m_numVertices);
-    else if (mesh.material == MATERIAL::SILHOUETTE)
+    else if (mesh.material == SHADING_MODEL::SILHOUETTE)
       m_allParams.resize(3*m_numVertices);
-    else if (mesh.material != MATERIAL::UNDEFINED)
+    else if (mesh.material != SHADING_MODEL::UNDEFINED)
     {
       int off = m_numVertices*3;
       for (auto &t : mesh.textures)

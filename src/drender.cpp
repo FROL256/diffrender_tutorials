@@ -78,37 +78,37 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh
 {
   switch (a_mesh.material)
   {
-  case MATERIAL::SILHOUETTE:
+  case SHADING_MODEL::SILHOUETTE:
     {
-    auto impl = std::make_shared<DiffRender<MATERIAL::SILHOUETTE>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
     impl->init(a_mesh, a_samplesPerPixel);
     return impl;
     }
     break;    
-  case MATERIAL::VERTEX_COLOR:
+  case SHADING_MODEL::VERTEX_COLOR:
     {
-    auto impl = std::make_shared<DiffRender<MATERIAL::VERTEX_COLOR>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
     impl->init(a_mesh, a_samplesPerPixel);
     return impl;
     }
     break;
-  case MATERIAL::DIFFUSE:
+  case SHADING_MODEL::DIFFUSE:
     {
-    auto impl = std::make_shared<DiffRender<MATERIAL::DIFFUSE>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::DIFFUSE>>();
     impl->init(a_mesh, a_samplesPerPixel);
     return impl;
     }
     break;
-  case MATERIAL::LAMBERT:
+  case SHADING_MODEL::LAMBERT:
     {
-    auto impl = std::make_shared<DiffRender<MATERIAL::LAMBERT>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
     impl->init(a_mesh, a_samplesPerPixel);
     return impl;
     }
     break;
-  case MATERIAL::PHONG:
+  case SHADING_MODEL::PHONG:
     {
-    auto impl = std::make_shared<DiffRender<MATERIAL::PHONG>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
     impl->init(a_mesh, a_samplesPerPixel);
     return impl;
     }

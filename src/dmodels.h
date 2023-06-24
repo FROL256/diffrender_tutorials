@@ -15,9 +15,9 @@ struct AuxData
   int debugImageNum = 0;
 };
 
-template<MATERIAL material>
+template<SHADING_MODEL material>
 float3 shade(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos);
 
-template<MATERIAL material>
+template<SHADING_MODEL material>
 void shade_grad(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos, 
                 const float3 val, const AuxData aux, DTriangleMesh& grad);

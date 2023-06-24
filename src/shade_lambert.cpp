@@ -2,7 +2,7 @@
 #include "shade_common.h"
 
 template <>
-float3 shade<MATERIAL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   //TODO:move to scene
   const float3 light_dir = normalize(float3(-1,-1,0));
@@ -32,14 +32,14 @@ float3 shade<MATERIAL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer,
 }
 
 template <>
-void shade_grad<MATERIAL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<MATERIAL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
 }
 
 template <>
-float3 shade<MATERIAL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   //TODO:move to scene
   const float3 light_dir = normalize(float3(0,-0.25,-1));
@@ -75,8 +75,8 @@ float3 shade<MATERIAL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, c
 }
 
 template <>
-void shade_grad<MATERIAL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<MATERIAL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
 }
