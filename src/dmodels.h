@@ -16,8 +16,8 @@ struct AuxData
 };
 
 template<MATERIAL material>
-float3 shade(const TriangleMesh &mesh, const SurfaceInfo& surfInfo, const float3 ray_pos, const float3 ray_dir);
+float3 shade(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos);
 
 template<MATERIAL material>
-void shade_grad(const TriangleMesh &mesh, const SurfaceInfo& surfElem, const float3 ray_pos, const float3 ray_dir, 
-                         const float3 val, const AuxData aux, DTriangleMesh& grad);
+void shade_grad(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos, 
+                const float3 val, const AuxData aux, DTriangleMesh& grad);

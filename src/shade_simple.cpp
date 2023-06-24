@@ -22,8 +22,9 @@ inline std::vector<float> sample_bilinear_clamp(float2 tc, const CPUTexture &tex
 }
 
 template <>
-float3 shade<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, const SurfaceInfo &surfInfo, const float3 ray_pos, const float3 ray_dir)
+float3 shade<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
+  SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0);
   else
@@ -31,15 +32,16 @@ float3 shade<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, const SurfaceInfo &
 }
 
 template <>
-void shade_grad<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, const SurfaceInfo &surfElem, const float3 ray_pos, const float3 ray_dir,
+void shade_grad<MATERIAL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                         const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
 
 }
 
 template <>
-float3 shade<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, const SurfaceInfo &surfInfo, const float3 ray_pos, const float3 ray_dir)
+float3 shade<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
+  SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
@@ -53,9 +55,14 @@ float3 shade<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, const SurfaceInfo
 }
 
 template <>
-void shade_grad<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, const SurfaceInfo &surfElem, const float3 ray_pos, const float3 ray_dir,
+void shade_grad<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                           const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
+  float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
+  SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
+  if (surfElem.faceId == unsigned(-1))
+    return;
+
   auto A = mesh.indices[surfElem.faceId * 3 + 0];
   auto B = mesh.indices[surfElem.faceId * 3 + 1];
   auto C = mesh.indices[surfElem.faceId * 3 + 2];
@@ -118,8 +125,9 @@ void shade_grad<MATERIAL::VERTEX_COLOR>(const TriangleMesh &mesh, const SurfaceI
 }
 
 template <>
-float3 shade<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, const SurfaceInfo &surfInfo, const float3 ray_pos, const float3 ray_dir)
+float3 shade<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
 {
+  SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
@@ -135,9 +143,13 @@ float3 shade<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, const SurfaceInfo &sur
 }
 
 template <>
-void shade_grad<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, const SurfaceInfo &surfElem, const float3 ray_pos, const float3 ray_dir,
+void shade_grad<MATERIAL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
+  SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
+  if (surfElem.faceId == unsigned(-1))
+    return;
+  
   auto A = mesh.indices[surfElem.faceId * 3 + 0];
   auto B = mesh.indices[surfElem.faceId * 3 + 1];
   auto C = mesh.indices[surfElem.faceId * 3 + 2];

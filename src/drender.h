@@ -109,10 +109,8 @@ struct DiffRender : public IDiffRender
               auto xoff = (dx + 0.5f) / float(sqrt_num_samples);
               auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
               auto screen_pos = float2{x + xoff, y + yoff};
-              
-              float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
-              auto surf  = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-              auto color = shade<material>(mesh, surf, ray_pos, ray_dir);
+      
+              auto color = shade<material>(mesh, m_pTracer.get(), screen_pos);
   
               pixelColor += (color / samples_per_pixel);
             }
@@ -177,13 +175,8 @@ private:
           float xoff = m_hammSamples[2*samId+0];
           float yoff = m_hammSamples[2*samId+1];
           
-          float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
-          auto surfElem  = m_pTracer->CastSingleRay(x + xoff, y + yoff, &ray_pos, &ray_dir);
-  
-          if (surfElem.faceId != unsigned(-1)) {          
-            const auto val = adjoint[int2(x,y)] / samples_per_pixel;
-            shade_grad<material>(mesh, surfElem, ray_pos, ray_dir, val, m_aux, grads[omp_get_thread_num()]);
-          }      
+          const auto val = adjoint[int2(x,y)] / samples_per_pixel;
+          shade_grad<material>(mesh, m_pTracer.get(), float2(x + xoff, y + yoff), val, m_aux, grads[omp_get_thread_num()]);     
                
         } // for (int samId = 0; samId < samples_per_pixel; samId++)
       }
@@ -257,14 +250,9 @@ private:
       
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
-    
-      float3 ray_posIn   = {0,0,0}, ray_dirIn  = {0,0,0};
-      float3 ray_posOut  = {0,0,0}, ray_dirOut = {0,0,0};
-      const auto surfIn  = m_pTracer->CastSingleRay(coordIn.x, coordIn.y, &ray_posIn, &ray_dirIn);
-      const auto surfOut = m_pTracer->CastSingleRay(coordOut.x, coordOut.y, &ray_posOut, &ray_dirOut);
 
-      const auto color_in  = shade<material>(mesh2d, surfIn, ray_posIn, ray_dirIn);
-      const auto color_out = shade<material>(mesh2d, surfOut, ray_posOut, ray_dirOut);
+      const auto color_in  = shade<material>(mesh2d, m_pTracer.get(), coordIn);
+      const auto color_out = shade<material>(mesh2d, m_pTracer.get(), coordOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
