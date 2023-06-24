@@ -50,14 +50,25 @@ struct EmbreeRT3D : public IRayTracer
     m_camPos = float3(cam.mWorldView.get_col(3).x, cam.mWorldView.get_col(3).y, cam.mWorldView.get_col(3).z);
   }
 
-  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
+  SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) override
   {
     SurfaceInfo hit;
     hit.faceId = unsigned(-1);
     hit.u      = 0.0f;
     hit.v      = 0.0f;
-    hit.t      = 1e+6f; // tFar
+    hit.t      = tFar; // tFar
+  
+    CRT_Hit crtHit = m_pAccelStruct->RayQuery_NearestHit(to_float4(rayPos, tNear), to_float4(rayDir, tFar));
 
+    hit.faceId = crtHit.primId;
+    hit.t      = crtHit.t;
+    hit.u      = crtHit.coords[0];
+    hit.v      = crtHit.coords[1];
+    return hit;
+  }
+
+  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
+  {
     const TriangleMesh& mesh = *m_pMesh;
     const float2 screen_pos(x,y);
   
@@ -72,13 +83,7 @@ struct EmbreeRT3D : public IRayTracer
     if(outDir != nullptr)
       *outDir = ray_dir;
 
-    CRT_Hit crtHit = m_pAccelStruct->RayQuery_NearestHit(to_float4(ray_pos, 0.0f), to_float4(ray_dir, 1e10f));
-
-    hit.faceId = crtHit.primId;
-    hit.t      = crtHit.t;
-    hit.u      = crtHit.coords[0];
-    hit.v      = crtHit.coords[1];
-    return hit;
+    return GetNearestHit(ray_pos, ray_dir);
   }
 
   const TriangleMesh* m_pMesh = nullptr;

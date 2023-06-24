@@ -51,6 +51,7 @@ struct IRayTracer
   virtual void        SetCamera(const CamInfo& cam)   = 0;
   virtual float3      GetCameraPos() const            = 0;
   virtual SurfaceInfo CastSingleRay(float x, float y, float3* outPos = nullptr, float3* outDir = nullptr) = 0;
+  virtual SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) = 0;
 };
 
 std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);

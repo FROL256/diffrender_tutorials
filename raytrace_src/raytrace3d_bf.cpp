@@ -91,28 +91,14 @@ struct BruteForce3D : public IRayTracer
     m_camPos = float3(cam.mWorldView.get_col(3).x, cam.mWorldView.get_col(3).y, cam.mWorldView.get_col(3).z);
   }
 
-  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
+  SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) override
   {
     SurfaceInfo hit;
     hit.faceId = unsigned(-1);
     hit.u      = 0.0f;
     hit.v      = 0.0f;
-    hit.t      = 1e+6f; // tFar
-
-    const TriangleMesh& mesh = *m_pMesh;
-    const float2 screen_pos(x,y);
-  
-    float3 ray_pos = float3(0,0,0);
-    float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_ProjInv);
-    float  tNear   = 0.0f;
-
-    transform_ray3f(m_worldViewInv, &ray_pos, &ray_dir);
-
-    if(outPos != nullptr)
-      *outPos = ray_pos;
-    if(outDir != nullptr)
-      *outDir = ray_dir;
-
+    hit.t      = tFar; // tFar
+    
     for (size_t triAddress = 0; triAddress < m_pMesh->indices.size(); triAddress += 3)
     { 
       const uint A = m_pMesh->indices[triAddress + 0];
@@ -125,15 +111,15 @@ struct BruteForce3D : public IRayTracer
     
       const float3 edge1 = B_pos - A_pos;
       const float3 edge2 = C_pos - A_pos;
-      const float3 pvec  = cross(ray_dir, edge2);
-      const float3 tvec  = ray_pos - A_pos;
+      const float3 pvec  = cross(rayDir, edge2);
+      const float3 tvec  = rayPos - A_pos;
       const float3 qvec  = cross(tvec, edge1);
       const float  e1dpv = dot(edge1, pvec);
       const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
       const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
 
       const float v = dot(tvec, pvec)*invDet;
-      const float u = dot(qvec, ray_dir)*invDet;
+      const float u = dot(qvec, rayDir)*invDet;
       const float t = dot(edge2, qvec)*invDet;
     
       if (v > 0.0f && u > 0.0f && (u + v < 1.0f) && t > tNear && t < hit.t)
@@ -148,6 +134,25 @@ struct BruteForce3D : public IRayTracer
     }
   
     return hit;
+  }
+
+  SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
+  {
+    const TriangleMesh& mesh = *m_pMesh;
+    const float2 screen_pos(x,y);
+  
+    float3 ray_pos = float3(0,0,0);
+    float3 ray_dir = EyeRayDirNormalized(x/m_fwidth, y/m_fheight, m_ProjInv);
+    float  tNear   = 0.0f;
+
+    transform_ray3f(m_worldViewInv, &ray_pos, &ray_dir);
+
+    if(outPos != nullptr)
+      *outPos = ray_pos;
+    if(outDir != nullptr)
+      *outDir = ray_dir;
+
+    return GetNearestHit(ray_pos, ray_dir);
   }
 
   const TriangleMesh* m_pMesh = nullptr;
