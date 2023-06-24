@@ -36,12 +36,18 @@ struct EmbreeRT3D : public IRayTracer
     //std::cout << "[EmbreeRT3D]: Init done" << std::endl;
   }
 
+  float3 GetCameraPos() const override
+  {
+    return m_camPos;
+  }
+
   void SetCamera(const CamInfo& cam) override
   {
     m_ProjInv      = inverse4x4(cam.mProj);
     m_worldViewInv = inverse4x4(cam.mWorldView);
     m_fwidth       = cam.width;
     m_fheight      = cam.height;
+    m_camPos = float3(cam.mWorldView.get_col(3).x, cam.mWorldView.get_col(3).y, cam.mWorldView.get_col(3).z);
   }
 
   SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
@@ -81,6 +87,7 @@ struct EmbreeRT3D : public IRayTracer
   float4x4 m_ProjInv;
   float4x4 m_worldViewInv;
   float m_fwidth, m_fheight;
+  float3 m_camPos;
 
 };
 
