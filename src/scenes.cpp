@@ -515,7 +515,7 @@ void CreateSphere(TriangleMesh &sphere, float radius, int numberSlices)
 void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh sphere;
-  CreateSphere(sphere, 1, 16);
+  CreateSphere(sphere, 1, 32);
 
   {
     int w = 256;
@@ -540,7 +540,7 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   }
 
-  sphere.material = SHADING_MODEL::PHONG;
+  sphere.material = SHADING_MODEL::GGX;
 
   initial = sphere;
   target  = sphere;

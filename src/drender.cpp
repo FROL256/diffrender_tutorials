@@ -113,6 +113,13 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh
     return impl;
     }
     break;
+  case SHADING_MODEL::GGX:
+    {
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
+    impl->init(a_mesh, a_samplesPerPixel);
+    return impl;
+    }
+    break;
   default:
     assert(false);
     break;

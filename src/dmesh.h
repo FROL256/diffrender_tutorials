@@ -40,7 +40,8 @@ enum class SHADING_MODEL {UNDEFINED = 0,
                           VERTEX_COLOR = 2,
                           DIFFUSE = 3, 
                           LAMBERT = 4,
-                          PHONG = 5};
+                          PHONG = 5,
+                          GGX = 6};
 
 /**
 \brief input/output mesh
