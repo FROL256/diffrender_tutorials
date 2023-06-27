@@ -17,7 +17,7 @@ endif()
 if(USE_EMBREE)
   add_definitions(-DUSE_EMBREE)
   include_directories(${CMAKE_SOURCE_DIR}/external)
-  include_directories(${CMAKE_SOURCE_DIR}/external/embree)
+  include_directories(${CMAKE_SOURCE_DIR}/external/embree/include)
 
   if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     link_directories(${CMAKE_SOURCE_DIR}/external/embree/lib_win64)
@@ -25,7 +25,7 @@ if(USE_EMBREE)
   else()
     find_package(Threads REQUIRED)
     link_directories(${CMAKE_SOURCE_DIR}/external/embree/lib)
-    set(RT_EMBREE_LIBS embree3 embree_sse42 embree_avx embree_avx2 lexers simd sys tasking)
+    set(RT_EMBREE_LIBS embree3 tbb)
   endif()
 
   set(SOURCE_RT
