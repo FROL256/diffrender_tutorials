@@ -138,7 +138,9 @@ struct DiffRender : public IDiffRender
 
     for(int camId=0; camId<a_viewsNum; camId++) {
       
-      m_pTracer->SetCamera(cams[camId]);
+      CamInfo camCopy    = cams[camId];
+      camCopy.mWorldView = camCopy.mWorldView*mesh.objToWorldTransform.getMatrix();
+      m_pTracer->SetCamera(camCopy);
   
       m_aux.pCamInfo      = cams + camId;
       m_aux.debugImages   = debugImages;

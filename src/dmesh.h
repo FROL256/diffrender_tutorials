@@ -38,6 +38,8 @@ struct CPUTexture
 struct Transform
 { 
   Transform() { for(auto& val : data) val = 0.0f; }
+  Transform& operator=(const Transform& rhs) { memcpy(data, rhs.data, sizeof(float)*6); return *this; }
+
   void setPos(float3 a_pos) { data[POS_X] = a_pos.x; data[POS_Y] = a_pos.y; data[POS_Z] = a_pos.z; }
   void setRot(float3 a_rot) { data[ROT_X] = a_rot.x; data[ROT_Y] = a_rot.y; data[ROT_Z] = a_rot.z; }
 
