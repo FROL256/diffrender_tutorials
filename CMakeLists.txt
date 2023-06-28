@@ -8,7 +8,7 @@ option(USE_EMBREE "Use Embree RT" OFF)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("src", "LiteMath", "raytrace_src")
+include_directories("src", "LiteMath", "raytrace_src", "common_src")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -46,7 +46,7 @@ find_package(OpenMP REQUIRED)
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
-file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp")
 
 add_executable(drender ${SOURCES}
                        ${SOURCE_RT})

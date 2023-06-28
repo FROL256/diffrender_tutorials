@@ -35,7 +35,7 @@
 
 constexpr static int  SAM_PER_PIXEL = 16;
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[]) //
 {
   #ifdef WIN32
   mkdir("rendered");
@@ -65,13 +65,13 @@ int main(int argc, char *argv[])
   float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
 
   cameras[0].mProj      = mProj;
-  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-5));
+  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-3));
 
   cameras[1].mProj      = mProj;
-  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
+  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
 
   cameras[2].mProj      = mProj;
-  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-5))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
+  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
 
   for(int i=0;i<camsNum;i++)
     cameras[i].commit();
@@ -86,7 +86,8 @@ int main(int argc, char *argv[])
   //scn05_Pyramid3D(initialMesh, targetMesh);
   //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
   //scn08_Cube3D_Textured(initialMesh, targetMesh);
-  scn09_Sphere3D_Textured(initialMesh, targetMesh);
+  //scn09_Sphere3D_Textured(initialMesh, targetMesh);
+  scn10_Teapot3D_Textured(initialMesh, targetMesh);
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
   if(0) // check gradients for different image views
@@ -121,8 +122,8 @@ int main(int argc, char *argv[])
     for(int i=0;i<camsNum;i++)
       LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
   
-    DTriangleMesh grad1; grad1.reset(initialMesh);
-    DTriangleMesh grad2; grad2.reset(initialMesh);
+    DTriangleMesh grad1(initialMesh);
+    DTriangleMesh grad2(initialMesh);
     
     if(0) // check gradient obtained from 2 images
     {

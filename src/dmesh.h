@@ -92,6 +92,7 @@ typedef float GradReal;
 struct DTriangleMesh 
 {
   DTriangleMesh(){}
+  DTriangleMesh(const TriangleMesh &mesh) { reset(mesh); }
 
   void reset(const TriangleMesh &mesh)
   {

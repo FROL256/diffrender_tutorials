@@ -512,34 +512,36 @@ void CreateSphere(TriangleMesh &sphere, float radius, int numberSlices)
   }
 }
 
+CPUTexture RedGreenLinesTexture()
+{
+  CPUTexture tex;
+  int w = 256;
+  int h = 256;
+  tex.w = w;
+  tex.h = h;
+  tex.channels = 3;
+  tex.data.resize(w*h*3);
+  
+  for (int j=0;j<h;j++)
+  {
+    for (int i=0;i<w;i++)
+    {
+      float v = 0;
+      if ((i/16)%2 != (j/16)%2)
+        v = 1;
+      tex.data[3*(j*w+i)] = v;
+      tex.data[3*(j*w+i)+1] = 1-v;
+      tex.data[3*(j*w+i)+2] = 0;
+    }
+  }
+  return tex;
+}
+
 void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh sphere;
   CreateSphere(sphere, 1, 32);
-
-  {
-    int w = 256;
-    int h = 256;
-    sphere.textures.emplace_back();
-    sphere.textures.back().w = w;
-    sphere.textures.back().h = h;
-    sphere.textures.back().channels = 3;
-    sphere.textures.back().data.resize(w*h*3);
-    for (int j=0;j<h;j++)
-    {
-      for (int i=0;i<w;i++)
-      {
-        float v = 0;
-        if ((i/16)%2 != (j/16)%2)
-          v = 1;
-        sphere.textures.back().data[3*(j*w+i)] = v;
-        sphere.textures.back().data[3*(j*w+i)+1] = 1-v;
-        sphere.textures.back().data[3*(j*w+i)+2] = 0;
-      }
-    }
-
-  }
-
+  sphere.textures.emplace_back(RedGreenLinesTexture());
   sphere.material = SHADING_MODEL::GGX;
 
   initial = sphere;
@@ -559,4 +561,50 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   for(auto& v : target.vertices)
     v = mTransform1*v;
+}
+
+#include "cmesh.h"
+
+void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
+{
+  //cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot_16K.vsgf");
+  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/vase.vsgf");
+  const size_t numberVertices = tmpMesh.VerticesNum();
+  const size_t numberIndices  = tmpMesh.IndicesNum();
+
+  initial.vertices.resize(numberVertices);
+  initial.normals.resize(numberVertices);
+  initial.tc.resize(numberVertices);
+  initial.indices.resize(numberIndices);
+
+  for(size_t i=0;i<numberVertices;i++)
+  {
+    initial.vertices[i] = LiteMath::to_float3(tmpMesh.vPos4f[i]);
+    initial.normals [i] = LiteMath::to_float3(tmpMesh.vNorm4f[i]);
+    initial.tc      [i] = tmpMesh.vTexCoord2f[i];
+  }
+  
+  for(size_t i=0;i<numberIndices;i++)
+    initial.indices[i] = tmpMesh.indices[i];
+
+  
+  initial.textures.emplace_back(RedGreenLinesTexture());
+  initial.material = SHADING_MODEL::GGX;
+
+  target = initial;
+  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+
+  // testing texture reconstruction, so apply same transforms
+  //
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-25.0f);
+  
+  auto mTransform1 = mTranslate*mRotate1;
+
+  for(auto& v : initial.vertices)
+    v = mTransform1*v;
+
+  for(auto& v : target.vertices)
+    v = mTransform1*v;
+
 }
