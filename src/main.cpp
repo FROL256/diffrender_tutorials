@@ -88,6 +88,10 @@ int main(int argc, char *argv[]) //
   //scn08_Cube3D_Textured(initialMesh, targetMesh);
   //scn09_Sphere3D_Textured(initialMesh, targetMesh);
   scn10_Teapot3D_Textured(initialMesh, targetMesh);
+  
+  //targetMesh.objToWorldTransform.setPos(float3(0,1,0));
+  targetMesh.objToWorldTransform.setRot(float3(0,0,-LiteMath::DEG_TO_RAD*45.0f));
+  
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
   if(0) // check gradients for different image views
@@ -188,6 +192,8 @@ int main(int argc, char *argv[]) //
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
   }
+
+  return 0;
 
   IOptimizer* pOpt = CreateSimpleOptimizer();
 

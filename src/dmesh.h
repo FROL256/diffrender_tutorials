@@ -35,6 +35,35 @@ struct CPUTexture
   int w,h,channels;
 };
 
+struct Transform
+{ 
+  Transform() { for(auto& val : data) val = 0.0f; }
+  void setPos(float3 a_pos) { data[POS_X] = a_pos.x; data[POS_Y] = a_pos.y; data[POS_Z] = a_pos.z; }
+  void setRot(float3 a_rot) { data[ROT_X] = a_rot.x; data[ROT_Y] = a_rot.y; data[ROT_Z] = a_rot.z; }
+
+  float3 getPos() const { return float3(data[POS_X], data[POS_Y], data[POS_Z]); }
+  float3 getRot() const { return float3(data[ROT_X], data[ROT_Y], data[ROT_Z]); }
+
+  LiteMath::float4x4 getMatrix() const 
+  {
+    auto mtran = LiteMath::translate4x4(float3(data[POS_X], data[POS_Y], data[POS_Z]));
+    auto mRotX = LiteMath::rotate4x4X(data[ROT_X]);
+    auto mRotY = LiteMath::rotate4x4Y(data[ROT_Y]);
+    auto mRotZ = LiteMath::rotate4x4Z(data[ROT_Z]);
+    return mtran * (mRotX * mRotZ * mRotY); 
+  }
+
+  float data[6];
+
+  static constexpr int POS_X = 0;
+  static constexpr int POS_Y = 1;
+  static constexpr int POS_Z = 2;
+
+  static constexpr int ROT_X = 3;
+  static constexpr int ROT_Y = 4;
+  static constexpr int ROT_Z = 5;
+};
+
 enum class SHADING_MODEL {UNDEFINED = 0,
                           SILHOUETTE = 1,
                           VERTEX_COLOR = 2,
@@ -81,6 +110,8 @@ struct TriangleMesh
 
   SHADING_MODEL material = SHADING_MODEL::UNDEFINED;
   std::vector<CPUTexture> textures; // an arbitrary number of textures
+
+  Transform objToWorldTransform;
 };
 
 typedef float GradReal;

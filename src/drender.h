@@ -93,7 +93,10 @@ struct DiffRender : public IDiffRender
       const CamInfo& cam = cams[camId];
       Img&           img = imgames[camId];
 
-      m_pTracer->SetCamera(cam);
+      CamInfo camCopy    = cam;
+      camCopy.mWorldView = camCopy.mWorldView*mesh.objToWorldTransform.getMatrix(); 
+
+      m_pTracer->SetCamera(camCopy);
       
       #if (DEBUG_RENDER==0)
       #pragma omp parallel for collapse (2) num_threads(MAXTHREADS) 
