@@ -41,7 +41,8 @@ enum class SHADING_MODEL {UNDEFINED = 0,
                           DIFFUSE = 3, 
                           LAMBERT = 4,
                           PHONG = 5,
-                          GGX = 6};
+                          GGX = 6,
+                          PATH_TEST = 7};
 
 /**
 \brief input/output mesh
