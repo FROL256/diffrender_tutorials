@@ -537,6 +537,20 @@ CPUTexture RedGreenLinesTexture()
   return tex;
 }
 
+
+CPUTexture WhiteTexture()
+{
+  CPUTexture tex;
+  int w = 256;
+  int h = 256;
+  tex.w = w;
+  tex.h = h;
+  tex.channels = 3;
+  tex.data = std::vector<float>(w*h*3, 0.5);
+
+  return tex;
+}
+
 void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh sphere;
@@ -606,5 +620,82 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   for(auto& v : target.vertices)
     v = mTransform1*v;
+
+}
+
+void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
+{
+  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot_16K.vsgf");
+  //cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/vase.vsgf");
+  const size_t numberVertices = tmpMesh.VerticesNum();
+  const size_t numberIndices  = tmpMesh.IndicesNum();
+
+  initial.vertices.resize(numberVertices);
+  initial.normals.resize(numberVertices);
+  initial.tangents.resize(numberVertices);
+  initial.tc.resize(numberVertices);
+  initial.indices.resize(numberIndices);
+
+  std::vector<int> missed_normals;
+
+  for(size_t i=0;i<numberVertices;i++)
+  {
+    initial.vertices[i] = LiteMath::to_float3(tmpMesh.vPos4f[i]);
+    initial.tc      [i] = tmpMesh.vTexCoord2f[i];
+
+    float3 n = normalize(LiteMath::to_float3(tmpMesh.vNorm4f[i])); 
+    if (length(n) > 1e-4)
+      initial.normals [i] = normalize(n);
+    else
+      missed_normals.push_back(i);
+  }
+  
+  for(size_t i=0;i<numberIndices;i++)
+    initial.indices[i] = tmpMesh.indices[i];
+
+  std::vector<float3> accumulated_normals(missed_normals.size(),{0,0,0});
+  int k = 0;
+  for (auto &ni : missed_normals)
+  {
+    for (int i=0;i<initial.indices.size(); i+=3)
+    {
+      int A = initial.indices[i];
+      int B = initial.indices[i+1];
+      int C = initial.indices[i+2];
+      if (ni == A || ni == B || ni == C)
+        accumulated_normals[k] += normalize(cross(initial.vertices[B]-initial.vertices[A], initial.vertices[C]-initial.vertices[A]));
+    }
+    initial.normals[ni] = normalize(accumulated_normals[k]);
+    k++;
+  }
+  for(size_t i=0;i<numberVertices;i++)
+  {
+    float3 tang = LiteMath::to_float3(tmpMesh.vTang4f[i]);
+    if (length(tang) > 1e-4)
+      initial.tangents[i] = normalize(tang);
+    else if (abs(initial.normals[i].y) < 0.99999)
+      initial.tangents[i] = normalize(cross(initial.normals[i], float3(0,1,0)));
+    else
+      initial.tangents[i] = normalize(cross(initial.normals[i], float3(1,0,0)));
+  }
+  
+  initial.textures.emplace_back(WhiteTexture());
+  initial.material = SHADING_MODEL::PATH_TEST;
+
+  target = initial;
+  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+
+  // testing texture reconstruction, so apply same transforms
+  //
+  //LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
+  //LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-25.0f);
+  
+  //auto mTransform1 = mTranslate*mRotate1;
+
+  //for(auto& v : initial.vertices)
+  //  v = mTransform1*v;
+
+  //for(auto& v : target.vertices)
+  //  v = mTransform1*v;
 
 }

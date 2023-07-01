@@ -14,3 +14,4 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target);
 void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target);
 
 void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target);
+void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target);

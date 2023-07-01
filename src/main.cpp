@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) //
   //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
   //scn08_Cube3D_Textured(initialMesh, targetMesh);
   //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-  scn10_Teapot3D_Textured(initialMesh, targetMesh);
+  scn11_Teapot3D_Textured(initialMesh, targetMesh);
   auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
 
   if(0) // check gradients for different image views
