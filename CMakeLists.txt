@@ -48,6 +48,8 @@ find_package(OpenMP REQUIRED)
 
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp")
 
+set(CMAKE_CXX_FLAGS "-O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
+
 add_executable(drender ${SOURCES}
                        ${SOURCE_RT})
 
