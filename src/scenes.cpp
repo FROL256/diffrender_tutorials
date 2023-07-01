@@ -432,8 +432,6 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   }
 
-  cube.material = SHADING_MODEL::DIFFUSE;
-
   initial = cube;
   target  = cube;
   
@@ -556,7 +554,6 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   TriangleMesh sphere;
   CreateSphere(sphere, 1, 32);
   sphere.textures.emplace_back(RedGreenLinesTexture());
-  sphere.material = SHADING_MODEL::GGX;
 
   initial = sphere;
   target  = sphere;
@@ -603,7 +600,6 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   
   initial.textures.emplace_back(RedGreenLinesTexture());
-  initial.material = SHADING_MODEL::GGX;
 
   target = initial;
   initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
@@ -680,7 +676,6 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   }
   
   initial.textures.emplace_back(WhiteTexture());
-  initial.material = SHADING_MODEL::PATH_TEST;
 
   target = initial;
   initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);

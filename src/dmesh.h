@@ -56,16 +56,13 @@ struct TriangleMesh
     vertices = _vertices;
     colors = _colors;
     indices = _indices;
-    material = SHADING_MODEL::VERTEX_COLOR;
   }
   
-  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float2> &_tc, 
-               SHADING_MODEL mat, const std::vector<unsigned> &_indices = {})
+  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float2> &_tc, const std::vector<unsigned> &_indices = {})
   {
     vertices = _vertices;
     tc = _tc;
     indices = _indices;
-    material = mat;
   }
 
   inline int vertex_count() const { return vertices.size(); }
@@ -80,7 +77,6 @@ struct TriangleMesh
 
   std::vector<unsigned>   indices;
 
-  SHADING_MODEL material = SHADING_MODEL::UNDEFINED;
   std::vector<CPUTexture> textures; // an arbitrary number of textures
 };
 
@@ -93,18 +89,18 @@ typedef float GradReal;
 struct DTriangleMesh 
 {
   DTriangleMesh(){}
-  DTriangleMesh(const TriangleMesh &mesh) { reset(mesh); }
+  DTriangleMesh(const TriangleMesh &mesh, SHADING_MODEL material) { reset(mesh, material); }
 
-  void reset(const TriangleMesh &mesh)
+  void reset(const TriangleMesh &mesh, SHADING_MODEL material)
   {
     m_numVertices = mesh.vertex_count();
     m_numFaces    = mesh.face_count();  
     
-    if (mesh.material == SHADING_MODEL::VERTEX_COLOR)
+    if (material == SHADING_MODEL::VERTEX_COLOR)
       m_allParams.resize((3 + 3)*m_numVertices);
-    else if (mesh.material == SHADING_MODEL::SILHOUETTE)
+    else if (material == SHADING_MODEL::SILHOUETTE)
       m_allParams.resize(3*m_numVertices);
-    else if (mesh.material != SHADING_MODEL::UNDEFINED)
+    else if (material != SHADING_MODEL::UNDEFINED)
     {
       int off = m_numVertices*3;
       for (auto &t : mesh.textures)

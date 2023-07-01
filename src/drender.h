@@ -33,6 +33,12 @@ struct Sampler
   std::vector<float> cdf;
 };
 
+struct DiffRenderSettings
+{
+  SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
+  int spp = 1;
+};
+
 // build a discrete CDF using edge length
 Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &edges);
 
@@ -55,6 +61,8 @@ struct IDiffRender
   virtual void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                         DTriangleMesh &d_mesh,
                         Img* debugImages = nullptr, int debugImageNum = 0) = 0;
+
+  SHADING_MODEL mode;
 };
 
 template<SHADING_MODEL material>
@@ -65,6 +73,7 @@ struct DiffRender : public IDiffRender
     m_samples_per_pixel = a_samplesPerPixel;
     m_pTracer = MakeRayTracer3D("");
     m_hammSamples.resize(2*a_samplesPerPixel);
+    mode = material;
 
     qmc::init(m_table);
     qmc::planeHammersley(m_hammSamples.data(), a_samplesPerPixel);
@@ -293,4 +302,4 @@ private:
 };
 
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, int a_samplesPerPixel);
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, const DiffRenderSettings &settings);

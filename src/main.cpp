@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) //
   auto g_uniforms = cameras[0];
 
   TriangleMesh initialMesh, targetMesh;
+  SHADING_MODEL mode = SHADING_MODEL::PATH_TEST;
   //scn01_TwoTrisFlat(initialMesh, targetMesh);
   //scn02_TwoTrisSmooth(initialMesh, targetMesh);
   //scn03_Triangle3D_White(initialMesh, targetMesh);
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]) //
   //scn08_Cube3D_Textured(initialMesh, targetMesh);
   //scn09_Sphere3D_Textured(initialMesh, targetMesh);
   scn11_Teapot3D_Textured(initialMesh, targetMesh);
-  auto pDRender = MakeDifferentialRenderer(initialMesh, SAM_PER_PIXEL);
+  auto pDRender = MakeDifferentialRenderer(initialMesh, {mode, SAM_PER_PIXEL});
 
   if(0) // check gradients for different image views
   {
@@ -122,19 +123,19 @@ int main(int argc, char *argv[]) //
     for(int i=0;i<camsNum;i++)
       LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
   
-    DTriangleMesh grad1(initialMesh);
-    DTriangleMesh grad2(initialMesh);
+    DTriangleMesh grad1(initialMesh, mode);
+    DTriangleMesh grad2(initialMesh, mode);
     
     if(0) // check gradient obtained from 2 images
     {
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
       pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
 
-      DTriangleMesh grad_avg; grad_avg.reset(initialMesh);
+      DTriangleMesh grad_avg; grad_avg.reset(initialMesh, mode);
       for(size_t i=0;i<grad_avg.size();i++)
         grad_avg[i] = 1.0f*(grad1[i] + grad2[i]);
       
-      DTriangleMesh grad12; grad12.reset(initialMesh);
+      DTriangleMesh grad12; grad12.reset(initialMesh, mode);
       pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
       //pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
       //pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);

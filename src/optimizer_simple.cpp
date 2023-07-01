@@ -196,7 +196,7 @@ void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_
 TriangleMesh OptSimple::Run(size_t a_numIters) 
 { 
   DTriangleMesh gradMesh;
-  gradMesh.reset(m_mesh);
+  gradMesh.reset(m_mesh, m_pDR->mode);
 
   if(m_params.alg >= OptimizerParameters::GD_AdaGrad) {
     m_GSquare.resize(gradMesh.size());

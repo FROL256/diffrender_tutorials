@@ -74,56 +74,56 @@ inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, cons
   d_pos[v1 * 3 + 2] += GradReal(dv1_dz);
 }
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, int a_samplesPerPixel)
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, const DiffRenderSettings &settings)
 {
-  switch (a_mesh.material)
+  switch (settings.mode)
   {
   case SHADING_MODEL::SILHOUETTE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;    
   case SHADING_MODEL::VERTEX_COLOR:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::DIFFUSE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::DIFFUSE>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::LAMBERT:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::PHONG:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::GGX:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::PATH_TEST:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PATH_TEST>>();
-    impl->init(a_mesh, a_samplesPerPixel);
+    impl->init(a_mesh, settings.spp);
     return impl;
     }
     break;

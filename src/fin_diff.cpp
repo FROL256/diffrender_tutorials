@@ -30,7 +30,7 @@ void d_finDiff(const TriangleMesh &mesh, const char* outFolder, const Img& origi
 {
   Img img(origin.width(), origin.height());
 
-  d_mesh.reset(mesh);
+  d_mesh.reset(mesh, a_pDRImpl->mode);
   
   const float MSEOrigin = MSE(origin, target);
   const float scale = float(256*256*3);
@@ -120,7 +120,7 @@ void d_finDiff2(const TriangleMesh &mesh, const char* outFolder, const Img& orig
 {
   Img img(origin.width(), origin.height());
 
-  d_mesh.reset(mesh);
+  d_mesh.reset(mesh, a_pDRImpl->mode);
   
   const Img MSEOrigin = LiteImage::MSEImage(origin, target);
 
