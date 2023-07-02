@@ -552,7 +552,7 @@ CPUTexture WhiteTexture()
 void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh sphere;
-  CreateSphere(sphere, 1, 32);
+  CreateSphere(sphere, 0.5, 32);
   sphere.textures.emplace_back(RedGreenLinesTexture());
 
   initial = sphere;
@@ -560,18 +560,10 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   
   initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
 
-  // testing texture reconstruction, so apply same transforms
-  //
-  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f);
+  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
   
-  auto mTransform1 = mTranslate*mRotate1;
-
   for(auto& v : initial.vertices)
-    v = mTransform1*v;
-
-  for(auto& v : target.vertices)
-    v = mTransform1*v;
+    v = mTranslate*v;
 }
 
 #include "cmesh.h"
