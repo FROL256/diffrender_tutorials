@@ -71,9 +71,9 @@ struct BruteForce3D : public IRayTracer
   BruteForce3D(){}
   ~BruteForce3D() override {}
 
-  void Init(const TriangleMesh* pMesh) override 
+  void Init(const Scene* pScene) override 
   {
-    m_pMesh = pMesh;
+    m_pScene = pScene;
     //std::cout << "[BruteForce3D]: Init done" << std::endl;
   }
 
@@ -99,15 +99,15 @@ struct BruteForce3D : public IRayTracer
     hit.v      = 0.0f;
     hit.t      = tFar; // tFar
     
-    for (size_t triAddress = 0; triAddress < m_pMesh->indices.size(); triAddress += 3)
+    for (size_t triAddress = 0; triAddress < m_pScene->indices_size(); triAddress += 3)
     { 
-      const uint A = m_pMesh->indices[triAddress + 0];
-      const uint B = m_pMesh->indices[triAddress + 1];
-      const uint C = m_pMesh->indices[triAddress + 2];
+      const uint A = m_pScene->get_index(triAddress + 0);
+      const uint B = m_pScene->get_index(triAddress + 1);
+      const uint C = m_pScene->get_index(triAddress + 2);
     
-      const float3 A_pos = m_pMesh->vertices[A];
-      const float3 B_pos = m_pMesh->vertices[B];
-      const float3 C_pos = m_pMesh->vertices[C];
+      const float3 A_pos = m_pScene->get_pos(A);
+      const float3 B_pos = m_pScene->get_pos(B);
+      const float3 C_pos = m_pScene->get_pos(C);
     
       const float3 edge1 = B_pos - A_pos;
       const float3 edge2 = C_pos - A_pos;
@@ -138,7 +138,6 @@ struct BruteForce3D : public IRayTracer
 
   SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
   {
-    const TriangleMesh& mesh = *m_pMesh;
     const float2 screen_pos(x,y);
   
     float3 ray_pos = float3(0,0,0);
@@ -155,7 +154,7 @@ struct BruteForce3D : public IRayTracer
     return GetNearestHit(ray_pos, ray_dir);
   }
 
-  const TriangleMesh* m_pMesh = nullptr;
+  const Scene* m_pScene = nullptr;
   float4x4 m_ProjInv;
   float4x4 m_worldViewInv;
   float3 m_camPos;

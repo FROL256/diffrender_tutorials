@@ -47,7 +47,7 @@ struct IRayTracer
   IRayTracer(){}
   virtual ~IRayTracer(){}
 
-  virtual void        Init(const TriangleMesh* pMesh) = 0;
+  virtual void        Init(const Scene* pScene) = 0;
   virtual void        SetCamera(const CamInfo& cam)   = 0;
   virtual float3      GetCameraPos() const            = 0;
   virtual SurfaceInfo CastSingleRay(float x, float y, float3* outPos = nullptr, float3* outDir = nullptr) = 0;

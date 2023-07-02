@@ -9,31 +9,7 @@
 #include "LiteMath.h"
 #include "Image2d.h"
 #include "utils.h"
-
-struct CPUTexture
-{
-  CPUTexture() = default;
-  CPUTexture(const LiteImage::Image2D<float3> &img)
-  {
-    w = img.width();
-    h = img.height();
-    channels = 3;
-    data = std::vector<float>((float*)img.data(), (float*)img.data() + w*h*channels);
-  }
-
-  inline int pixel_to_offset(int x, int y) const { return channels*(y*w + x); }
-  inline int pixel_to_offset(int2 pixel) const { return channels*(pixel.y*w + pixel.x); }
-  /**
-  \brief UNSAFE ACCESS!!!
-
-  */
-  const float *get(int x, int y) const
-  {
-    return data.data() + pixel_to_offset(x,y); 
-  }
-  std::vector<float> data;
-  int w,h,channels;
-};
+#include "scene.h"
 
 enum class SHADING_MODEL {UNDEFINED = 0,
                           SILHOUETTE = 1,
@@ -43,42 +19,6 @@ enum class SHADING_MODEL {UNDEFINED = 0,
                           PHONG = 5,
                           GGX = 6,
                           PATH_TEST = 7};
-
-/**
-\brief input/output mesh
-
-*/
-struct TriangleMesh 
-{
-  TriangleMesh() = default;
-  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float3> &_colors, const std::vector<unsigned> &_indices = {})
-  {
-    vertices = _vertices;
-    colors = _colors;
-    indices = _indices;
-  }
-  
-  TriangleMesh(const std::vector<float3> &_vertices, const std::vector<float2> &_tc, const std::vector<unsigned> &_indices = {})
-  {
-    vertices = _vertices;
-    tc = _tc;
-    indices = _indices;
-  }
-
-  inline int vertex_count() const { return vertices.size(); }
-  inline int face_count() const { return indices.size()/3; }
-
-  //vertex attributes, some of them might be empty
-  std::vector<float3>     vertices;
-  std::vector<float3>     colors;
-  std::vector<float2>     tc;
-  std::vector<float3>     normals;
-  std::vector<float3>     tangents;
-
-  std::vector<unsigned>   indices;
-
-  std::vector<CPUTexture> textures; // an arbitrary number of textures
-};
 
 typedef float GradReal;
 

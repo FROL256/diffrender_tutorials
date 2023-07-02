@@ -78,18 +78,23 @@ int main(int argc, char *argv[]) //
 
   auto g_uniforms = cameras[0];
 
-  TriangleMesh initialMesh, targetMesh;
+  Scene initialScene, targetScene;
   SHADING_MODEL mode = SHADING_MODEL::PATH_TEST;
-  //scn01_TwoTrisFlat(initialMesh, targetMesh);
-  //scn02_TwoTrisSmooth(initialMesh, targetMesh);
-  //scn03_Triangle3D_White(initialMesh, targetMesh);
-  //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
-  //scn05_Pyramid3D(initialMesh, targetMesh);
-  //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
-  //scn08_Cube3D_Textured(initialMesh, targetMesh);
-  //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-  scn11_Teapot3D_Textured(initialMesh, targetMesh);
-  auto pDRender = MakeDifferentialRenderer(initialMesh, {mode, SAM_PER_PIXEL});
+  {
+    TriangleMesh initialMesh, targetMesh;
+    //scn01_TwoTrisFlat(initialMesh, targetMesh);
+    //scn02_TwoTrisSmooth(initialMesh, targetMesh);
+    //scn03_Triangle3D_White(initialMesh, targetMesh);
+    //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
+    //scn05_Pyramid3D(initialMesh, targetMesh);
+    //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
+    //scn08_Cube3D_Textured(initialMesh, targetMesh);
+    //scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    scn11_Teapot3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+  }
+  auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
 
   if(0) // check gradients for different image views
   {
@@ -100,8 +105,8 @@ int main(int argc, char *argv[]) //
       adjoints[i] = Img(img.width(), img.height(), float3{0, 0, 0});
     }
   
-    pDRender->commit(targetMesh);
-    pDRender->render(targetMesh, cameras, targets.data(), camsNum);
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets.data(), camsNum);
     
     for(int i=0;i<camsNum;i++) {
       std::stringstream strOut;
@@ -110,8 +115,8 @@ int main(int argc, char *argv[]) //
       LiteImage::SaveImage(fileName.c_str(), targets[i]);
     }
 
-    pDRender->commit(initialMesh);
-    pDRender->render(initialMesh, cameras, images.data(), camsNum);
+    pDRender->commit(initialScene);
+    pDRender->render(initialScene, cameras, images.data(), camsNum);
 
     for(int i=0;i<camsNum;i++) {
       std::stringstream strOut;
@@ -123,22 +128,22 @@ int main(int argc, char *argv[]) //
     for(int i=0;i<camsNum;i++)
       LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
   
-    DTriangleMesh grad1(initialMesh, mode);
-    DTriangleMesh grad2(initialMesh, mode);
+    DTriangleMesh grad1(initialScene.get_mesh(0), mode);
+    DTriangleMesh grad2(initialScene.get_mesh(0), mode);
     
     if(0) // check gradient obtained from 2 images
     {
-      pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
-      pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
+      pDRender->d_render(initialScene, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
+      pDRender->d_render(initialScene, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
 
-      DTriangleMesh grad_avg; grad_avg.reset(initialMesh, mode);
+      DTriangleMesh grad_avg; grad_avg.reset(initialScene.get_mesh(0), mode);
       for(size_t i=0;i<grad_avg.size();i++)
         grad_avg[i] = 1.0f*(grad1[i] + grad2[i]);
       
-      DTriangleMesh grad12; grad12.reset(initialMesh, mode);
-      pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
-      //pDRender->d_render(initialMesh, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
-      //pDRender->d_render(initialMesh, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);
+      DTriangleMesh grad12; grad12.reset(initialScene.get_mesh(0), mode);
+      pDRender->d_render(initialScene, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
+      //pDRender->d_render(initialScene, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
+      //pDRender->d_render(initialScene, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);
 
       
       PrintAndCompareGradients(grad1, grad2);
@@ -154,7 +159,7 @@ int main(int argc, char *argv[]) //
       for(int i=0;i<3;i++)
         dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
 
-      pDRender->d_render(initialMesh, cameras, adjoints.data(), 1, img.width()*img.height(), 
+      pDRender->d_render(initialScene, cameras, adjoints.data(), 1, img.width()*img.height(), 
                          grad1, dxyzDebug, 3);
   
       for(int i=0;i<3;i++)
@@ -166,7 +171,7 @@ int main(int argc, char *argv[]) //
       }
   
       const float dPos = 2.0f/float(img.width());
-      d_finDiff (initialMesh, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
+      d_finDiff (initialScene, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
       
       PrintAndCompareGradients(grad1, grad2);
       return 0;
@@ -180,8 +185,8 @@ int main(int argc, char *argv[]) //
     targets[i].clear(float3{0,0,0});
   }
 
-  pDRender->commit(targetMesh);
-  pDRender->render(targetMesh, cameras, targets, camsNum);
+  pDRender->commit(targetScene);
+  pDRender->render(targetScene, cameras, targets, camsNum);
 
   for(int i=0;i<camsNum;i++) {
     std::stringstream strOut;
@@ -193,11 +198,11 @@ int main(int argc, char *argv[]) //
   IOptimizer* pOpt = CreateSimpleOptimizer();
 
   OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
-  op.position_lr = 0;
+  op.position_lr = 0.05;
   op.textures_lr = 0.2;
-  pOpt->Init(initialMesh, pDRender, cameras, targets, 3, op);
+  pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
-  TriangleMesh mesh3 = pOpt->Run(300);
+  Scene res_scene = pOpt->Run(300);
   
   //img.clear(float3{0,0,0});
   //pDRender->commit(mesh3);

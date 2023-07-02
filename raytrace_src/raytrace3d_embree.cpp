@@ -21,14 +21,15 @@ struct EmbreeRT3D : public IRayTracer
   EmbreeRT3D(){}
   ~EmbreeRT3D() override {}
 
-  void Init(const TriangleMesh* pMesh) override 
+  void Init(const Scene* pScene) override 
   {
-    m_pMesh = pMesh;
+    m_pScene = pScene;
 
     m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateSceneRT(""));
     m_pAccelStruct->ClearGeom();
 
-    auto geomId = m_pAccelStruct->AddGeom_Triangles3f((const float*)m_pMesh->vertices.data(), m_pMesh->vertices.size(), m_pMesh->indices.data(), m_pMesh->indices.size(), BUILD_MEDIUM); 
+    const TriangleMesh &mesh = m_pScene->get_mesh(0);//TODO: support multiple meshes
+    auto geomId = m_pAccelStruct->AddGeom_Triangles3f((const float*)mesh.vertices.data(), mesh.vertices.size(), mesh.indices.data(), mesh.indices.size(), BUILD_MEDIUM); 
 
     m_pAccelStruct->ClearScene();
     m_pAccelStruct->AddInstance(geomId, LiteMath::float4x4()); // with identity matrix
@@ -69,7 +70,6 @@ struct EmbreeRT3D : public IRayTracer
 
   SurfaceInfo CastSingleRay(float x, float y, float3* outPos, float3* outDir) override
   {
-    const TriangleMesh& mesh = *m_pMesh;
     const float2 screen_pos(x,y);
   
     float3 ray_pos = float3(0,0,0);
@@ -86,7 +86,7 @@ struct EmbreeRT3D : public IRayTracer
     return GetNearestHit(ray_pos, ray_dir);
   }
 
-  const TriangleMesh* m_pMesh = nullptr;
+  const Scene* m_pScene = nullptr;
   std::shared_ptr<ISceneObject> m_pAccelStruct;
 
   float4x4 m_ProjInv;

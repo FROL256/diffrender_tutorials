@@ -1,7 +1,7 @@
 #include "drender.h"
 
 // build a discrete CDF using edge length
-Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &edges) 
+Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges) 
 {
   std::vector<float> pmf;
   std::vector<float> cdf;
@@ -9,8 +9,8 @@ Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &ed
   cdf.reserve(edges.size() + 1);
   cdf.push_back(0);
   for (auto edge : edges) {
-      auto v0 = mesh.vertices[edge.v0];
-      auto v1 = mesh.vertices[edge.v1];
+      auto v0 = scene.get_pos(edge.v0);
+      auto v1 = scene.get_pos(edge.v1);
       pmf.push_back(length(v1 - v0));
       cdf.push_back(pmf.back() + cdf.back());
   }
@@ -28,14 +28,14 @@ int sample(const Sampler &sampler, const float u)
 }
 
 // given a triangle mesh, collect all edges.
-std::vector<Edge> collect_edges(const TriangleMesh &mesh) 
+std::vector<Edge> collect_edges(const Scene &scene) 
 {
   std::set<Edge> edges;
-  for (size_t i=0; i<mesh.indices.size();i+=3) 
+  for (size_t i=0; i<scene.indices_size();i+=3) 
   {
-    auto A = mesh.indices[i+0];
-    auto B = mesh.indices[i+1];
-    auto C = mesh.indices[i+2];  
+    auto A = scene.get_index(i);
+    auto B = scene.get_index(i+1);
+    auto C = scene.get_index(i+2); 
     edges.insert(Edge(A, B));
     edges.insert(Edge(B, C));
     edges.insert(Edge(C, A));
@@ -43,14 +43,14 @@ std::vector<Edge> collect_edges(const TriangleMesh &mesh)
   return std::vector<Edge>(edges.begin(), edges.end());
 }
 
-inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
+inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
                       std::vector<GradReal> &d_pos)
 {
   float3 v0_d[2] = {{0, 0, 0}, {0, 0, 0}};
   float3 v1_d[2] = {{0, 0, 0}, {0, 0, 0}};
 
-  float3 v0_3d = mesh.vertices[v0];
-  float3 v1_3d = mesh.vertices[v1];
+  float3 v0_3d = scene.get_pos(v0);
+  float3 v1_3d = scene.get_pos(v1);
 
   VS_X_grad(v0_3d.M, *(aux.pCamInfo), v0_d[0].M);
   VS_Y_grad(v0_3d.M, *(aux.pCamInfo), v0_d[1].M);
@@ -74,56 +74,56 @@ inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, cons
   d_pos[v1 * 3 + 2] += GradReal(dv1_dz);
 }
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, const DiffRenderSettings &settings)
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)
 {
   switch (settings.mode)
   {
   case SHADING_MODEL::SILHOUETTE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;    
   case SHADING_MODEL::VERTEX_COLOR:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::DIFFUSE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::DIFFUSE>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::LAMBERT:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::PHONG:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::GGX:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;
   case SHADING_MODEL::PATH_TEST:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PATH_TEST>>();
-    impl->init(a_mesh, settings.spp);
+    impl->init(scene, settings.spp);
     return impl;
     }
     break;

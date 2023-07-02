@@ -1,5 +1,6 @@
 #include "optimizer.h"
 #include "utils.h"
+#include "scene.h"
 
 #include <cassert>
 #include <iomanip>
@@ -24,22 +25,22 @@ struct OptSimple : public IOptimizer
 {
   OptSimple(){}
 
-  void         Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
+  void         Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) override;
 
-  TriangleMesh Run (size_t a_numIters = 100) override;
+  Scene Run (size_t a_numIters = 100) override;
 
 protected:
   
   typedef std::vector<std::pair<int, float>> IntervalLearningRate; //offset, learning rate
 
-  float EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh);
+  float EvalFunction(const Scene& mesh, DTriangleMesh& gradMesh);
   IntervalLearningRate GetLR(DTriangleMesh& gradMesh);
   void  OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr);
-  void  OptUpdateMesh(const DTriangleMesh &gradMesh, TriangleMesh* mesh);
+  void  OptUpdateScene(const DTriangleMesh &gradMesh, Scene* mesh);
   void  StepDecay(int a_iterId, IntervalLearningRate &lr) const;
 
-  TriangleMesh m_mesh; ///<! global mesh optimized mesh
+  Scene        m_scene; ///<! global mesh optimized mesh
   size_t       m_iter = 0;
   OptimizerParameters m_params;
 
@@ -75,28 +76,29 @@ void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lr) const
   }
 }
 
-void OptSimple::OptUpdateMesh(const DTriangleMesh &gradMesh, TriangleMesh* mesh)
+void OptSimple::OptUpdateScene(const DTriangleMesh &gradMesh, Scene* scene)
 {
-    for(int vertId=0; vertId< mesh->vertex_count(); vertId++)
+  auto &mesh = scene->meshes[0];//TODO: support multiple meshes
+    for(int vertId=0; vertId< mesh.vertex_count(); vertId++)
     {
-      mesh->vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];
-      mesh->vertices[vertId].y -= gradMesh.vertices_s()[3*vertId+1];
-      mesh->vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
+      mesh.vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];
+      mesh.vertices[vertId].y -= gradMesh.vertices_s()[3*vertId+1];
+      mesh.vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
     }
     
-    for(int faceId=0; faceId < mesh->colors.size(); faceId++)
+    for(int faceId=0; faceId < mesh.colors.size(); faceId++)
     {
-      mesh->colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
-      mesh->colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
-      mesh->colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
+      mesh.colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
+      mesh.colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
+      mesh.colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
     }
     
     for (int i=0;i<gradMesh.tex_count();i++)
     {
-      int sz = mesh->textures[i].data.size();
+      int sz = mesh.textures[i].data.size();
       int off = gradMesh.tex_offset(i);
       for (int j=0;j<sz;j++)
-        mesh->textures[i].data[j] -= gradMesh[off + j];
+        mesh.textures[i].data[j] -= gradMesh[off + j];
     }
 }
 
@@ -143,7 +145,7 @@ void OptSimple::OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr)
   }
 }
 
-float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
+float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
 {
   const int samples_per_pixel = 16;
 
@@ -151,8 +153,8 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
   for(auto& im : images)
     im.resize(256,256);
 
-  m_pDR->commit(mesh);
-  m_pDR->render(mesh, m_cams, images.data(), m_numViews);
+  m_pDR->commit(scene);
+  m_pDR->render(scene, m_cams, images.data(), m_numViews);
   
   for(int i=0;i<m_numViews;i++) {
     std::stringstream strOut;
@@ -160,7 +162,7 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
     auto temp = strOut.str();
     //for (int x = 0; x<images[i].width(); x++ )
     //  for (int y = 0; y<images[i].height(); y++)
-    //    images[i][int2(x,y)] = float3(mesh.textures[0].get(x,y)[0], mesh.textures[0].get(x,y)[1], mesh.textures[0].get(x,y)[2]);
+    //    images[i][int2(x,y)] = float3(scene.get_tex(0).get(x,y)[0], scene.get_tex(0).get(x,y)[1], scene.get_tex(0).get(x,y)[2]);
     LiteImage::SaveImage(temp.c_str(), images[i]);
   }
 
@@ -174,16 +176,16 @@ float OptSimple::EvalFunction(const TriangleMesh& mesh, DTriangleMesh& gradMesh)
     mse += LossAndDiffLoss(images[i], m_targets[i], adjoints[i]);
   
   gradMesh.clear();
-  m_pDR->d_render(mesh, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
+  m_pDR->d_render(scene, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
 
   m_iter++;
   return mse/float(m_numViews);
 }
 
-void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_pDRImpl, 
+void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                      const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) 
 { 
-  m_mesh        = a_mesh; 
+  m_scene       = a_scene; 
   m_iter        = 0; 
   m_pDR         = a_pDRImpl;
 
@@ -193,10 +195,10 @@ void OptSimple::Init(const TriangleMesh& a_mesh, std::shared_ptr<IDiffRender> a_
   m_params      = a_params;
 }
 
-TriangleMesh OptSimple::Run(size_t a_numIters) 
+Scene OptSimple::Run(size_t a_numIters) 
 { 
   DTriangleMesh gradMesh;
-  gradMesh.reset(m_mesh, m_pDR->mode);
+  gradMesh.reset(m_scene.get_mesh(0), m_pDR->mode);//TODO: support multiple meshes
 
   if(m_params.alg >= OptimizerParameters::GD_AdaGrad) {
     m_GSquare.resize(gradMesh.size());
@@ -213,11 +215,11 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
   m_iter = 0; 
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
-    float error = EvalFunction(m_mesh, gradMesh);
+    float error = EvalFunction(m_scene, gradMesh);
     std::cout << "iter " << trueIter << ", error = " << error << std::endl;
     //PrintMesh(gradMesh);
     OptStep(gradMesh, lr);
-    OptUpdateMesh(gradMesh, &m_mesh);
+    OptUpdateScene(gradMesh, &m_scene);
     StepDecay(iter, lr);
 
     if(error <= 0.5f && (iter < a_numIters-10)) // perform last 10 iterations and stop
@@ -227,5 +229,5 @@ TriangleMesh OptSimple::Run(size_t a_numIters)
     }
   }
 
-  return m_mesh;
+  return m_scene;
 }

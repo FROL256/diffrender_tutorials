@@ -40,15 +40,15 @@ struct DiffRenderSettings
 };
 
 // build a discrete CDF using edge length
-Sampler build_edge_sampler(const TriangleMesh &mesh, const std::vector<Edge> &edges);
+Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges);
 
 // binary search for inverting the CDF in the sampler
 int sample(const Sampler &sampler, const float u);
 
 // given a triangle mesh, collect all edges.
-std::vector<Edge> collect_edges(const TriangleMesh &mesh);
+std::vector<Edge> collect_edges(const Scene &scene);
 
-inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
+inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
                       std::vector<GradReal> &d_pos);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,9 +56,9 @@ inline void edge_grad(const TriangleMesh &mesh, const int v0, const int v1, cons
 
 struct IDiffRender
 {
-  virtual void commit(const TriangleMesh &mesh) = 0;
-  virtual void render(const TriangleMesh &mesh, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
-  virtual void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
+  virtual void commit(const Scene &scene) = 0;
+  virtual void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
+  virtual void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                         DTriangleMesh &d_mesh,
                         Img* debugImages = nullptr, int debugImageNum = 0) = 0;
 
@@ -68,7 +68,7 @@ struct IDiffRender
 template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
 {
-  void init(const TriangleMesh &a_mesh, int a_samplesPerPixel)
+  void init(const Scene &scene, int a_samplesPerPixel)
   {
     m_samples_per_pixel = a_samplesPerPixel;
     m_pTracer = MakeRayTracer3D("");
@@ -80,20 +80,20 @@ struct DiffRender : public IDiffRender
   }
   
   
-  void commit(const TriangleMesh &mesh) 
+  void commit(const Scene &scene) 
   {
-    m_pTracer->Init(&mesh); // Build Acceleration structurres and e.t.c. if needed
-    m_pLastPreparedMesh = &mesh;
+    m_pTracer->Init(&scene); // Build Acceleration structurres and e.t.c. if needed
+    m_pLastPreparedScene = &scene;
   }
 
-  void render(const TriangleMesh &mesh, const CamInfo* cams, Img *imgames, int a_viewsNum) override // TODO: add BSPImage rendering
+  void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) override // TODO: add BSPImage rendering
   {
     auto sqrt_num_samples  = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
 
-    if(&mesh != m_pLastPreparedMesh)
+    if(&scene != m_pLastPreparedScene)
     {
-      std::cout << "[DiffRender::render]: error, renderer was not prepared for this mesh!" << std::endl;
+      std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << std::endl;
       return;
     }
     
@@ -119,7 +119,7 @@ struct DiffRender : public IDiffRender
               auto yoff = (dy + 0.5f) / float(sqrt_num_samples);
               auto screen_pos = float2{x + xoff, y + yoff};
       
-              auto color = shade<material>(mesh, m_pTracer.get(), screen_pos);
+              auto color = shade<material>(scene, m_pTracer.get(), screen_pos);
   
               pixelColor += (color / samples_per_pixel);
             }
@@ -132,13 +132,13 @@ struct DiffRender : public IDiffRender
   }
 
   
-  void d_render(const TriangleMesh &mesh, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
+  void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                 DTriangleMesh &d_mesh,
                 Img* debugImages, int debugImageNum) override
   {  
-    if(&mesh != m_pLastPreparedMesh)
+    if(&scene != m_pLastPreparedScene)
     {
-      std::cout << "[DiffRender::render]: error, renderer was not prepared for this mesh!" << std::endl;
+      std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << std::endl;
       return;
     }
 
@@ -151,17 +151,17 @@ struct DiffRender : public IDiffRender
       m_aux.debugImageNum = debugImageNum;
 
       if (material != SHADING_MODEL::SILHOUETTE) //constexpr
-        interior_derivatives(mesh, adjoints[camId], d_mesh);
+        interior_derivatives(scene, adjoints[camId], d_mesh);
   
-      edge_derivatives(mesh, adjoints[camId], edge_samples_in_total, d_mesh);
+      edge_derivatives(scene, adjoints[camId], edge_samples_in_total, d_mesh);
     }
   }
 
 private:
 
-  const TriangleMesh* m_pLastPreparedMesh = nullptr;
+  const Scene* m_pLastPreparedScene = nullptr;
 
-  void interior_derivatives(const TriangleMesh &mesh, const Img &adjoint,
+  void interior_derivatives(const Scene &scene, const Img &adjoint,
                             DTriangleMesh &d_mesh) 
   {
     auto sqrt_num_samples = (int)sqrt((float)m_samples_per_pixel);
@@ -185,7 +185,7 @@ private:
           float yoff = m_hammSamples[2*samId+1];
           
           const auto val = adjoint[int2(x,y)] / samples_per_pixel;
-          shade_grad<material>(mesh, m_pTracer.get(), float2(x + xoff, y + yoff), val, m_aux, grads[omp_get_thread_num()]);     
+          shade_grad<material>(scene, m_pTracer.get(), float2(x + xoff, y + yoff), val, m_aux, grads[omp_get_thread_num()]);     
                
         } // for (int samId = 0; samId < samples_per_pixel; samId++)
       }
@@ -199,23 +199,28 @@ private:
   }
 
   void edge_derivatives(
-        const TriangleMesh &mesh3d,
+        const Scene &scene,
         const Img &adjoint,
         const int num_edge_samples,
         DTriangleMesh &d_mesh) 
   {
     // (1) We need to project 3d mesh to screen for correct edje sampling  
-    TriangleMesh mesh2d = mesh3d;
-    for(auto& v : mesh2d.vertices) 
+    Scene scene2d;
+    for (auto &mesh3d : scene.get_meshes())
     {
-      auto vCopy = v;
-      VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+      TriangleMesh mesh2d = mesh3d;
+      for(auto& v : mesh2d.vertices) 
+      {
+        auto vCopy = v;
+        VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+      }
+      scene2d.add_mesh(mesh2d);
     }
   
     // (2) prepare edjes
     //
-    auto edges        = collect_edges(mesh2d);
-    auto edge_sampler = build_edge_sampler(mesh2d, edges);
+    auto edges        = collect_edges(scene2d);
+    auto edge_sampler = build_edge_sampler(scene2d, edges);
   
     // (3) do edje sampling
     // 
@@ -245,8 +250,8 @@ private:
       auto pmf     = edge_sampler.pmf[edge_id];
       
       // pick a point p on the edge
-      auto v0 = LiteMath::to_float2(mesh2d.vertices[edge.v0]);
-      auto v1 = LiteMath::to_float2(mesh2d.vertices[edge.v1]);
+      auto v0 = LiteMath::to_float2(scene2d.get_pos(edge.v0));
+      auto v1 = LiteMath::to_float2(scene2d.get_pos(edge.v1));
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
@@ -260,8 +265,8 @@ private:
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
 
-      const auto color_in  = shade<material>(mesh2d, m_pTracer.get(), coordIn);
-      const auto color_out = shade<material>(mesh2d, m_pTracer.get(), coordOut);
+      const auto color_in  = shade<material>(scene2d, m_pTracer.get(), coordIn);
+      const auto color_out = shade<material>(scene2d, m_pTracer.get(), coordOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
@@ -279,7 +284,7 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        edge_grad(mesh3d, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()]);
+        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()]);
       }
     }    
   
@@ -302,4 +307,4 @@ private:
 };
 
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const TriangleMesh &a_mesh, const DiffRenderSettings &settings);
+std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings);

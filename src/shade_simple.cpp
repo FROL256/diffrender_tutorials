@@ -3,7 +3,7 @@
 #include "shade_common.h"
 
 template <>
-float3 shade<SHADING_MODEL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::SILHOUETTE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
@@ -13,40 +13,40 @@ float3 shade<SHADING_MODEL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_
 }
 
 template <>
-void shade_grad<SHADING_MODEL::SILHOUETTE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
-                                        const float3 val, const AuxData aux, DTriangleMesh &grad)
+void shade_grad<SHADING_MODEL::SILHOUETTE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
+                                           const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
 
 }
 
 template <>
-float3 shade<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  return mesh.colors[A] * (1.0f - u - v) + mesh.colors[B] * v + u * mesh.colors[C];
+  return scene.get_color(A) * (1.0f - u - v) + scene.get_color(B) * v + u * scene.get_color(C);
 }
 
 template <>
-void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
-                                          const float3 val, const AuxData aux, DTriangleMesh &grad)
+void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
+                                             const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
   SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
   if (surfElem.faceId == unsigned(-1))
     return;
 
-  auto A = mesh.indices[surfElem.faceId * 3 + 0];
-  auto B = mesh.indices[surfElem.faceId * 3 + 1];
-  auto C = mesh.indices[surfElem.faceId * 3 + 2];
+  const auto A = scene.get_index(surfElem.faceId * 3 + 0);
+  const auto B = scene.get_index(surfElem.faceId * 3 + 1);
+  const auto C = scene.get_index(surfElem.faceId * 3 + 2);
 
   const float u = surfElem.u;
   const float v = surfElem.v;
@@ -70,17 +70,17 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTrace
   d_colors[C * 3 + 1] += GradReal(contribC.y);
   d_colors[C * 3 + 2] += GradReal(contribC.z);
 
-  const float3 c0 = mesh.colors[A];
-  const float3 c1 = mesh.colors[B];
-  const float3 c2 = mesh.colors[C];
+  const float3 c0 = scene.get_color(A);
+  const float3 c1 = scene.get_color(B);
+  const float3 c2 = scene.get_color(C);
   const float dF_dU = dot((c2 - c0), val);
   const float dF_dV = dot((c1 - c0), val);
 
   if (dF_dU * dF_dU > 0.0f || dF_dV * dF_dV > 0.0f)
   {
-    const float3 v0 = mesh.vertices[A];
-    const float3 v1 = mesh.vertices[B];
-    const float3 v2 = mesh.vertices[C];
+    const float3 v0 = scene.get_pos(A);
+    const float3 v1 = scene.get_pos(B);
+    const float3 v2 = scene.get_pos(C);
     float3 dU_dvert[3] = {};
     float3 dV_dvert[3] = {};
 
@@ -106,60 +106,60 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const TriangleMesh &mesh, IRayTrace
 }
 
 template <>
-float3 shade<SHADING_MODEL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
-  auto res = sample_bilinear_clamp(tc, mesh.textures[0]);
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+  auto res = sample_bilinear_clamp(tc, scene.get_tex(0));
   return float3(res[0], res[1], res[2]);
 }
 
 template <>
-void shade_grad<SHADING_MODEL::DIFFUSE>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
-                                     const float3 val, const AuxData aux, DTriangleMesh &grad)
+void shade_grad<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
+                                        const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
   SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfElem.faceId == unsigned(-1))
     return;
   
-  auto A = mesh.indices[surfElem.faceId * 3 + 0];
-  auto B = mesh.indices[surfElem.faceId * 3 + 1];
-  auto C = mesh.indices[surfElem.faceId * 3 + 2];
+  const auto A = scene.get_index(surfElem.faceId * 3 + 0);
+  const auto B = scene.get_index(surfElem.faceId * 3 + 1);
+  const auto C = scene.get_index(surfElem.faceId * 3 + 2);
 
   const float u = surfElem.u;
   const float v = surfElem.v;
 
-  auto &tex = mesh.textures[0];
+  auto &tex = scene.get_tex(0);
 
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
   tc *= float2(tex.w, tex.h);
   int2 tc0 = clamp(int2(tc), int2(0, 0), int2(tex.w - 1, tex.h - 1));
   int2 tc1 = clamp(int2(tc) + int2(1, 1), int2(0, 0), int2(tex.w - 1, tex.h - 1));
   float2 dtc = tc - float2(tc0);
   int off = grad.tex_offset(0);
 
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc0.y)] += (1 - dtc.x) * (1 - dtc.y) * val.x;
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc0.y) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc0.y) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y)] += (1 - dtc.x) * (1 - dtc.y) * val.x;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z;
 
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc1.y)] += (1 - dtc.x) * dtc.y * val.x;
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc1.y) + 1] += (1 - dtc.x) * dtc.y * val.y;
-  grad[off + mesh.textures[0].pixel_to_offset(tc0.x, tc1.y) + 2] += (1 - dtc.x) * dtc.y * val.z;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y)] += (1 - dtc.x) * dtc.y * val.x;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y) + 1] += (1 - dtc.x) * dtc.y * val.y;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y) + 2] += (1 - dtc.x) * dtc.y * val.z;
 
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc0.y)] += dtc.x * (1 - dtc.y) * val.x;
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc0.y) + 1] += dtc.x * (1 - dtc.y) * val.y;
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc0.y) + 2] += dtc.x * (1 - dtc.y) * val.z;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y)] += dtc.x * (1 - dtc.y) * val.x;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y) + 1] += dtc.x * (1 - dtc.y) * val.y;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y) + 2] += dtc.x * (1 - dtc.y) * val.z;
 
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc1.y)] += dtc.x * dtc.y * val.x;
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc1.y) + 1] += dtc.x * dtc.y * val.y;
-  grad[off + mesh.textures[0].pixel_to_offset(tc1.x, tc1.y) + 2] += dtc.x * dtc.y * val.z;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y)] += dtc.x * dtc.y * val.x;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y) + 1] += dtc.x * dtc.y * val.y;
+  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y) + 2] += dtc.x * dtc.y * val.z;
 }

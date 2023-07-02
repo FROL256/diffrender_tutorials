@@ -128,22 +128,19 @@ struct ExtendedSurfaceInfo
   }
 };
 
-ExtendedSurfaceInfo get_extended_surface_info(const TriangleMesh &mesh, const SurfaceInfo &surfInfo, const float3 &pos, const float3 &view_dir)
+ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceInfo &surfInfo, const float3 &pos, const float3 &view_dir)
 {
   ExtendedSurfaceInfo res;
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  if (mesh.tangents.size() <= std::max(A, std::max(B, C)))
-    printf("%d %d %d -- %lu %lu\n",A,B,C,mesh.tangents.size(), mesh.normals.size());
-
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
-  float3 n = mesh.normals[A] * (1.0f - u - v) + mesh.normals[B] * v + u * mesh.normals[C];
-  float3 tangent = mesh.tangents[A] * (1.0f - u - v) + mesh.tangents[B] * v + u * mesh.tangents[C];
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+  float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
+  float3 tangent = scene.get_tang(A) * (1.0f - u - v) + scene.get_tang(B) * v + u * scene.get_tang(C);
 
   res.t = surfInfo.t;
   res.faceId = surfInfo.faceId;
@@ -151,29 +148,14 @@ ExtendedSurfaceInfo get_extended_surface_info(const TriangleMesh &mesh, const Su
   res.v = surfInfo.v;
   res.wo = normalize(-1.0f*view_dir);
   res.n = n;
-  res.n_geom = normalize(cross(mesh.vertices[B]-mesh.vertices[A], mesh.vertices[C]-mesh.vertices[A]));
+  res.n_geom = normalize(cross(scene.get_pos(B)-scene.get_pos(A), scene.get_pos(C)-scene.get_pos(A)));
   res.pos = pos + 1e-4*res.n_geom;
   res.e_x = normalize(cross(n,tangent));
   res.e_y = normalize(cross(n,res.e_x)); 
-  res.sampled_texture = sample_bilinear_clamp(tc, mesh.textures[0]);
+  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(0));
 
   return res;
 }
-
-struct PointLight
-{
-  PointLight() = default;
-  PointLight(const float3 &col, float inten, const float3 &_pos)
-  {
-    color = normalize(col);
-    intensity = inten;
-    pos = _pos;
-  }
-  
-  float3 color;
-  float intensity;
-  float3 pos;
-};
 
 float3 bsdf_val_diffuse(const ExtendedSurfaceInfo &sInfo, const float3 &wo, const float3 &wi)
 {
@@ -244,7 +226,7 @@ float3 direct_light(IRayTracer *m_pTracer, const ExtendedSurfaceInfo &sInfo)
 }
 
 template <>
-float3 shade<SHADING_MODEL::PATH_TEST>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   const float3 ambient = float3(0.5,0.5,0.5);
   float3 L{0,0,0}, beta{1,1,1};
@@ -265,7 +247,7 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const TriangleMesh &mesh, IRayTracer *m_p
       break;
     }
     float3 surf_pos = ray_pos + surfInfo.t*ray_dir;
-    ExtendedSurfaceInfo sInfo = get_extended_surface_info(mesh, surfInfo, surf_pos, ray_dir);
+    ExtendedSurfaceInfo sInfo = get_extended_surface_info(scene, surfInfo, surf_pos, ray_dir);
     L += beta*direct_light(m_pTracer, sInfo);
     //if (L.x > 0)
     //  printf("%f %f %f %f %f -- %f %f %f\n",screen_pos.x, screen_pos.y, surf_pos.x, surf_pos.y, surf_pos.z, L.x, L.y, L.z);
@@ -297,8 +279,8 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const TriangleMesh &mesh, IRayTracer *m_p
 }
 
 template <>
-void shade_grad<SHADING_MODEL::PATH_TEST>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                           const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
 }

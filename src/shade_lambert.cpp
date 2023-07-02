@@ -2,7 +2,7 @@
 #include "shade_common.h"
 
 template <>
-float3 shade<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   //TODO:move to scene
   const float3 light_dir = normalize(float3(-1,-1,0));
@@ -15,15 +15,15 @@ float3 shade<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTr
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
-  float3 n = mesh.normals[A] * (1.0f - u - v) + mesh.normals[B] * v + u * mesh.normals[C];
-  auto diffuse_v = sample_bilinear_clamp(tc, mesh.textures[0]);
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+  float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
@@ -32,14 +32,14 @@ float3 shade<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTr
 }
 
 template <>
-void shade_grad<SHADING_MODEL::LAMBERT>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
 
 template <>
-float3 shade<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   //TODO:move to scene
   const float3 light_dir = normalize(float3(0,-0.25,-1));
@@ -56,15 +56,15 @@ float3 shade<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTrac
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
-  float3 n = mesh.normals[A] * (1.0f - u - v) + mesh.normals[B] * v + u * mesh.normals[C];
-  auto diffuse_v = sample_bilinear_clamp(tc, mesh.textures[0]);
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+  float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
@@ -75,10 +75,10 @@ float3 shade<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTrac
 }
 
 template <>
-void shade_grad<SHADING_MODEL::PHONG>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
 
 float saturate(float x)
@@ -123,7 +123,7 @@ float LightingFuncGGX(float3 N, float3 V, float3 L, float roughness, float F0)
 }
 
 template <>
-float3 shade<SHADING_MODEL::GGX>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   //TODO:move to scene
   const float3 light_dir = normalize(float3(0.15,0,-1));
@@ -137,15 +137,15 @@ float3 shade<SHADING_MODEL::GGX>(const TriangleMesh &mesh, IRayTracer *m_pTracer
   if (surfInfo.faceId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = mesh.indices[surfInfo.faceId * 3 + 0];
-  const auto B = mesh.indices[surfInfo.faceId * 3 + 1];
-  const auto C = mesh.indices[surfInfo.faceId * 3 + 2];
+  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  float2 tc = mesh.tc[A] * (1.0f - u - v) + mesh.tc[B] * v + u * mesh.tc[C];
-  float3 n = mesh.normals[A] * (1.0f - u - v) + mesh.normals[B] * v + u * mesh.normals[C];
-  auto diffuse_v = sample_bilinear_clamp(tc, mesh.textures[0]);
+  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+  float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
@@ -157,8 +157,8 @@ float3 shade<SHADING_MODEL::GGX>(const TriangleMesh &mesh, IRayTracer *m_pTracer
 }
 
 template <>
-void shade_grad<SHADING_MODEL::GGX>(const TriangleMesh &mesh, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                     const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(mesh, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
