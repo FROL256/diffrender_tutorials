@@ -150,20 +150,21 @@ float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
   const int samples_per_pixel = 16;
 
   std::vector<Img> images(m_numViews);
-  for(auto& im : images)
-    im.resize(256,256);
+  for(int i=0;i<m_numViews;i++)
+    images[i].resize(m_cams[i].width,m_cams[i].height);
 
   m_pDR->commit(scene);
   m_pDR->render(scene, m_cams, images.data(), m_numViews);
   
-  for(int i=0;i<m_numViews;i++) {
-    std::stringstream strOut;
-    strOut  << "rendered_opt" << i << "/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
-    auto temp = strOut.str();
-    //for (int x = 0; x<images[i].width(); x++ )
-    //  for (int y = 0; y<images[i].height(); y++)
-    //    images[i][int2(x,y)] = float3(scene.get_tex(0).get(x,y)[0], scene.get_tex(0).get(x,y)[1], scene.get_tex(0).get(x,y)[2]);
-    LiteImage::SaveImage(temp.c_str(), images[i]);
+  if (m_params.verbose)
+  {
+    for(int i=0;i<m_numViews;i++) 
+    {
+      std::stringstream strOut;
+      strOut  << "rendered_opt" << i << "/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
+      auto temp = strOut.str();
+      LiteImage::SaveImage(temp.c_str(), images[i]);
+    }
   }
 
   std::vector<Img> adjoints(m_numViews);
@@ -185,6 +186,8 @@ float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
 void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                      const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) 
 { 
+  assert(a_numViews > 0);
+
   m_scene       = a_scene; 
   m_iter        = 0; 
   m_pDR         = a_pDRImpl;
@@ -216,7 +219,8 @@ Scene OptSimple::Run(size_t a_numIters)
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
     float error = EvalFunction(m_scene, gradMesh);
-    std::cout << "iter " << trueIter << ", error = " << error << std::endl;
+    if (m_params.verbose)
+      std::cout << "iter " << trueIter << ", error = " << error << std::endl;
     //PrintMesh(gradMesh);
     OptStep(gradMesh, lr);
     OptUpdateScene(gradMesh, &m_scene);
@@ -224,7 +228,8 @@ Scene OptSimple::Run(size_t a_numIters)
 
     if(error <= 0.5f && (iter < a_numIters-10)) // perform last 10 iterations and stop
     {
-      std::cout << "----------------------------> stop by error, perform last 10 iterations: " << std::endl;
+      if (m_params.verbose)
+        std::cout << "----------------------------> stop by error, perform last 10 iterations: " << std::endl;
       iter = a_numIters-10;
     }
   }

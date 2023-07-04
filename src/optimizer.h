@@ -19,6 +19,7 @@ struct OptimizerParameters
   float base_lr = 0.1;
   float position_lr = 0.1;
   float textures_lr = 0.1;
+  bool verbose = true;
 private:
   void set_default();
 };
