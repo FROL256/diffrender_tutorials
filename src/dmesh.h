@@ -89,6 +89,7 @@ struct DTriangleMesh
   
   inline int tex_count() const { return m_texOffsets.size(); }
   inline int tex_offset(int tex_n) const { return m_texOffsets[tex_n]; }
+  inline int textures_offset() const { return m_texOffsets.empty() ? size() : m_texOffsets[0]; }
 
 protected:
 
