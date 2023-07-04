@@ -107,15 +107,15 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
   for(auto& v : target.vertices)
     v = (mTransform2*v); // + float3(0,0,-0.01f);
   
-  std::cout << "initial: [" << std::endl;
-  for(const auto& v : initial.vertices)
-    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  std::cout << "]" << std::endl << std::endl;
+  //std::cout << "initial: [" << std::endl;
+  //for(const auto& v : initial.vertices)
+  //  std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  //std::cout << "]" << std::endl << std::endl;
 
-  std::cout << "target: [" << std::endl;
-  for(const auto& v : target.vertices)
-    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  std::cout << "]" << std::endl << std::endl;
+  //std::cout << "target: [" << std::endl;
+  //for(const auto& v : target.vertices)
+  //  std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
+  //std::cout << "]" << std::endl << std::endl;
 }
 
 void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
