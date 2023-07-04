@@ -28,7 +28,7 @@ struct OptSimple : public IOptimizer
   void         Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) override;
 
-  Scene Run (size_t a_numIters = 100) override;
+  Scene Run (size_t a_numIters, float &final_error) override;
 
 protected:
   
@@ -198,7 +198,7 @@ void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImp
   m_params      = a_params;
 }
 
-Scene OptSimple::Run(size_t a_numIters) 
+Scene OptSimple::Run(size_t a_numIters, float &final_error) 
 { 
   DTriangleMesh gradMesh;
   gradMesh.reset(m_scene.get_mesh(0), m_pDR->mode);//TODO: support multiple meshes
@@ -215,10 +215,12 @@ Scene OptSimple::Run(size_t a_numIters)
 
   auto lr = GetLR(gradMesh);
   
-  m_iter = 0; 
+  m_iter = 0;
+  float error = 0;
+ 
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
-    float error = EvalFunction(m_scene, gradMesh);
+    error = EvalFunction(m_scene, gradMesh);
     if (m_params.verbose)
       std::cout << "iter " << trueIter << ", error = " << error << std::endl;
     //PrintMesh(gradMesh);
@@ -234,5 +236,6 @@ Scene OptSimple::Run(size_t a_numIters)
     }
   }
 
+  final_error = error;
   return m_scene;
 }

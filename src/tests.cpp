@@ -24,6 +24,7 @@ using namespace LiteMath;
 #include "dmesh.h"
 #include "drender.h"
 #include "scenes.h"
+#include "optimizer.h"
 
 void Tester::test_base_derivatives()
 {
@@ -98,6 +99,245 @@ void Tester::test_base_derivatives()
 
     bool pass = res.texture_error < 0.05;
     printf("%s TEST 5: TEXTURE DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.texture_error);
+  }
+}
+
+void Tester::test_optimization()
+{
+  constexpr int IMAGE_W = 256;
+  constexpr int IMAGE_H = 256;
+  constexpr int SILHOUETTE_SPP = 16;
+  constexpr int BASE_SPP = 16;
+
+  Img img(256, 256);
+  
+  constexpr int camsNum = 3;
+  CamInfo cameras[camsNum] = {};
+  for(int i=0;i<camsNum;i++) {
+    cameras[i].width  = float(img.width());
+    cameras[i].height = float(img.height());
+    cameras[i].mWorldView.identity();
+    cameras[i].mProj.identity();
+  }
+
+  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
+
+  cameras[0].mProj      = mProj;
+  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-3));
+
+  cameras[1].mProj      = mProj;
+  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
+
+  cameras[2].mProj      = mProj;
+  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
+
+  for(int i=0;i<camsNum;i++)
+    cameras[i].commit();
+
+  auto g_uniforms = cameras[0];
+
+  if (true)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn03_Triangle3D_White(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.2;
+    op.textures_lr = 0.0;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.1: ONE TRIANGLE SHAPE OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
+  }
+
+  if (true)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn05_Pyramid3D(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.2;
+    op.textures_lr = 0.0;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.2: PYRAMID SHAPE OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
+  }
+
+  if (true)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.2;
+    op.textures_lr = 0.0;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.3: SPHERE SHAPE OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
+  }
+
+  if (false)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn05_Pyramid3D(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::VERTEX_COLOR, BASE_SPP});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.1;
+    op.textures_lr = 0.0;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.4: VCOL+POS OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
+  }
+
+  if (true)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn10_Teapot3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::DIFFUSE, BASE_SPP});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.0;
+    op.textures_lr = 0.2;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.5: DIFFUSE TEXTURE OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
+  }
+
+  if (true)
+  {
+    Scene initialScene, targetScene;
+    TriangleMesh initialMesh, targetMesh;
+    scn11_Teapot3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh);
+    targetScene.add_mesh(targetMesh);
+
+    auto pDRender = MakeDifferentialRenderer(initialScene, {SHADING_MODEL::PATH_TEST, 64});
+    
+    Img targets[camsNum];
+    for(int i=0;i<camsNum;i++) 
+    {
+      targets[i].resize(img.width(), img.height());
+      targets[i].clear(float3{0,0,0});
+    }
+
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras, targets, camsNum);
+
+    IOptimizer* pOpt = CreateSimpleOptimizer();
+    OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
+    op.position_lr = 0.0;
+    op.textures_lr = 0.2;
+    op.verbose = false;
+    pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
+
+    float error = 1e9;
+    Scene res_scene = pOpt->Run(300, error);
+
+    bool pass = error < 1;
+    printf("%s TEST 2.6: PATH TRACING OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
   }
 }
 

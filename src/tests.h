@@ -19,6 +19,7 @@ public:
     double average_error = 0;
   };
   void test_base_derivatives();
+  void test_optimization();
 
 
   DerivativesTestResults test_derivatives(const Scene &initial_scene, const Scene &target_scene, const CamInfo& a_camData, const DiffRenderSettings &settings, 

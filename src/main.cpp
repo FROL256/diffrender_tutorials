@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) //
   {
     Tester t;
     t.test_base_derivatives();
+    t.test_optimization();
     return 0;
   }
 
@@ -211,7 +212,8 @@ int main(int argc, char *argv[]) //
   op.textures_lr = 0.2;
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
-  Scene res_scene = pOpt->Run(300);
+  float error = 0;
+  Scene res_scene = pOpt->Run(300, error);
   
   //img.clear(float3{0,0,0});
   //pDRender->commit(mesh3);
