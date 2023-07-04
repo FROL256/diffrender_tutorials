@@ -229,11 +229,12 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   // apply transforms
   //
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,0.0f));
+  LiteMath::float4x4 mScale     = LiteMath::scale4x4(float3(0.5,0.5f,0.5f));
   LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f)*LiteMath::rotate4x4Z(LiteMath::DEG_TO_RAD*-30.0f);
   LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+50.0f);
   
-  auto mTransform1 = mTranslate*mRotate1;
-  auto mTransform2 = mTranslate*mRotate2;
+  auto mTransform1 = mScale*mTranslate*mRotate1;
+  auto mTransform2 = mScale*mTranslate*mRotate2;
 
   for(auto& v : initial.vertices)
     v = mTransform1*v;
