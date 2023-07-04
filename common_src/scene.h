@@ -7,6 +7,7 @@
 
 class IOptimizer;
 class OptSimple;
+class Tester;
 
 struct CPUTexture
 {
@@ -138,6 +139,7 @@ public:
 
   friend class IOptimizer;
   friend class OptSimple;
+  friend class Tester;
 
 protected:
   std::vector<TriangleMesh> meshes;

@@ -32,6 +32,7 @@
 #include "utils.h"
 #include "fin_diff.h"
 #include "Image2d.h"
+#include "tests.h"
 
 constexpr static int  SAM_PER_PIXEL = 16;
 
@@ -50,6 +51,13 @@ int main(int argc, char *argv[]) //
   mkdir("rendered_opt2", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("fin_diff",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
+
+  if (argc > 1 && std::string(argv[1]) == "-tests")
+  {
+    Tester t;
+    t.test_base_derivatives();
+    return 0;
+  }
 
   Img img(256, 256);
   
@@ -94,6 +102,7 @@ int main(int argc, char *argv[]) //
     initialScene.add_mesh(initialMesh);
     targetScene.add_mesh(targetMesh);
   }
+
   auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
 
   if(0) // check gradients for different image views
