@@ -3,6 +3,7 @@ project (diffrender)
 
 
 option(USE_EMBREE "Use Embree RT" OFF)
+option(DEBUG "Debug mode" OFF)
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -48,7 +49,11 @@ find_package(OpenMP REQUIRED)
 
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp")
 
+if (DEBUG)
+set(CMAKE_CXX_FLAGS "-g -O0 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
+else()
 set(CMAKE_CXX_FLAGS "-O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
+endif()
 
 add_executable(drender ${SOURCES}
                        ${SOURCE_RT})

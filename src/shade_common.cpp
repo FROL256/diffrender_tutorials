@@ -2,6 +2,7 @@
 
 std::vector<float> sample_bilinear_clamp(float2 tc, const CPUTexture &tex)
 {
+  tc = clamp(tc, float2(0,0), float2(1,1));
   tc *= float2(tex.w, tex.h);
   int2 tc0 = clamp(int2(tc), int2(0, 0), int2(tex.w - 1, tex.h - 1));
   int2 tc1 = clamp(int2(tc) + int2(1, 1), int2(0, 0), int2(tex.w - 1, tex.h - 1));

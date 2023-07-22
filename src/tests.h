@@ -20,6 +20,7 @@ public:
   };
   void test_base_derivatives();
   void test_optimization();
+  void test_2_6_path_tracing();
 
 
   DerivativesTestResults test_derivatives(const Scene &initial_scene, const Scene &target_scene, const CamInfo& a_camData, const DiffRenderSettings &settings, 

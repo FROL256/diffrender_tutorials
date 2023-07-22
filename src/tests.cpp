@@ -305,9 +305,41 @@ void Tester::test_optimization()
     bool pass = error < 1;
     printf("%s TEST 2.5: DIFFUSE TEXTURE OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
   }
+}
 
-  if (true)
-  {
+void Tester::test_2_6_path_tracing()
+{
+    constexpr int IMAGE_W = 256;
+  constexpr int IMAGE_H = 256;
+  constexpr int SILHOUETTE_SPP = 16;
+  constexpr int BASE_SPP = 16;
+
+  Img img(256, 256);
+  
+  constexpr int camsNum = 3;
+  CamInfo cameras[camsNum] = {};
+  for(int i=0;i<camsNum;i++) {
+    cameras[i].width  = float(img.width());
+    cameras[i].height = float(img.height());
+    cameras[i].mWorldView.identity();
+    cameras[i].mProj.identity();
+  }
+
+  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
+
+  cameras[0].mProj      = mProj;
+  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-3));
+
+  cameras[1].mProj      = mProj;
+  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
+
+  cameras[2].mProj      = mProj;
+  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
+
+  for(int i=0;i<camsNum;i++)
+    cameras[i].commit();
+
+  auto g_uniforms = cameras[0];
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
     scn11_Teapot3D_Textured(initialMesh, targetMesh);
@@ -330,7 +362,7 @@ void Tester::test_optimization()
     OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
     op.position_lr = 0.0;
     op.textures_lr = 0.2;
-    op.verbose = false;
+    op.verbose = true;
     pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
     float error = 1e9;
@@ -338,7 +370,6 @@ void Tester::test_optimization()
 
     bool pass = error < 1;
     printf("%s TEST 2.6: PATH TRACING OPTIMIZATION with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", error);
-  }
 }
 
 void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float delta,

@@ -1,5 +1,6 @@
 #include "dmodels.h"
 #include "shade_common.h"
+#include "utils.h"
 
 static constexpr int MAX_DEPTH = 8;
 static constexpr int RR_DEPTH = 3;
@@ -165,7 +166,7 @@ float3 bsdf_val_diffuse(const ExtendedSurfaceInfo &sInfo, const float3 &wo, cons
 
 float bsdf_pdf_diffuse(const ExtendedSurfaceInfo &sInfo, const float3 &wo, const float3 &wi)
 {
-  return SameHemisphere(wo, wi) ? AbsCosTheta(wi) / LiteMath::M_PI : 0;
+  return SameHemisphere(wo, wi) ? AbsCosTheta(wi) / LiteMath::M_PI : 1e9;
 }
 
 float3 bsdf_sample_f_diffuse(const ExtendedSurfaceInfo &sInfo, const float3 &wo, float3 *wi, const float2 &u, float *pdf) 

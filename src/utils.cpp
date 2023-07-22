@@ -24,3 +24,23 @@ void PrintMesh(const DTriangleMesh& a_mesh)
     std::cout << "col[" << i << "]: " << a_mesh.color_at(i).x << ", " << a_mesh.color_at(i).y << ", " << a_mesh.color_at(i).z << std::endl;
   std::cout << std::endl;
 }
+
+void CHECK_NaN(float f)
+{
+  if (f != f)
+  {
+    printf("exception!!!\n");
+    float *t = nullptr;
+    printf("%f\n",*t);
+  }
+}
+
+void CHECK_NaN(float3 f)
+{
+  if (f.x != f.x || f.y != f.y || f.z != f.z)
+  {
+    printf("exception!!!\n");
+    float *t = nullptr;
+    printf("%f\n",*t);
+  }
+}

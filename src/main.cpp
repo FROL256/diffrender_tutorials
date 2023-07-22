@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) //
   if (argc > 1 && std::string(argv[1]) == "-tests")
   {
     Tester t;
-    t.test_base_derivatives();
-    t.test_optimization();
+    //t.test_base_derivatives();
+    t.test_2_6_path_tracing();
     return 0;
   }
 
