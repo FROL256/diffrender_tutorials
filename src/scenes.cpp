@@ -614,7 +614,7 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
 void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
-  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot_16K.vsgf");
+  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot.vsgf");
   //cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/vase.vsgf");
   const size_t numberVertices = tmpMesh.VerticesNum();
   const size_t numberIndices  = tmpMesh.IndicesNum();
@@ -632,7 +632,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
     initial.vertices[i] = LiteMath::to_float3(tmpMesh.vPos4f[i]);
     initial.tc      [i] = tmpMesh.vTexCoord2f[i];
 
-    float3 n = normalize(LiteMath::to_float3(tmpMesh.vNorm4f[i])); 
+    float3 n = LiteMath::to_float3(tmpMesh.vNorm4f[i]); 
     if (length(n) > 1e-4)
       initial.normals [i] = normalize(n);
     else
@@ -668,7 +668,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
       initial.tangents[i] = normalize(cross(initial.normals[i], float3(1,0,0)));
   }
   
-  initial.textures.emplace_back(WhiteTexture());
+  initial.textures.emplace_back(RedGreenLinesTexture());
 
   target = initial;
   initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
