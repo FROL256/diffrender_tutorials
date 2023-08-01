@@ -13,6 +13,14 @@ struct OptimizerParameters
     alg = _alg;
     set_default();
   }
+  OptimizerParameters(OPT_ALGORITHM _alg, float pos_lr, float tex_lr, bool _verbose = false)
+  {
+    alg = _alg;
+    set_default();
+    position_lr = pos_lr;
+    textures_lr = tex_lr;
+    verbose = _verbose;
+  }
   OPT_ALGORITHM alg = GD_Naive;
   int decayPeriod   = 30;
   float decay_mult = 0.75;
@@ -29,7 +37,7 @@ struct IOptimizer
   virtual void Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) = 0;
 
-  virtual Scene Run (size_t a_numIters, float &final_error) = 0;
+  virtual Scene Run (size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump = nullptr) = 0;
 };
 
 extern IOptimizer* CreateSimpleOptimizer();

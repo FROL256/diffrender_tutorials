@@ -28,7 +28,7 @@ struct OptSimple : public IOptimizer
   void         Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) override;
 
-  Scene Run (size_t a_numIters, float &final_error) override;
+  Scene Run (size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump = nullptr) override;
 
 protected:
   
@@ -180,7 +180,7 @@ float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
   m_pDR->d_render(scene, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
 
   m_iter++;
-  return mse/float(m_numViews);
+  return mse/float(m_numViews*images[0].width()*images[0].height());
 }
 
 void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
@@ -198,7 +198,7 @@ void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImp
   m_params      = a_params;
 }
 
-Scene OptSimple::Run(size_t a_numIters, float &final_error) 
+Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump) 
 { 
   DTriangleMesh gradMesh;
   gradMesh.reset(m_scene.get_mesh(0), m_pDR->mode);//TODO: support multiple meshes
@@ -217,23 +217,27 @@ Scene OptSimple::Run(size_t a_numIters, float &final_error)
   
   m_iter = 0;
   float error = 0;
- 
+  float psnr = 0;
+
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
     error = EvalFunction(m_scene, gradMesh);
+    psnr = -10*log10(max(1e-9f,error));
     if (m_params.verbose)
-      std::cout << "iter " << trueIter << ", error = " << error << std::endl;
+      std::cout << "iter " << trueIter << ", PSNR = " << psnr << std::endl;
     //PrintMesh(gradMesh);
     OptStep(gradMesh, lr);
     OptUpdateScene(gradMesh, &m_scene);
     StepDecay(iter, lr);
 
-    if(error <= 0.5f && (iter < a_numIters-10)) // perform last 10 iterations and stop
+    if(error <= 1e-6 && (iter < a_numIters-10)) // perform last 10 iterations and stop
     {
       if (m_params.verbose)
         std::cout << "----------------------------> stop by error, perform last 10 iterations: " << std::endl;
       iter = a_numIters-10;
     }
+    if (iterations_dump)
+      iterations_dump->push_back(m_scene);
   }
 
   final_error = error;
