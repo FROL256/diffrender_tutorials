@@ -9,7 +9,7 @@ option(DEBUG "Debug mode" OFF)
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("src", "LiteMath", "raytrace_src", "common_src")
+include_directories("src", "LiteMath", "raytrace_src", "common_src", "external/python", "/usr/include/python3.8")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -43,11 +43,12 @@ else()
 endif()
 
 find_package(OpenMP REQUIRED)
-
+find_package(PythonLibs REQUIRED)
+message(PythonLibs=${PYTHON_LIBRARIES})
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
-file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp")
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp" "external/python")
 
 if (DEBUG)
 set(CMAKE_CXX_FLAGS "-g -fsanitize=address -O1 -fno-omit-frame-pointer -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
@@ -59,5 +60,5 @@ add_executable(drender ${SOURCES}
                        ${SOURCE_RT})
 
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS})
+  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS} /usr/lib/x86_64-linux-gnu/libpython3.8.so)
 endif()
