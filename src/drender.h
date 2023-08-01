@@ -4,6 +4,7 @@
 #include "dmesh.h"
 #include "dmodels.h"
 #include "raytrace.h"
+#include "virtual_drender.h"
 
 #if DEBUG_RENDER
 constexpr static int  MAXTHREADS    = 1;
@@ -53,17 +54,6 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-struct IDiffRender
-{
-  virtual void commit(const Scene &scene) = 0;
-  virtual void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
-  virtual void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
-                        DTriangleMesh &d_mesh,
-                        Img* debugImages = nullptr, int debugImageNum = 0) = 0;
-
-  SHADING_MODEL mode;
-};
 
 template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
