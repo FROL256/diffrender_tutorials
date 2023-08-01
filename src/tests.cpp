@@ -329,7 +329,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
       }
     }
 
-    if (mesh.colors.size() == mesh.vertices.size())
+    if (mesh.colors.size() == mesh.vertices.size() && a_pDRImpl->mode == SHADING_MODEL::VERTEX_COLOR)
     {
       pFinDiff(mesh.colors[i].M + 0, d_mesh.color_offs() + i*3+0, pos_x, dCol, true);
       pFinDiff(mesh.colors[i].M + 1, d_mesh.color_offs() + i*3+1, pos_y, dCol, true);

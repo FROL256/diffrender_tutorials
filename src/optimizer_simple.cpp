@@ -86,19 +86,26 @@ void OptSimple::OptUpdateScene(const DTriangleMesh &gradMesh, Scene* scene)
       mesh.vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
     }
     
-    for(int faceId=0; faceId < mesh.colors.size(); faceId++)
+    if (gradMesh.get_shading_model() == SHADING_MODEL::VERTEX_COLOR)
     {
-      mesh.colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
-      mesh.colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
-      mesh.colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
+      for(int faceId=0; faceId < mesh.colors.size(); faceId++)
+      {
+        mesh.colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
+        mesh.colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
+        mesh.colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
+      }
     }
     
-    for (int i=0;i<gradMesh.tex_count();i++)
+    if (gradMesh.get_shading_model() != SHADING_MODEL::SILHOUETTE &&
+        gradMesh.get_shading_model() != SHADING_MODEL::VERTEX_COLOR)
     {
-      int sz = mesh.textures[i].data.size();
-      int off = gradMesh.tex_offset(i);
-      for (int j=0;j<sz;j++)
-        mesh.textures[i].data[j] -= gradMesh[off + j];
+      for (int i=0;i<gradMesh.tex_count();i++)
+      {
+        int sz = mesh.textures[i].data.size();
+        int off = gradMesh.tex_offset(i);
+        for (int j=0;j<sz;j++)
+          mesh.textures[i].data[j] -= gradMesh[off + j];
+      }
     }
 }
 

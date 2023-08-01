@@ -33,6 +33,8 @@ struct DTriangleMesh
 
   void reset(const TriangleMesh &mesh, SHADING_MODEL material)
   {
+    shading_model = material;
+
     m_numVertices = mesh.vertex_count();
     m_numFaces    = mesh.face_count();  
     
@@ -90,6 +92,7 @@ struct DTriangleMesh
   inline int tex_count() const { return m_texOffsets.size(); }
   inline int tex_offset(int tex_n) const { return m_texOffsets[tex_n]; }
   inline int textures_offset() const { return m_texOffsets.empty() ? size() : m_texOffsets[0]; }
+  inline SHADING_MODEL get_shading_model() const { return shading_model; }
 
 protected:
 
@@ -99,6 +102,7 @@ protected:
   int m_numFaces;
 
   std::vector<int> m_texOffsets;
+  SHADING_MODEL shading_model = SHADING_MODEL::UNDEFINED;
 };
 
 static inline float3 SummOfPixels(const Img& a_image) 
