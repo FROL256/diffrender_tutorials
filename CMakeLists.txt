@@ -50,7 +50,7 @@ find_package(OpenMP REQUIRED)
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*.cpp")
 
 if (DEBUG)
-set(CMAKE_CXX_FLAGS "-g -O0 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
+set(CMAKE_CXX_FLAGS "-g -fsanitize=address -O1 -fno-omit-frame-pointer -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
 else()
 set(CMAKE_CXX_FLAGS "-O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
 endif()
