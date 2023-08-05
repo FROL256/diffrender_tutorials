@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <stdarg.h>
 #include "LiteMath.h"
 #include "Image2d.h"
 
@@ -27,3 +28,11 @@ void CHECK_NaN(float3 f);
 static inline float MSE(const Img& b, const Img& a) { return LiteImage::MSE(b,a); }
 static inline float2 normal2D(const float2 &v) {return float2{-v.y, v.x};} 
 static inline float  edgeFunction(float2 a, float2 b, float2 c) { return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x); }  // actuattly just a mixed product ... :)
+static void logerr(const char *__restrict __fmt, ...)
+{
+    va_list args;
+    va_start(args, __fmt);
+    vfprintf(stderr, __fmt, args);
+    va_end(args);
+    fprintf(stderr,"\n");
+}

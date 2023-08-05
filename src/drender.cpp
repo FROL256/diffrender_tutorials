@@ -81,49 +81,49 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const 
   case SHADING_MODEL::SILHOUETTE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;    
   case SHADING_MODEL::VERTEX_COLOR:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::DIFFUSE:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::DIFFUSE>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::LAMBERT:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::PHONG:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::GGX:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::PATH_TEST:
     {
     auto impl = std::make_shared<DiffRender<SHADING_MODEL::PATH_TEST>>();
-    impl->init(scene, settings.spp);
+    impl->init(settings);
     return impl;
     }
     break;

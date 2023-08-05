@@ -44,12 +44,16 @@ int main(int argc, char *argv[]) //
   mkdir("rendered_opt1");
   mkdir("rendered_opt2");
   mkdir("fin_diff");
+  mkdir("output");
+  mkdir("output/mitsuba_images");
   #else
   mkdir("rendered",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("rendered_opt0", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("rendered_opt1", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("rendered_opt2", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   mkdir("fin_diff",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("output",        S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  mkdir("output/mitsuba_images", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   #endif
 
   if (argc > 1 && std::string(argv[1]) == "-tests")

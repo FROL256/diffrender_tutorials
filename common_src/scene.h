@@ -4,6 +4,7 @@
 #include <cstring> 
 #include <cassert> 
 #include <map>
+#include "utils.h"
 
 class IOptimizer;
 class OptSimple;

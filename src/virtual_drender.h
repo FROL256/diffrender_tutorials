@@ -2,9 +2,17 @@
 #include "scene.h"
 #include "dmesh.h"
 #include "camera.h"
+#include "utils.h"
+
+struct DiffRenderSettings
+{
+  SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
+  int spp = 1;
+};
 
 struct IDiffRender
 {
+  virtual void init(const DiffRenderSettings &settings) = 0;
   virtual void commit(const Scene &scene) = 0;
   virtual void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;
   virtual void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,

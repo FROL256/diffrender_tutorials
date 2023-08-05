@@ -26,6 +26,7 @@ using namespace LiteMath;
 #include "drender.h"
 #include "scenes.h"
 #include "optimizer.h"
+#include "drender_mitsuba.h"
 
 void Tester::test_base_derivatives()
 {
@@ -112,15 +113,8 @@ std::vector<CamInfo> create_cameras_around(int cam_num, int sensor_w, int sensor
   int st = cam_num/2;
   for(int i=0;i<cam_num;i++)
   {
-    cameras.emplace_back();
-    cameras[i].width  = float(sensor_w);
-    cameras[i].height = float(sensor_h);
-    cameras[i].mWorldView.identity();
-    cameras[i].mProj.identity();
-
-    cameras[i].mProj      = mProj;
-    cameras[i].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(rot_y*(i-st))*LiteMath::rotate4x4Y(rot_x*(i-st));
-    cameras[i].commit();
+    auto rot = LiteMath::rotate4x4Y(rot_y*(i-st))*LiteMath::rotate4x4Y(rot_x*(i-st));
+    cameras.push_back(CamInfo(float3(-5*sin(rot_y*(i-st)),0,-5*cos(rot_y*(i-st))), float3(0,0,0), float3(0,1,0), sensor_w, sensor_h));
   }
 
   return cameras;
@@ -233,6 +227,36 @@ void Tester::test_2_5_teapot_diffuse()
                     {SHADING_MODEL::DIFFUSE, 16},
                     {OptimizerParameters::GD_Adam, 0.0, 0.05},
                     300);
+}
+
+void Tester::test_3_1_mitsuba_triangle()
+{
+  int cameras_count = 3;
+  int image_w = 700;
+  int image_h = 700;
+  DiffRenderSettings diff_render_settings = {SHADING_MODEL::SILHOUETTE, 16};
+
+  auto cameras = create_cameras_around(cameras_count, image_w, image_h);
+
+  Scene initialScene, targetScene;
+  TriangleMesh initialMesh, targetMesh;
+  scn09_Sphere3D_Textured(initialMesh, targetMesh);
+  initialScene.add_mesh(initialMesh);
+  targetScene.add_mesh(targetMesh);
+
+  auto pDRender = new DiffRenderMitsuba();
+  pDRender->init(diff_render_settings);
+
+  Img img(image_w, image_h);
+  Img targets[cameras_count];
+  for (int i = 0; i < cameras_count; i++)
+  {
+    targets[i].resize(img.width(), img.height());
+    targets[i].clear(float3{0, 0, 0});
+  }
+
+  pDRender->commit(targetScene);
+  pDRender->render(targetScene, cameras.data(), targets, cameras_count);
 }
 
 void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float delta,

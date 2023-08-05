@@ -34,12 +34,6 @@ struct Sampler
   std::vector<float> cdf;
 };
 
-struct DiffRenderSettings
-{
-  SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
-  int spp = 1;
-};
-
 // build a discrete CDF using edge length
 Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges);
 
@@ -58,15 +52,15 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
 template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
 {
-  void init(const Scene &scene, int a_samplesPerPixel)
+  virtual void init(const DiffRenderSettings &settings) override
   {
-    m_samples_per_pixel = a_samplesPerPixel;
+    m_samples_per_pixel = settings.spp;
     m_pTracer = MakeRayTracer3D("");
-    m_hammSamples.resize(2*a_samplesPerPixel);
+    m_hammSamples.resize(2*settings.spp);
     mode = material;
 
     qmc::init(m_table);
-    qmc::planeHammersley(m_hammSamples.data(), a_samplesPerPixel);
+    qmc::planeHammersley(m_hammSamples.data(), settings.spp);
   }
   
   
