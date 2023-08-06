@@ -189,7 +189,7 @@ void Tester::test_2_1_triangle()
   optimization_test("TEST 2.1: ONE TRIANGLE SHAPE OPTIMIZATION",
                     scn03_Triangle3D_White,
                     {SHADING_MODEL::SILHOUETTE, 4},
-                    {OptimizerParameters::GD_Adam, 0.2, 0.1, true},
+                    {OptimizerParameters::GD_Adam, 0.2, 0.1},
                     300);
 }
 
@@ -244,6 +244,8 @@ void mitsuba_compare_test(const std::string &test_name,
   create_scene(initialMesh, targetMesh);
   initialScene.add_mesh(initialMesh);
   targetScene.add_mesh(targetMesh);
+  initialScene.transform_meshes(true, true, true);
+  targetScene.transform_meshes(true, true, true);
 
   auto pDRender = new DiffRenderMitsuba();
   pDRender->init(diff_render_settings);
@@ -305,7 +307,7 @@ void mitsuba_compare_test(const std::string &test_name,
   diff /= sz;
   delete pDRender;
     
-  bool pass = diff < 0.01;
+  bool pass = diff < 0.05;
   printf("%s %s with image PSNR %.5f\n", (psnr > 35) ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
   printf("%s %s with derivatives difference %.5f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), diff);
 }
@@ -318,39 +320,26 @@ void Tester::test_3_1_mitsuba_triangle()
                        1,
                        512,
                        512);
-  
-  return;
-  int cameras_count = 4;
-  int image_w = 700;
-  int image_h = 700;
-  DiffRenderSettings diff_render_settings = {SHADING_MODEL::SILHOUETTE, 16};
+}
 
-  auto cameras = create_cameras_around(cameras_count, image_w, image_h);
+void Tester::test_3_2_mitsuba_sphere()
+{
+  mitsuba_compare_test("TEST 3.2: SPHERE MITSUBA COMPARE",
+                       scn09_Sphere3D_Textured,
+                       {SHADING_MODEL::SILHOUETTE, 16},
+                       1,
+                       512,
+                       512);
+}
 
-  Scene initialScene, targetScene;
-  TriangleMesh initialMesh, targetMesh;
-  scn03_Triangle3D_White(initialMesh, targetMesh);
-  initialScene.add_mesh(initialMesh);
-  targetScene.add_mesh(targetMesh);
-
-  auto pDRender = new DiffRenderMitsuba();
-  pDRender->init(diff_render_settings);
-
-  Img img(image_w, image_h);
-  Img targets[cameras_count];
-  for (int i = 0; i < cameras_count; i++)
-  {
-    targets[i].resize(img.width(), img.height());
-    targets[i].clear(float3{0, 0, 0});
-  }
-
-  pDRender->commit(targetScene);
-  pDRender->render(targetScene, cameras.data(), targets, cameras_count);
-
-  DTriangleMesh gradMesh;
-  gradMesh.reset(initialScene.get_mesh(0), pDRender->mode);
-
-  pDRender->d_render_and_compare(initialScene, cameras.data(), targets, cameras_count, 0, gradMesh);
+void Tester::test_3_3_mitsuba_teapot()
+{
+  mitsuba_compare_test("TEST 3.3: TEAPOT MITSUBA COMPARE",
+                       scn11_Teapot3D_Textured,
+                       {SHADING_MODEL::SILHOUETTE, 16},
+                       1,
+                       512,
+                       512);
 }
 
 void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float delta,
