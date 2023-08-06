@@ -459,8 +459,28 @@ void MitsubaInterface::compute_final_grad(const std::vector<float> &jac, int par
     final_grad[i] += buffers[get_camera_buffer_id()][i - params_count]; // gradient by camera params
 }
 
+void MitsubaInterface::get_pos_derivatives(float *out_grad, int vertex_count)
+{
+  int off = 0; 
+  auto &ml = model_info.layout;
+  assert(active_parts.size()==1);
+  for (int part_id : active_parts)
+  {
+    // offsets[0] offset always represent positions. We do not calculate derivatives by other channels (normals, tc)
+    int size = ml.offsets[1] - ml.offsets[0];
+    assert(size == 3);
+    for (int i = 0; i < vertex_count; i++)
+    {
+      for (int k = 0; k < size; k++)
+        out_grad[off + size * i + k] = buffers[3*part_id][size * i + k];
+    }
+    off += vertex_count*size;
+  }
+}
+
 void MitsubaInterface::set_model_max_size(int _model_max_size)
 {
+  _model_max_size = std::max(64, _model_max_size);
   model_max_size = _model_max_size;
   if (model_max_size >= 0)
   {

@@ -189,7 +189,7 @@ void Tester::test_2_1_triangle()
   optimization_test("TEST 2.1: ONE TRIANGLE SHAPE OPTIMIZATION",
                     scn03_Triangle3D_White,
                     {SHADING_MODEL::SILHOUETTE, 4},
-                    {OptimizerParameters::GD_Adam, 0.2, 0.1},
+                    {OptimizerParameters::GD_Adam, 0.2, 0.1, true},
                     300);
 }
 
@@ -229,9 +229,98 @@ void Tester::test_2_5_teapot_diffuse()
                     300);
 }
 
+void mitsuba_compare_test(const std::string &test_name,
+                          std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
+                          const DiffRenderSettings &diff_render_settings,
+                          int cameras_count = 3,
+                          int image_w = 256,
+                          int image_h = 256,
+                          std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
+{
+  auto cameras = create_cameras(cameras_count, image_w, image_h);
+
+  Scene initialScene, targetScene;
+  TriangleMesh initialMesh, targetMesh;
+  create_scene(initialMesh, targetMesh);
+  initialScene.add_mesh(initialMesh);
+  targetScene.add_mesh(targetMesh);
+
+  auto pDRender = new DiffRenderMitsuba();
+  pDRender->init(diff_render_settings);
+  auto pDRenderOurs = MakeDifferentialRenderer(initialScene, diff_render_settings);
+
+  Img img(image_w, image_h);
+  Img targets[cameras_count];
+  Img targetsOurs[cameras_count];
+  for (int i = 0; i < cameras_count; i++)
+  {
+    targets[i].resize(img.width(), img.height());
+    targets[i].clear(float3{0, 0, 0});
+    targetsOurs[i].resize(img.width(), img.height());
+    targetsOurs[i].clear(float3{0, 0, 0});
+  }
+
+  DTriangleMesh gradMeshMitsuba;
+  {
+    pDRender->commit(targetScene);
+    pDRender->render(targetScene, cameras.data(), targets, cameras_count);
+    gradMeshMitsuba.reset(initialScene.get_mesh(0), pDRender->mode);
+    pDRender->d_render_and_compare(initialScene, cameras.data(), targets, cameras_count, img.width()*img.height(), gradMeshMitsuba);
+  }
+
+  DTriangleMesh gradMeshOurs;
+  {
+    pDRenderOurs->commit(targetScene);
+    pDRenderOurs->render(targetScene, cameras.data(), targetsOurs, cameras_count);
+    gradMeshOurs.reset(initialScene.get_mesh(0), pDRenderOurs->mode);
+    pDRenderOurs->d_render_and_compare(initialScene, cameras.data(), targetsOurs, cameras_count, img.width()*img.height(), gradMeshOurs);
+  }
+
+  assert(gradMeshMitsuba.size() == gradMeshOurs.size());
+  int sz = gradMeshOurs.size();
+  float diff = 0;
+  double acc1 = 1e-12;
+  double acc2 = 1e-12;
+  for (int i=0;i<sz;i++)
+    acc1 += gradMeshMitsuba[i];
+  for (int i=0;i<sz;i++)
+    acc2 += gradMeshOurs[i];
+  for (int i=0;i<sz;i++)
+  {
+    //logerr("[%d]%f %f",i, sz*gradMeshMitsuba[i]/acc1, sz*gradMeshOurs[i]/acc2);
+    diff += abs(gradMeshMitsuba[i]/acc1 - gradMeshOurs[i]/acc2);
+  }
+
+  double image_diff = 0.0;
+  for (int i=0;i<cameras_count;i++)
+  {
+    //std::string path1 = "output/t"+std::to_string(i)+"_1.png";
+    //std::string path2 = "output/t"+std::to_string(i)+"_2.png";
+    //LiteImage::SaveImage(path1.c_str(), targets[i]);
+    //LiteImage::SaveImage(path2.c_str(), targetsOurs[i]);
+    image_diff += LossAndDiffLoss(targets[i], targetsOurs[i], img);
+  }
+  image_diff /= cameras_count*img.width()*img.height();
+  float psnr = -10*log10(max(1e-9,image_diff));
+  diff /= sz;
+  delete pDRender;
+    
+  bool pass = diff < 0.01;
+  printf("%s %s with image PSNR %.5f\n", (psnr > 35) ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
+  printf("%s %s with derivatives difference %.5f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), diff);
+}
+
 void Tester::test_3_1_mitsuba_triangle()
 {
-  int cameras_count = 3;
+  mitsuba_compare_test("TEST 3.1: TRIANGLE MITSUBA COMPARE",
+                       scn03_Triangle3D_White,
+                       {SHADING_MODEL::SILHOUETTE, 16},
+                       1,
+                       512,
+                       512);
+  
+  return;
+  int cameras_count = 4;
   int image_w = 700;
   int image_h = 700;
   DiffRenderSettings diff_render_settings = {SHADING_MODEL::SILHOUETTE, 16};
@@ -240,7 +329,7 @@ void Tester::test_3_1_mitsuba_triangle()
 
   Scene initialScene, targetScene;
   TriangleMesh initialMesh, targetMesh;
-  scn09_Sphere3D_Textured(initialMesh, targetMesh);
+  scn03_Triangle3D_White(initialMesh, targetMesh);
   initialScene.add_mesh(initialMesh);
   targetScene.add_mesh(targetMesh);
 
@@ -257,6 +346,11 @@ void Tester::test_3_1_mitsuba_triangle()
 
   pDRender->commit(targetScene);
   pDRender->render(targetScene, cameras.data(), targets, cameras_count);
+
+  DTriangleMesh gradMesh;
+  gradMesh.reset(initialScene.get_mesh(0), pDRender->mode);
+
+  pDRender->d_render_and_compare(initialScene, cameras.data(), targets, cameras_count, 0, gradMesh);
 }
 
 void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float delta,

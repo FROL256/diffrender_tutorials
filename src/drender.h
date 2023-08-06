@@ -118,7 +118,7 @@ struct DiffRender : public IDiffRender
   
   void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                 DTriangleMesh &d_mesh,
-                Img* debugImages, int debugImageNum) override
+                Img* debugImages = nullptr, int debugImageNum = 0) override
   {  
     if(&scene != m_pLastPreparedScene)
     {
@@ -139,6 +139,30 @@ struct DiffRender : public IDiffRender
   
       edge_derivatives(scene, adjoints[camId], edge_samples_in_total, d_mesh);
     }
+  }
+
+  virtual float d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
+                                     const int edge_samples_in_total, DTriangleMesh &d_mesh, Img* outImages = nullptr) override
+  {
+    std::vector<Img> local_images(a_viewsNum);
+    Img *images = outImages ? outImages : local_images.data();
+    for(int i=0;i<a_viewsNum;i++)
+      images[i].resize(cams[i].width,cams[i].height);
+
+    commit(scene);
+    render(scene, cams, images, a_viewsNum);
+
+    std::vector<Img> adjoints(a_viewsNum);
+    for(auto& im : adjoints)
+      im = Img(images[0].width(), images[0].height(), float3{0, 0, 0});
+
+    float mse = 0.0f;
+    #pragma omp parallel for num_threads(a_viewsNum) reduction(+:mse)
+    for(int i=0;i<a_viewsNum;i++)
+      mse += LossAndDiffLoss(images[i], target_images[i], adjoints[i]);
+    d_mesh.clear();
+    d_render(scene, cams, adjoints.data(), a_viewsNum, edge_samples_in_total, d_mesh);
+    return mse/float(a_viewsNum*images[0].width()*images[0].height());
   }
 
 private:

@@ -144,7 +144,6 @@ def init(base_path, image_w, image_h, spp, mitsuba_variant, render_style, textur
   if (len(texture_names) != len(material_names)):
     print("Error: len(texture_names) != len(material_names) ", len(texture_names), " != ", len(material_names))
   model_parts = min(len(texture_names), len(material_names))
-  print("init to render composite mesh with", model_parts, "parts")
   for i in range(len(texture_names)):
     texture_names[i] = base_path + "textures/" + texture_names[i]
   
@@ -449,7 +448,6 @@ def render_and_save_to_file(context, save_filename):
     else:
       img_ref = img_ref + img
     
-  print(save_filename)
   mi.util.write_bitmap(save_filename, img_ref)
   time.sleep(1)
 
@@ -490,7 +488,6 @@ def render(it, context):
   #load reference on the first iteration
   if (int(it) == 0):
     for i in range(context['cameras_count']):
-      print("reference",context['img_ref_dir_'+str(i)])
       with Image.open(context['img_ref_dir_'+str(i)]) as img: ##TODO: proper link
         img.load()
       img = img.convert('RGB')

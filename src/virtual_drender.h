@@ -18,6 +18,7 @@ struct IDiffRender
   virtual void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
                         DTriangleMesh &d_mesh,
                         Img* debugImages = nullptr, int debugImageNum = 0) = 0;
-
+  virtual float d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
+                                     const int edge_samples_in_total, DTriangleMesh &d_mesh, Img* outImages = nullptr) = 0;
   SHADING_MODEL mode;
 };

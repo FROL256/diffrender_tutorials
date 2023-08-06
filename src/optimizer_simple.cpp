@@ -154,15 +154,9 @@ void OptSimple::OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr)
 
 float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
 {
-  const int samples_per_pixel = 16;
-
   std::vector<Img> images(m_numViews);
-  for(int i=0;i<m_numViews;i++)
-    images[i].resize(m_cams[i].width,m_cams[i].height);
-
-  m_pDR->commit(scene);
-  m_pDR->render(scene, m_cams, images.data(), m_numViews);
-  
+  float mse = m_pDR->d_render_and_compare(scene, m_cams, m_targets, m_numViews, m_targets[0].width()*m_targets[0].height(), gradMesh, 
+                                          m_params.verbose ? images.data() : nullptr);
   if (m_params.verbose)
   {
     for(int i=0;i<m_numViews;i++) 
@@ -173,21 +167,8 @@ float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
       LiteImage::SaveImage(temp.c_str(), images[i]);
     }
   }
-
-  std::vector<Img> adjoints(m_numViews);
-  for(auto& im : adjoints)
-    im = Img(images[0].width(), images[0].height(), float3{0, 0, 0});
-
-  float mse = 0.0f;
-  #pragma omp parallel for num_threads(m_numViews) reduction(+:mse)
-  for(int i=0;i<m_numViews;i++)
-    mse += LossAndDiffLoss(images[i], m_targets[i], adjoints[i]);
-  
-  gradMesh.clear();
-  m_pDR->d_render(scene, m_cams, adjoints.data(), m_numViews, images[0].width()*images[0].height(), gradMesh);
-
   m_iter++;
-  return mse/float(m_numViews*images[0].width()*images[0].height());
+  return mse;
 }
 
 void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 

@@ -129,6 +129,7 @@ public:
 
   //generator_jak size is [FLOAT_PER_VERTEX*params_count*vertex_count], final_grad size is [params_count]
   void compute_final_grad(const std::vector<float> &generator_jac, int params_count, int vertex_count, std::vector<float> &final_grad);
+  void get_pos_derivatives(float *out_grad, int vertex_count);
 
   void finish();
 
