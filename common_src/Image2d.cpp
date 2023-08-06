@@ -1,6 +1,6 @@
 #include "LiteMath.h"
 #include "Image2d.h"
-
+#define USE_STB_IMAGE
 #ifdef USE_STB_IMAGE
   #define STB_IMAGE_IMPLEMENTATION
   #include "stb_image.h"
