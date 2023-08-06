@@ -65,29 +65,16 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
 
 void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
 {
-   TriangleMesh tridata{
-      // vertices
-      {{0.0f, 1.0f, 0.0f},    
-       {1.0f, 0.0f, 1.0f},
-       {0.0f, 0.0f, 1.0f},  
-       },
-
-      // color
-      
-      //{{0.07805659f, 0.07805659f, 0.07805659f}, 
-      // {0.07805659f, 0.07805659f, 0.07805659f}, 
-      // {0.07805659f, 0.07805659f, 0.07805659f},
-      // },
-      
-      {{1.0f, 1.0f, 1.0f}, 
-       {1.0f, 1.0f, 1.0f}, 
-       {1.0f, 1.0f, 1.0f},
-       },
-
-      // indices
-      {0, 1, 2}
-  };
-
+  TriangleMesh tridata;
+  tridata.vertices = 
+    {{0.0f, 0.0f, 0.0f},    
+    {1.0f, 0.0f, 0.0f},
+    {0.0f, 1.0f, 0.0f}};
+  tridata.normals = 
+   {{0.0f, 0.0f, -1.0f},    
+    {0.0f, 0.0f, -1.0f},
+    {0.0f, 0.0f, -1.0f}};
+  tridata.indices = {0, 1, 2};
 
   initial = tridata;
   target  = tridata;
