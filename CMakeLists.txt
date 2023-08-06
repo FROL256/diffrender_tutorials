@@ -1,15 +1,18 @@
 cmake_minimum_required (VERSION 3.8)
 project (diffrender)
 
+#default build
+#cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_MITSUBA=ON
 
 option(USE_EMBREE "Use Embree RT" OFF)
 option(DEBUG "Debug mode" OFF)
+option(USE_MITSUBA "Use Mitsuba 3" OFF)
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("src", "LiteMath", "raytrace_src", "common_src", "external/python", "/usr/include/python3.8")
+include_directories("src", "LiteMath", "raytrace_src", "common_src")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -42,9 +45,21 @@ else()
 
 endif()
 
+if(USE_MITSUBA)
+  find_package(PythonLibs REQUIRED)
+  include_directories( ${PYTHON_INCLUDE_DIR} "external/python", "mitsuba_src")
+  set(MITSUBA_LIBS ${PYTHON_LIBRARIES})
+  set(SOURCE_MITSUBA
+      mitsuba_src/drender_mitsuba.cpp
+      mitsuba_src/mitsuba_python_interaction.cpp)
+else()
+  include_directories("mitsuba_src/stub")
+  set(MITSUBA_LIBS "")
+  set(SOURCE_MITSUBA )
+endif()
+
 find_package(OpenMP REQUIRED)
-find_package(PythonLibs REQUIRED)
-message(PythonLibs=${PYTHON_LIBRARIES})
+
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
@@ -57,8 +72,9 @@ set(CMAKE_CXX_FLAGS "-O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-regi
 endif()
 
 add_executable(drender ${SOURCES}
-                       ${SOURCE_RT})
+                       ${SOURCE_RT}
+                       ${SOURCE_MITSUBA})
 
 if(OpenMP_CXX_FOUND)
-  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS} /usr/lib/x86_64-linux-gnu/libpython3.8.so)
+  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS} ${MITSUBA_LIBS})
 endif()
