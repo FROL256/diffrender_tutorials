@@ -142,6 +142,8 @@ public:
   friend class OptSimple;
   friend class Tester;
 
+  void transform_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh);
+
 protected:
   std::vector<TriangleMesh> meshes;
   std::map<std::string, int> meshes_by_name; //position in meshes vector
