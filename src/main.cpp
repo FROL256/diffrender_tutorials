@@ -59,14 +59,17 @@ int main(int argc, char *argv[]) //
   if (argc > 1 && std::string(argv[1]) == "-tests")
   {
     Tester t;
-    t.test_3_1_mitsuba_triangle();
-    return 0;
     t.test_base_derivatives();
+
     t.test_2_1_triangle();
     t.test_2_2_pyramid();
     t.test_2_3_sphere();
     t.test_2_4_pyramid_vcol();
     t.test_2_5_teapot_diffuse();
+
+    t.test_3_1_mitsuba_triangle();
+    t.test_3_2_mitsuba_sphere();
+    t.test_3_3_mitsuba_teapot();
     return 0;
   }
 

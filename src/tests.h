@@ -27,6 +27,8 @@ public:
   static void test_2_6_path_tracing();
 
   static void test_3_1_mitsuba_triangle();
+  static void test_3_2_mitsuba_sphere();
+  static void test_3_3_mitsuba_teapot();
 
   static DerivativesTestResults test_derivatives(const Scene &initial_scene, const Scene &target_scene, const CamInfo& a_camData, const DiffRenderSettings &settings, 
                                                  int max_test_vertices = 100, int max_test_texels = 100);
