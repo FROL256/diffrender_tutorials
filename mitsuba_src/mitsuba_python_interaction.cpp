@@ -6,6 +6,7 @@
 //to be initialized only once. It is a know issue and we
 //can do nothing about it.
 bool ever_initialized = false;
+int active_contexts = 0;
 
 #define DEL(X) if (X) {Py_DECREF(X);}
 void MitsubaInterface::show_errors()
@@ -57,7 +58,8 @@ MitsubaInterface::~MitsubaInterface()
 {
   DEL(mitsubaContext);
   DEL(pModule);
-  Py_Finalize();
+  //Py_Finalize();
+  active_contexts--;
 }
 
 MitsubaInterface::MitsubaInterface(const std::string &scripts_dir, const std::string &file_name)
@@ -69,15 +71,19 @@ MitsubaInterface::MitsubaInterface(const std::string &scripts_dir, const std::st
     Py_Initialize();
     ever_initialized = true;
   }
-  PyRun_SimpleString("import sys");
-  PyRun_SimpleString("import os");
-  PyRun_SimpleString(append_path_str.c_str());
+  if (active_contexts == 0)
+  {
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("import os");
+    PyRun_SimpleString(append_path_str.c_str());
+  }
   PyObject *pName;
   pName = PyUnicode_FromString(file_name.c_str());
   pModule = PyImport_Import(pName);
   DEL(pName);
   if (!pModule)
     show_errors();
+  active_contexts++;
 }
 
 void MitsubaInterface::init_scene_and_settings(RenderSettings _render_settings, ModelInfo _model_info)
