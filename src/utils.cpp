@@ -2,6 +2,15 @@
 #include "dmesh.h"
 #include <iostream>
 
+#ifdef WIN32
+  #include <direct.h>     // for windows mkdir
+#else
+  #include <sys/stat.h>   // for linux mkdir
+  #include <sys/types.h>
+  #include <ftw.h>
+  #include <errno.h>
+#endif
+
 float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
 {
   assert(a.width()*a.height() == b.width()*b.height());
@@ -43,4 +52,41 @@ void CHECK_NaN(float3 f)
     float *t = nullptr;
     printf("%f\n",*t);
   }
+}
+
+#ifndef WIN32
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+    int rv;
+
+    if (ftwbuf->level == 0)
+        return 0;
+
+    rv = remove(fpath);
+
+    if (rv)
+        perror(fpath);
+
+    return rv;
+}
+#endif
+
+void prepare_directory(const std::string &dir)
+{
+  #ifdef WIN32
+  mkdir(dir.c_str());
+  //TODO: clear direactory
+  #else
+  int res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  if (res == 0 || errno == EEXIST)
+  {
+    res = nftw(dir.c_str(), unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+    if (res != 0)
+      logerr("failed to clear directory %s : %s", dir.c_str(), strerror(errno));
+  }
+  else
+  {
+    logerr("failed to create directory %s : %s", dir.c_str(), strerror(errno));
+  }
+  #endif
 }

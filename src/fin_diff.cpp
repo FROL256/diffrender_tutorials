@@ -10,13 +10,6 @@
 #include "LiteMath.h"
 using namespace LiteMath;
 
-#ifdef WIN32
-  #include <direct.h>     // for windows mkdir
-#else
-  #include <sys/stat.h>   // for linux mkdir
-  #include <sys/types.h>
-#endif
-
 #include <cassert>
 #include <iomanip>
 

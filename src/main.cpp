@@ -9,13 +9,6 @@
 
 #include "LiteMath.h"
 
-#ifdef WIN32
-  #include <direct.h>     // for windows mkdir
-#else
-  #include <sys/stat.h>   // for linux mkdir
-  #include <sys/types.h>
-#endif
-
 #include <cassert>
 #include <iomanip>
 
@@ -38,39 +31,30 @@ constexpr static int  SAM_PER_PIXEL = 16;
 
 int main(int argc, char *argv[]) //
 {
-  #ifdef WIN32
-  mkdir("rendered");
-  mkdir("rendered_opt0");
-  mkdir("rendered_opt1");
-  mkdir("rendered_opt2");
-  mkdir("fin_diff");
-  mkdir("output");
-  mkdir("output/mitsuba_images");
-  #else
-  mkdir("rendered",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("rendered_opt0", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("rendered_opt1", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("rendered_opt2", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("fin_diff",      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("output",        S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  mkdir("output/mitsuba_images", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-  #endif
+  prepare_directory("output");
+  prepare_directory("output/mitsuba_images");
+  prepare_directory("output/rendered");
+  prepare_directory("output/rendered_opt0");
+  prepare_directory("output/rendered_opt1");
+  prepare_directory("output/rendered_opt2");
+  prepare_directory("output/fin_diff");
 
   if (argc > 1 && std::string(argv[1]) == "-tests")
   {
     Tester t;
     t.test_base_derivatives();
 
+    t.test_3_1_mitsuba_triangle();
+    t.test_3_2_mitsuba_sphere();
+    t.test_3_3_mitsuba_teapot();
+    t.test_3_4_mitsuba_cube();
+    
     t.test_2_1_triangle();
     t.test_2_2_pyramid();
     t.test_2_3_sphere();
     t.test_2_4_pyramid_vcol();
     t.test_2_5_teapot_diffuse();
 
-    t.test_3_1_mitsuba_triangle();
-    t.test_3_2_mitsuba_sphere();
-    t.test_3_3_mitsuba_teapot();
-    t.test_3_4_mitsuba_cube();
     return 0;
   }
 
@@ -134,7 +118,7 @@ int main(int argc, char *argv[]) //
     
     for(int i=0;i<camsNum;i++) {
       std::stringstream strOut;
-      strOut << "rendered/target" << i << ".bmp";
+      strOut << "output/rendered/target" << i << ".bmp";
       auto fileName = strOut.str();
       LiteImage::SaveImage(fileName.c_str(), targets[i]);
     }
@@ -144,7 +128,7 @@ int main(int argc, char *argv[]) //
 
     for(int i=0;i<camsNum;i++) {
       std::stringstream strOut;
-      strOut << "rendered/initial" << i << ".bmp";
+      strOut << "output/rendered/initial" << i << ".bmp";
       auto fileName = strOut.str();
       LiteImage::SaveImage(fileName.c_str(), images[i]);
     }
@@ -195,7 +179,7 @@ int main(int argc, char *argv[]) //
       }
   
       const float dPos = 2.0f/float(img.width());
-      d_finDiff (initialScene, "fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
+      d_finDiff (initialScene, "output/fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
       
       PrintAndCompareGradients(grad1, grad2);
       return 0;
@@ -214,7 +198,7 @@ int main(int argc, char *argv[]) //
 
   for(int i=0;i<camsNum;i++) {
     std::stringstream strOut;
-    strOut  << "rendered_opt" << i << "/z_target.bmp";
+    strOut  << "output/rendered_opt" << i << "/z_target.bmp";
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
   }
@@ -232,7 +216,7 @@ int main(int argc, char *argv[]) //
   //img.clear(float3{0,0,0});
   //pDRender->commit(mesh3);
   //pDRender->render(mesh3, cameras, &img, 1);
-  //LiteImage::SaveImage("rendered_opt/z_target2.bmp", img);
+  //LiteImage::SaveImage("output/rendered_opt/z_target2.bmp", img);
   
   delete pOpt; pOpt = nullptr;
   return 0;

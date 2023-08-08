@@ -36,3 +36,4 @@ static void logerr(const char *__restrict __fmt, ...)
     va_end(args);
     fprintf(stderr,"\n");
 }
+void prepare_directory(const std::string &dir);

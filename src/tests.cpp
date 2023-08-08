@@ -12,13 +12,6 @@
 #include "LiteMath.h"
 using namespace LiteMath;
 
-#ifdef WIN32
-  #include <direct.h>     // for windows mkdir
-#else
-  #include <sys/stat.h>   // for linux mkdir
-  #include <sys/types.h>
-#endif
-
 #include <cassert>
 #include <iomanip>
 
@@ -155,7 +148,7 @@ void optimization_test(const std::string &test_name,
   for(int i=0;i<cameras_count;i++) 
   {
     std::stringstream strOut;
-    strOut  << "rendered_opt" << i << "/z_target.bmp";
+    strOut  << "output/rendered_opt" << i << "/z_target.bmp";
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
   }
