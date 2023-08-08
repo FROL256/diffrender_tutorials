@@ -82,3 +82,14 @@ void Scene::transform_meshes(bool restore_normals, bool restore_tangents, bool t
     }
   }
 }
+
+void transform(TriangleMesh &mesh, const LiteMath::float4x4 &transform)
+{
+  LiteMath::float4x4 n_tr = LiteMath::transpose(LiteMath::inverse4x4(transform));
+  for(auto& v : mesh.vertices)
+    v = LiteMath::mul(transform, v);
+  for(auto& n : mesh.normals)
+    n = LiteMath::to_float3(LiteMath::mul(transform, float4(n.x, n.y, n.z, 0)));
+  for(auto& n : mesh.tangents)
+    n = LiteMath::to_float3(LiteMath::mul(transform, float4(n.x, n.y, n.z, 0)));
+}

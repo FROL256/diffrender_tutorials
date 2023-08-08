@@ -88,11 +88,8 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
 
-  for(auto& v : initial.vertices)
-    v = (mTransform1*v); // + float3(0,0,-0.01f);
-
-  for(auto& v : target.vertices)
-    v = (mTransform2*v); // + float3(0,0,-0.01f);
+  transform(initial, mTransform1);
+  transform(target, mTransform2);
   
   //std::cout << "initial: [" << std::endl;
   //for(const auto& v : initial.vertices)
@@ -160,11 +157,8 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
 
-  for(auto& v : initial.vertices)
-    v = (mTransform1*v); // + float3(0,0,-0.01f);
-
-  for(auto& v : target.vertices)
-    v = (mTransform2*v); // + float3(0,0,-0.01f);
+  transform(initial, mTransform1);
+  transform(target, mTransform2);
   
   std::cout << "initial: [" << std::endl;
   for(const auto& v : initial.vertices)
@@ -223,11 +217,8 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
   auto mTransform1 = mScale*mTranslate*mRotate1;
   auto mTransform2 = mScale*mTranslate*mRotate2;
 
-  for(auto& v : initial.vertices)
-    v = mTransform1*v;
-
-  for(auto& v : target.vertices)
-    v = mTransform2*v;
+  transform(initial, mTransform1);
+  transform(target, mTransform2);
 }
 
 
@@ -359,11 +350,8 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
 
-  for(auto& v : initial.vertices)
-    v = mTransform1*v;
-
-  for(auto& v : target.vertices)
-    v = mTransform2*v;
+  transform(initial, mTransform1);
+  transform(target, mTransform2);
 }
 
 void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
@@ -461,11 +449,8 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   
   auto mTransform1 = mTranslate*mRotate1;
 
-  for(auto& v : initial.vertices)
-    v = mTransform1*v;
-
-  for(auto& v : target.vertices)
-    v = mTransform1*v;
+  transform(initial, mTransform1);
+  transform(target, mTransform1);
 }
 
 void CreateSphere(TriangleMesh &sphere, float radius, int numberSlices)
@@ -579,8 +564,7 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
   
-  for(auto& v : initial.vertices)
-    v = mTranslate*v;
+  transform(initial, mTranslate);
 }
 
 #include "cmesh.h"
@@ -620,12 +604,8 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   
   auto mTransform1 = mTranslate*mRotate1;
 
-  for(auto& v : initial.vertices)
-    v = mTransform1*v;
-
-  for(auto& v : target.vertices)
-    v = mTransform1*v;
-
+  transform(initial, mTransform1);
+  transform(target, mTransform1);
 }
 
 void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)

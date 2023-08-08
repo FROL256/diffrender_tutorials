@@ -70,6 +70,8 @@ struct TriangleMesh
   std::vector<CPUTexture> textures; // an arbitrary number of textures
 };
 
+void transform(TriangleMesh &mesh, const LiteMath::float4x4 &transform);
+
 struct PointLight
 {
   PointLight() = default;
