@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) //
     t.test_3_1_mitsuba_triangle();
     t.test_3_2_mitsuba_sphere();
     t.test_3_3_mitsuba_teapot();
+    t.test_3_4_mitsuba_cube();
     return 0;
   }
 

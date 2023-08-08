@@ -233,9 +233,9 @@ void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
 
 void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
 {
-  TriangleMesh cube{
+  TriangleMesh cube;
     // vertices
-    {{1.0f, 1.0f, -1.0f},    // Top
+  cube.vertices = {{1.0f, 1.0f, -1.0f},    // Top
      {-1.0f, 1.0f, -1.0f},  
      {-1.0f, 1.0f, 1.0f},
      {1.0f, 1.0f, 1.0f},
@@ -265,10 +265,41 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
      {1.0f, -1.0f, 1.0f},
      {1.0f, -1.0f, -1.0f},
 
-    },
+    };
+  cube.normals ={
+     {0,1,0},    // Top
+     {0,1,0},  
+     {0,1,0},
+     {0,1,0},
+      
+     {0,-1,0},    // Bottom
+     {0,-1,0},    
+     {0,-1,0},  
+     {0,-1,0},
 
+     {0, 0, 1.0f},     // Front
+     {0, 0, 1.0f},
+     {0, 0, 1.0f},
+     {0, 0, 1.0f},
+
+     {0, 0, -1.0f},   // Back
+     {0, 0, -1.0f},
+     {0, 0, -1.0f},
+     {0, 0, -1.0f},
+
+     {-1.0f, 0, 0},    // Left
+     {-1.0f, 0, 0},
+     {-1.0f, 0, 0},
+     {-1.0f, 0, 0},
+
+     {1.0f, 0, 0},    // Right
+     {1.0f, 0, 0}, 
+     {1.0f, 0, 0},
+     {1.0f, 0, 0},
+
+    };
     // color
-    {{0.0f, 1.0f, 0.0f},    // Top
+    cube.colors = {{0.0f, 1.0f, 0.0f},    // Top
      {0.0f, 1.0f, 0.0f}, 
      {0.0f, 1.0f, 0.0f},
      {0.0f, 1.0f, 0.0f},
@@ -298,9 +329,7 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
      {1.0f, 0.0f, 1.0f},
      {1.0f, 0.0f, 1.0f},
 
-    },
-
-  };
+    };
 
   cube.indices.resize(6*2*3); // 6 faces, 2 triangles per face, 3 indices per triangle 
 

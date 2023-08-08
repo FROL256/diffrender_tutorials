@@ -296,10 +296,10 @@ void mitsuba_compare_test(const std::string &test_name,
   double image_diff = 0.0;
   for (int i=0;i<cameras_count;i++)
   {
-    //std::string path1 = "output/t"+std::to_string(i)+"_1.png";
-    //std::string path2 = "output/t"+std::to_string(i)+"_2.png";
-    //LiteImage::SaveImage(path1.c_str(), targets[i]);
-    //LiteImage::SaveImage(path2.c_str(), targetsOurs[i]);
+    std::string path1 = "output/t"+std::to_string(i)+"_1.png";
+    std::string path2 = "output/t"+std::to_string(i)+"_2.png";
+    LiteImage::SaveImage(path1.c_str(), targets[i]);
+    LiteImage::SaveImage(path2.c_str(), targetsOurs[i]);
     image_diff += LossAndDiffLoss(targets[i], targetsOurs[i], img);
   }
   image_diff /= cameras_count*img.width()*img.height();
@@ -338,6 +338,16 @@ void Tester::test_3_3_mitsuba_teapot()
                        scn11_Teapot3D_Textured,
                        {SHADING_MODEL::SILHOUETTE, 16},
                        1,
+                       512,
+                       512);
+}
+
+void Tester::test_3_4_mitsuba_cube()
+{
+  mitsuba_compare_test("TEST 3.4: CUBE MITSUBA COMPARE",
+                       scn06_Cube3D_VColor,
+                       {SHADING_MODEL::SILHOUETTE, 16},
+                       3,
                        512,
                        512);
 }
