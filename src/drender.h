@@ -12,7 +12,7 @@ constexpr static int  MAXTHREADS    = 1;
 constexpr static int  MAXTHREADS    = 14;
 #endif
 
-#include <omp.h>
+#include "omp.h"
 #include "qmc.h"
 #include <vector>
 #include <set>

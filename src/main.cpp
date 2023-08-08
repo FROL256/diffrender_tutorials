@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
-#include <omp.h>
+#include "omp.h"
 
 #include "LiteMath.h"
 
@@ -26,8 +26,17 @@
 #include "fin_diff.h"
 #include "Image2d.h"
 #include "tests.h"
+#include "enzyme.h"
 
 constexpr static int  SAM_PER_PIXEL = 16;
+
+double square(double x) {
+    return x * x;
+}
+double dsquare(double x) {
+    // This returns the derivative of square or 2 * x
+    return __enzyme_autodiff((void*) square, x);
+}
 
 int main(int argc, char *argv[]) //
 {

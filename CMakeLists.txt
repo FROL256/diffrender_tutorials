@@ -2,17 +2,20 @@ cmake_minimum_required (VERSION 3.8)
 project (diffrender)
 
 #default build
-#cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_MITSUBA=ON
+#cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON
 
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++-9")
 option(USE_EMBREE "Use Embree RT" OFF)
 option(DEBUG "Debug mode" OFF)
 option(USE_MITSUBA "Use Mitsuba 3" OFF)
+option(USE_OPENMP "Use Open MP" OFF)
+option(USE_ENZYME "Use Enzyme" OFF)
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 set(CMAKE_CXX_STANDARD 14)
-include_directories("src", "LiteMath", "raytrace_src", "common_src")
+include_directories("src", "LiteMath", "raytrace_src", "common_src", "external/enzyme")
 
 if(WIN32)
   link_directories(${ADDITIONAL_LIBRARY_DIRS})
@@ -58,8 +61,20 @@ else()
   set(SOURCE_MITSUBA )
 endif()
 
-find_package(OpenMP REQUIRED)
+set(OMP_LIBS "")
+if (USE_OPENMP)
+  find_package(OpenMP REQUIRED)
+  if(OpenMP_CXX_FOUND)
+    add_definitions(-DUSE_OMP)
+    set(OMP_LIBS OpenMP::OpenMP_CXX)
+  endif()
+endif()
 
+if (USE_ENZYME)
+set(SOURCE_ENZYME "")
+else()
+set(SOURCE_ENZYME external/enzyme/enzyme.cpp)
+endif()
 #uncomment this to detect broken memory problems via gcc sanitizers
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
@@ -73,8 +88,14 @@ endif()
 
 add_executable(drender ${SOURCES}
                        ${SOURCE_RT}
-                       ${SOURCE_MITSUBA})
+                       ${SOURCE_MITSUBA}
+                       ${SOURCE_ENZYME})
 
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(drender PUBLIC OpenMP::OpenMP_CXX ${RT_EMBREE_LIBS} ${MITSUBA_LIBS})
+target_link_libraries(drender PUBLIC ${OMP_LIBS} ${RT_EMBREE_LIBS} ${MITSUBA_LIBS})
+
+if (USE_ENZYME)
+  set(ENZYME_FLAGS "-fplugin=/home/sammael/diff_render/diffrender_tutorials/external/enzyme/enzyme/build/Enzyme/ClangEnzyme-9.so")
+  message(${ENZYME_FLAGS})
+  target_compile_options(drender PUBLIC ${ENZYME_FLAGS})
+else()
 endif()

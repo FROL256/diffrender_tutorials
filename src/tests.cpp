@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
-#include <omp.h>
+#include "omp.h"
 #include <functional>
 
 #include "LiteMath.h"
