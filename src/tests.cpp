@@ -407,7 +407,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
 
   Scene copy_scene = scene;
   a_pDRImpl->commit(copy_scene);
-  TriangleMesh &mesh = copy_scene.meshes[debug_mesh_id];
+  TriangleMesh &mesh = copy_scene.get_mesh_modify(debug_mesh_id);
   d_mesh.reset(mesh, a_pDRImpl->mode);
   Img MSEOrigin = LiteImage::MSEImage(origin, target);
   Img img(origin.width(), origin.height());
@@ -501,10 +501,11 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
 
   LossAndDiffLoss(original, target, tmp); 
   DerivativesTestResults r;
-  for (int i=0;i<initial_scene.meshes.size();i++)
+  int meshes_count = initial_scene.get_meshes().size();
+  for (int i=0;i<meshes_count;i++)
   {
-    DTriangleMesh dMesh1 = DTriangleMesh(initial_scene.meshes[i], settings.mode);
-    DTriangleMesh dMesh2 = DTriangleMesh(initial_scene.meshes[i], settings.mode);
+    DTriangleMesh dMesh1 = DTriangleMesh(initial_scene.get_mesh(i), settings.mode);
+    DTriangleMesh dMesh2 = DTriangleMesh(initial_scene.get_mesh(i), settings.mode);
     std::vector<bool> mask(dMesh1.size(), false);
     
     Render->commit(initial_scene);
@@ -513,10 +514,10 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
 
     auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask);
 
-    r.pos_error += rm.pos_error/initial_scene.meshes.size();
-    r.color_error += rm.color_error/initial_scene.meshes.size();
-    r.texture_error += rm.texture_error/initial_scene.meshes.size();
-    r.average_error += rm.average_error/initial_scene.meshes.size();
+    r.pos_error += rm.pos_error/meshes_count;
+    r.color_error += rm.color_error/meshes_count;
+    r.texture_error += rm.texture_error/meshes_count;
+    r.average_error += rm.average_error/meshes_count;
   }
 
   return r;

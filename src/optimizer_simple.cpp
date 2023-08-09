@@ -78,7 +78,7 @@ void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lr) const
 
 void OptSimple::OptUpdateScene(const DTriangleMesh &gradMesh, Scene* scene)
 {
-  auto &mesh = scene->meshes[0];//TODO: support multiple meshes
+  auto &mesh = scene->get_mesh_modify(0);//TODO: support multiple meshes
     for(int vertId=0; vertId< mesh.vertex_count(); vertId++)
     {
       mesh.vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];

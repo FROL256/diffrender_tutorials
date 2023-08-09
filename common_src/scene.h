@@ -6,10 +6,6 @@
 #include <map>
 #include "utils.h"
 
-class IOptimizer;
-class OptSimple;
-class Tester;
-
 struct CPUTexture
 {
   CPUTexture() = default;
@@ -137,10 +133,16 @@ public:
   inline float3 get_tang(unsigned id)   const { return meshes[0].tangents[id]; }//TODO: support multiple meshes
   inline float2 get_tc(unsigned id)     const { return meshes[0].tc[id]; }//TODO: support multiple meshes
   inline const CPUTexture &get_tex(unsigned n) const { return meshes[0].textures[n]; }//TODO: support multiple meshes
+  
   inline const TriangleMesh &get_mesh(unsigned n) const { return meshes[n]; }
   inline const std::vector<TriangleMesh> &get_meshes() const { return meshes; }
+  inline TriangleMesh &get_mesh_modify(unsigned n) { return meshes[n]; }
+  inline std::vector<TriangleMesh> &get_meshes_modify() { return meshes; }
+  
   inline const std::vector<float4x4>  &get_transform(unsigned n) const { return transforms[n]; }
   inline const std::vector<std::vector<float4x4>>  &get_transforms() const { return transforms; }
+  inline std::vector<float4x4>  &get_transform_modify(unsigned n) { return transforms[n]; }
+  inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { return transforms; }
   inline unsigned indices_size() const 
   {
     unsigned c = 0;
@@ -148,10 +150,6 @@ public:
       c+=m.indices.size();
     return c;
   }
-
-  friend class IOptimizer;
-  friend class OptSimple;
-  friend class Tester;
 
   void restore_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh);
 
