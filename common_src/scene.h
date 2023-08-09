@@ -144,7 +144,7 @@ public:
   friend class OptSimple;
   friend class Tester;
 
-  void transform_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh);
+  void restore_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh);
 
 protected:
   std::vector<TriangleMesh> meshes;

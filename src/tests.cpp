@@ -237,8 +237,8 @@ void mitsuba_compare_test(const std::string &test_name,
   create_scene(initialMesh, targetMesh);
   initialScene.add_mesh(initialMesh);
   targetScene.add_mesh(targetMesh);
-  initialScene.transform_meshes(true, true, true);
-  targetScene.transform_meshes(true, true, true);
+  initialScene.restore_meshes(true, true, true);
+  targetScene.restore_meshes(true, true, true);
 
   auto pDRender = new DiffRenderMitsuba();
   pDRender->init(diff_render_settings);

@@ -1,6 +1,6 @@
 #include "scene.h"
 
-void Scene::transform_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh)
+void Scene::restore_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh)
 {
   for (auto &mesh : meshes)
   {
@@ -20,7 +20,7 @@ void Scene::transform_meshes(bool restore_normals, bool restore_tangents, bool t
         float3 n = float3(1,0,0);
         if (length(l1) < 1e-6 || length(l2) < 1e-6)
         {
-          logerr("Scene::transform_meshes triangle[%d %d %d] has near-zero size. It may lead to errors",
+          logerr("Scene::restore_meshes triangle[%d %d %d] has near-zero size. It may lead to errors",
                  mesh.indices[i], mesh.indices[i+1], mesh.indices[i+2]);
           n = normalize(cross(l1, l2));
         }
