@@ -31,14 +31,20 @@ int sample(const Sampler &sampler, const float u)
 std::vector<Edge> collect_edges(const Scene &scene) 
 {
   std::set<Edge> edges;
-  for (size_t i=0; i<scene.indices_size();i+=3) 
+  for (int i=0;i<scene.get_meshes().size();i++)
   {
-    auto A = scene.get_index(i);
-    auto B = scene.get_index(i+1);
-    auto C = scene.get_index(i+2); 
-    edges.insert(Edge(A, B));
-    edges.insert(Edge(B, C));
-    edges.insert(Edge(C, A));
+    for (int j=0;j<scene.get_transform(i).size();j++)
+    {
+      for (size_t k=0; k<scene.get_mesh(i).indices.size();k+=3) 
+      {
+        auto A = scene.get_index(i, j, k);
+        auto B = scene.get_index(i, j, k+1);
+        auto C = scene.get_index(i, j, k+2); 
+        edges.insert(Edge(A, B));
+        edges.insert(Edge(B, C));
+        edges.insert(Edge(C, A));
+      }
+    }
   }
   return std::vector<Edge>(edges.begin(), edges.end());
 }

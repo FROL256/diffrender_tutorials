@@ -57,14 +57,18 @@ struct EmbreeRT3D : public IRayTracer
   SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) override
   {
     SurfaceInfo hit;
-    hit.faceId = unsigned(-1);
+    hit.geomId = unsigned(-1);
+    hit.instId = unsigned(-1);
+    hit.primId = unsigned(-1);
     hit.u      = 0.0f;
     hit.v      = 0.0f;
     hit.t      = tFar; // tFar
   
     CRT_Hit crtHit = m_pAccelStruct->RayQuery_NearestHit(to_float4(rayPos, tNear), to_float4(rayDir, tFar));
 
-    hit.faceId = crtHit.primId;
+    hit.geomId = crtHit.geomId;
+    hit.instId = crtHit.instId;
+    hit.primId = crtHit.primId;
     hit.t      = crtHit.t;
     hit.u      = crtHit.coords[0];
     hit.v      = crtHit.coords[1];

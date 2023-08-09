@@ -94,45 +94,53 @@ struct BruteForce3D : public IRayTracer
   SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) override
   {
     SurfaceInfo hit;
-    hit.faceId = unsigned(-1);
+    hit.geomId = unsigned(-1);
+    hit.instId = unsigned(-1);
+    hit.primId = unsigned(-1);
     hit.u      = 0.0f;
     hit.v      = 0.0f;
     hit.t      = tFar; // tFar
     
-    //TODO: support instancing
-    //TODO: support multiple meshes
-    float4x4 transform = m_pScene->get_transform(0)[0];
-    for (size_t triAddress = 0; triAddress < m_pScene->indices_size(); triAddress += 3)
-    { 
-      const uint A = m_pScene->get_index(triAddress + 0);
-      const uint B = m_pScene->get_index(triAddress + 1);
-      const uint C = m_pScene->get_index(triAddress + 2);
-    
-      const float3 A_pos = transform*m_pScene->get_pos(A);
-      const float3 B_pos = transform*m_pScene->get_pos(B);
-      const float3 C_pos = transform*m_pScene->get_pos(C);
-    
-      const float3 edge1 = B_pos - A_pos;
-      const float3 edge2 = C_pos - A_pos;
-      const float3 pvec  = cross(rayDir, edge2);
-      const float3 tvec  = rayPos - A_pos;
-      const float3 qvec  = cross(tvec, edge1);
-      const float  e1dpv = dot(edge1, pvec);
-      const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
-      const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
-
-      const float v = dot(tvec, pvec)*invDet;
-      const float u = dot(qvec, rayDir)*invDet;
-      const float t = dot(edge2, qvec)*invDet;
-    
-      if (v > 0.0f && u > 0.0f && (u + v < 1.0f) && t > tNear && t < hit.t)
+    for (int i=0;i<m_pScene->get_meshes().size();i++)
+    {
+      for (int j=0;j<m_pScene->get_transform(i).size();j++)
       {
-        //const float u2 = BarU(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
-        //const float v2 = BarV(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
-        hit.t      = t;
-        hit.faceId = triAddress/3;
-        hit.u      = u;    // v2
-        hit.v      = v;    // v1
+        float4x4 transform = m_pScene->get_transform(i)[j];
+        for (size_t triAddress = 0; triAddress < m_pScene->get_mesh(i).indices.size(); triAddress += 3)
+        { 
+          const uint A = m_pScene->get_index(i, j, triAddress + 0);
+          const uint B = m_pScene->get_index(i, j, triAddress + 1);
+          const uint C = m_pScene->get_index(i, j, triAddress + 2);
+        
+          const float3 A_pos = transform*m_pScene->get_pos(A);
+          const float3 B_pos = transform*m_pScene->get_pos(B);
+          const float3 C_pos = transform*m_pScene->get_pos(C);
+        
+          const float3 edge1 = B_pos - A_pos;
+          const float3 edge2 = C_pos - A_pos;
+          const float3 pvec  = cross(rayDir, edge2);
+          const float3 tvec  = rayPos - A_pos;
+          const float3 qvec  = cross(tvec, edge1);
+          const float  e1dpv = dot(edge1, pvec);
+          const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
+          const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
+
+          const float v = dot(tvec, pvec)*invDet;
+          const float u = dot(qvec, rayDir)*invDet;
+          const float t = dot(edge2, qvec)*invDet;
+        
+          if (v > 0.0f && u > 0.0f && (u + v < 1.0f) && t > tNear && t < hit.t)
+          {
+            //const float u2 = BarU(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
+            //const float v2 = BarV(ray_pos.M, ray_dir.M, A_pos.M, B_pos.M, C_pos.M);
+            hit.t      = t;
+            hit.geomId = i;
+            hit.instId = j;
+            hit.primId = triAddress/3;
+            hit.u      = u;    // v2
+            hit.v      = v;    // v1
+          }
+        }
       }
     }
   

@@ -127,7 +127,10 @@ public:
     transforms[id] = transform;
   }
 
-  inline unsigned get_index(unsigned n) const { return meshes[0].indices[n]; }//TODO: support multiple meshes
+  inline unsigned get_index(unsigned mesh_id, unsigned instance_id, unsigned vertex_id) const 
+  { 
+    return meshes[mesh_id].indices[vertex_id]; 
+  }
   inline float3 get_pos(unsigned id)    const { return meshes[0].vertices[id]; }//TODO: support multiple meshes
   inline float3 get_color(unsigned id)  const { return meshes[0].colors[id]; }//TODO: support multiple meshes
   inline float3 get_norm(unsigned id)   const { return meshes[0].normals[id]; }//TODO: support multiple meshes

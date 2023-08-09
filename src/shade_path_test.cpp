@@ -133,9 +133,9 @@ ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceI
 {
   ExtendedSurfaceInfo res;
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -144,7 +144,7 @@ ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceI
   float3 tangent = scene.get_tang(A) * (1.0f - u - v) + scene.get_tang(B) * v + u * scene.get_tang(C);
 
   res.t = surfInfo.t;
-  res.faceId = surfInfo.faceId;
+  res.faceId = surfInfo.primId;
   res.u = surfInfo.u;
   res.v = surfInfo.v;
   res.wo = normalize(-1.0f*view_dir);
@@ -189,7 +189,7 @@ float3 sample_light(IRayTracer *m_pTracer, const PointLight &light,
   float3 lv = light_pos - pos;
   float ld = dot(lv, lv);
   light_dir = lv/sqrt(ld);
-  visibility = m_pTracer->GetNearestHit(pos, light_dir).faceId == unsigned(-1);
+  visibility = m_pTracer->GetNearestHit(pos, light_dir).primId == unsigned(-1);
   light_pdf = 1;
 
   return light.intensity*light.color/ld;
@@ -242,7 +242,7 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer
     else
       surfInfo = m_pTracer->GetNearestHit(ray_pos, ray_dir);
     
-    if (surfInfo.faceId == unsigned(-1))
+    if (surfInfo.primId == unsigned(-1))
     {
       L += beta*ambient;
       break;

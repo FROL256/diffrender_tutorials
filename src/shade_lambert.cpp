@@ -12,12 +12,12 @@ float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, 
 
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -27,7 +27,7 @@ float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, 
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
-  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).faceId == unsigned(-1) ? 1 : 0;
+  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).primId == unsigned(-1) ? 1 : 0;
   return (shade*light_color*std::max(0.0f,dot(n,-1.0f*light_dir)) + ambient_light_color)*diffuse;
 }
 
@@ -53,12 +53,12 @@ float3 shade<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, co
 
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -68,7 +68,7 @@ float3 shade<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, co
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
-  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).faceId == unsigned(-1) ? 1 : 0;
+  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).primId == unsigned(-1) ? 1 : 0;
   float3 view_dir = ray_dir;
   float3 reflect = light_dir - 2.0f*dot(n,light_dir)*n;
   return (shade*light_color*(Kd*std::max(0.0f,dot(n,-1.0f*light_dir)) + Ks*pow(std::max(0.0f,dot(n,reflect)),spec_pow)) + ambient_light_color*Ka)*diffuse;
@@ -134,12 +134,12 @@ float3 shade<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, cons
 
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -149,7 +149,7 @@ float3 shade<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, cons
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
-  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).faceId == unsigned(-1) ? 1 : 0;
+  float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).primId == unsigned(-1) ? 1 : 0;
   float3 view_dir = ray_dir;
   float3 reflect = light_dir - 2.0f*dot(n,light_dir)*n;
   float ggx_res = LightingFuncGGX(n, -1.0f*view_dir, -1.0f*light_dir, 0.2, 0.8);

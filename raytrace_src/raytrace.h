@@ -18,8 +18,10 @@
 
 struct SurfaceInfo
 {
+  uint32_t primId; 
+  uint32_t instId;
+  uint32_t geomId; 
   float    t;       ///<! dist from origin ray to surface
-  unsigned faceId;  ///<! primitrive id
   float    u;       ///<! first triangle baricentric 
   float    v;       ///<! second triangle baricentric 
 };

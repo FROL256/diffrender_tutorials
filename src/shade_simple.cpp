@@ -6,7 +6,7 @@ template <>
 float3 shade<SHADING_MODEL::SILHOUETTE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0);
   else
     return float3(1, 1, 1);
@@ -23,12 +23,12 @@ template <>
 float3 shade<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -40,16 +40,16 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_p
                                              const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
   float3 ray_pos = {0,0,0}, ray_dir = {0,0,0};
-  SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
-  if (surfElem.faceId == unsigned(-1))
+  SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y, &ray_pos, &ray_dir);
+  if (surfInfo.primId == unsigned(-1))
     return;
 
-  const auto A = scene.get_index(surfElem.faceId * 3 + 0);
-  const auto B = scene.get_index(surfElem.faceId * 3 + 1);
-  const auto C = scene.get_index(surfElem.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
 
-  const float u = surfElem.u;
-  const float v = surfElem.v;
+  const float u = surfInfo.u;
+  const float v = surfInfo.v;
 
   GradReal *d_colors = grad.colors_s();
   GradReal *d_pos = grad.vertices_s();
@@ -109,12 +109,12 @@ template <>
 float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
-  if (surfInfo.faceId == unsigned(-1))
+  if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
-  const auto A = scene.get_index(surfInfo.faceId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.faceId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
@@ -127,16 +127,16 @@ template <>
 void shade_grad<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                         const float3 val, const AuxData aux, DTriangleMesh &grad)
 {
-  SurfaceInfo surfElem = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
-  if (surfElem.faceId == unsigned(-1))
+  SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
+  if (surfInfo.primId == unsigned(-1))
     return;
   
-  const auto A = scene.get_index(surfElem.faceId * 3 + 0);
-  const auto B = scene.get_index(surfElem.faceId * 3 + 1);
-  const auto C = scene.get_index(surfElem.faceId * 3 + 2);
+  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
 
-  const float u = surfElem.u;
-  const float v = surfElem.v;
+  const float u = surfInfo.u;
+  const float v = surfInfo.v;
 
   auto &tex = scene.get_tex(0);
 
