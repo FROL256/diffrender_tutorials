@@ -99,15 +99,18 @@ struct BruteForce3D : public IRayTracer
     hit.v      = 0.0f;
     hit.t      = tFar; // tFar
     
+    //TODO: support instancing
+    //TODO: support multiple meshes
+    float4x4 transform = m_pScene->get_transform(0)[0];
     for (size_t triAddress = 0; triAddress < m_pScene->indices_size(); triAddress += 3)
     { 
       const uint A = m_pScene->get_index(triAddress + 0);
       const uint B = m_pScene->get_index(triAddress + 1);
       const uint C = m_pScene->get_index(triAddress + 2);
     
-      const float3 A_pos = m_pScene->get_pos(A);
-      const float3 B_pos = m_pScene->get_pos(B);
-      const float3 C_pos = m_pScene->get_pos(C);
+      const float3 A_pos = transform*m_pScene->get_pos(A);
+      const float3 B_pos = transform*m_pScene->get_pos(B);
+      const float3 C_pos = transform*m_pScene->get_pos(C);
     
       const float3 edge1 = B_pos - A_pos;
       const float3 edge2 = C_pos - A_pos;

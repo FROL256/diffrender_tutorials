@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) //
   auto g_uniforms = cameras[0];
 
   Scene initialScene, targetScene;
-  SHADING_MODEL mode = SHADING_MODEL::PATH_TEST;
+  SHADING_MODEL mode = SHADING_MODEL::DIFFUSE;
   {
     TriangleMesh initialMesh, targetMesh;
     //scn01_TwoTrisFlat(initialMesh, targetMesh);
@@ -106,8 +106,8 @@ int main(int argc, char *argv[]) //
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    scn11_Teapot3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh);
+    scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,+0.4f,0.0f))});
     targetScene.add_mesh(targetMesh);
   }
 

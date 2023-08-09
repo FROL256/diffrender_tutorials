@@ -110,17 +110,21 @@ struct AreaLight
 struct Scene
 {
 public:
-  void add_mesh(const TriangleMesh &mesh, std::string name = "")
+  void add_mesh(const TriangleMesh &mesh, const std::vector<float4x4> &transform = {float4x4()}, std::string name = "")
   {
     meshes.push_back(mesh);
+    transforms.push_back(transform);
     meshes_by_name.emplace(name, meshes.size()-1);
   }
 
-  void set_mesh(const TriangleMesh &mesh, int id)
+  void set_mesh(const TriangleMesh &mesh, int id, const std::vector<float4x4> &transform = {float4x4()})
   {
     if (id >= meshes.size())
       meshes.resize(id+1);
+    if (id >= transforms.size())
+      transforms.resize(id+1);
     meshes[id] = mesh;
+    transforms[id] = transform;
   }
 
   inline unsigned get_index(unsigned n) const { return meshes[0].indices[n]; }//TODO: support multiple meshes
@@ -132,6 +136,8 @@ public:
   inline const CPUTexture &get_tex(unsigned n) const { return meshes[0].textures[n]; }//TODO: support multiple meshes
   inline const TriangleMesh &get_mesh(unsigned n) const { return meshes[n]; }
   inline const std::vector<TriangleMesh> &get_meshes() const { return meshes; }
+  inline const std::vector<float4x4>  &get_transform(unsigned n) const { return transforms[n]; }
+  inline const std::vector<std::vector<float4x4>>  &get_transforms() const { return transforms; }
   inline unsigned indices_size() const 
   {
     unsigned c = 0;
@@ -148,6 +154,7 @@ public:
 
 protected:
   std::vector<TriangleMesh> meshes;
+  std::vector<std::vector<float4x4>> transforms;
   std::map<std::string, int> meshes_by_name; //position in meshes vector
 
   float3 ambient_light_color = float3(0,0,0);
