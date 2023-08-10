@@ -111,6 +111,7 @@ public:
     meshes.push_back(mesh);
     transforms.push_back(transform);
     meshes_by_name.emplace(name, meshes.size()-1);
+    prepared = false;
   }
 
   void set_mesh(const TriangleMesh &mesh, int id, const std::vector<float4x4> &transform = {float4x4()})
@@ -121,28 +122,31 @@ public:
       transforms.resize(id+1);
     meshes[id] = mesh;
     transforms[id] = transform;
+    prepared = false;
   }
 
   inline unsigned get_index(unsigned mesh_id, unsigned instance_id, unsigned vertex_id) const 
   { 
-    return meshes[mesh_id].indices[vertex_id]; 
+    return preparedData.indices[mesh_id][instance_id][vertex_id]; 
   }
-  inline float3 get_pos(unsigned id)    const { return meshes[0].vertices[id]; }//TODO: support multiple meshes
-  inline float3 get_color(unsigned id)  const { return meshes[0].colors[id]; }//TODO: support multiple meshes
-  inline float3 get_norm(unsigned id)   const { return meshes[0].normals[id]; }//TODO: support multiple meshes
-  inline float3 get_tang(unsigned id)   const { return meshes[0].tangents[id]; }//TODO: support multiple meshes
-  inline float2 get_tc(unsigned id)     const { return meshes[0].tc[id]; }//TODO: support multiple meshes
+  //id is an index returned by get_index() function
+  inline float3 get_pos(unsigned id)    const { return preparedData.vertices[id]; }//TODO: support multiple meshes
+  inline float3 get_color(unsigned id)  const { return preparedData.colors[id]; }//TODO: support multiple meshes
+  inline float3 get_norm(unsigned id)   const { return preparedData.normals[id]; }//TODO: support multiple meshes
+  inline float3 get_tang(unsigned id)   const { return preparedData.tangents[id]; }//TODO: support multiple meshes
+  inline float2 get_tc(unsigned id)     const { return preparedData.tc[id]; }//TODO: support multiple meshes
+  
   inline const CPUTexture &get_tex(unsigned n) const { return meshes[0].textures[n]; }//TODO: support multiple meshes
   
   inline const TriangleMesh &get_mesh(unsigned n) const { return meshes[n]; }
   inline const std::vector<TriangleMesh> &get_meshes() const { return meshes; }
-  inline TriangleMesh &get_mesh_modify(unsigned n) { return meshes[n]; }
-  inline std::vector<TriangleMesh> &get_meshes_modify() { return meshes; }
+  inline TriangleMesh &get_mesh_modify(unsigned n) { prepared = false; return meshes[n]; }
+  inline std::vector<TriangleMesh> &get_meshes_modify() { prepared = false; return meshes; }
   
   inline const std::vector<float4x4>  &get_transform(unsigned n) const { return transforms[n]; }
   inline const std::vector<std::vector<float4x4>>  &get_transforms() const { return transforms; }
-  inline std::vector<float4x4>  &get_transform_modify(unsigned n) { return transforms[n]; }
-  inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { return transforms; }
+  inline std::vector<float4x4>  &get_transform_modify(unsigned n) { prepared = false; return transforms[n];  }
+  inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { prepared = false; return transforms; }
   inline unsigned indices_size() const 
   {
     unsigned c = 0;
@@ -152,6 +156,9 @@ public:
   }
 
   void restore_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh);
+
+  //applies all transorms to meshes and puts them into one big structure
+  void prepare_for_render() const;
 
 protected:
   std::vector<TriangleMesh> meshes;
@@ -164,4 +171,16 @@ protected:
   std::vector<PointLight> point_lights;
   std::vector<AreaLight> area_lights;
 
+  mutable bool prepared = false;
+  mutable struct PreparedData
+  {
+    //3-dimentional array id = indices[mesh_id][instance_id][vertex_id] 
+    std::vector<std::vector<std::vector<unsigned>>> indices;
+
+    std::vector<float3>     vertices;
+    std::vector<float3>     colors;
+    std::vector<float2>     tc;
+    std::vector<float3>     normals;
+    std::vector<float3>     tangents;
+  } preparedData;
 };

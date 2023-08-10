@@ -66,6 +66,7 @@ struct DiffRender : public IDiffRender
   
   void commit(const Scene &scene) 
   {
+    scene.prepare_for_render();
     m_pTracer->Init(&scene); // Build Acceleration structurres and e.t.c. if needed
     m_pLastPreparedScene = &scene;
   }
@@ -213,6 +214,7 @@ private:
         DTriangleMesh &d_mesh) 
   {
     // (1) We need to project 3d mesh to screen for correct edje sampling  
+    //TODO: scene is prepared, we can project only the prepared arrays
     Scene scene2d;
     for (auto &mesh3d : scene.get_meshes())
     {
@@ -224,6 +226,7 @@ private:
       }
       scene2d.add_mesh(mesh2d);
     }
+    scene2d.prepare_for_render();
   
     // (2) prepare edjes
     //

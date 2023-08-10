@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) //
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
     scn11_Teapot3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4X(0)});
+    initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4X(M_PI_4)});
     targetScene.add_mesh(targetMesh);
   }
 

@@ -20,7 +20,7 @@ DiffRenderMitsuba::~DiffRenderMitsuba()
 
 void DiffRenderMitsuba::commit(const Scene &scene)
 {
-
+  scene.prepare_for_render();
 }
 
 DFModel DiffRenderMitsuba::scene_to_dfmodel(const Scene &scene)

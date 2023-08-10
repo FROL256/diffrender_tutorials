@@ -93,3 +93,59 @@ void transform(TriangleMesh &mesh, const LiteMath::float4x4 &transform)
   for(auto& n : mesh.tangents)
     n = LiteMath::to_float3(LiteMath::mul(transform, float4(n.x, n.y, n.z, 0)));
 }
+
+void Scene::prepare_for_render() const
+{
+  if (prepared)
+    return;
+  prepared = true;
+  if (meshes.size() == 0)
+    return;
+  assert(meshes.size() == transforms.size());
+
+  int total_vertices = 0;
+  for (int i=0;i<meshes.size();i++)
+    total_vertices += transforms[i].size()*meshes[i].vertices.size();
+
+  preparedData.vertices.resize(total_vertices, float3(0,0,0));
+  preparedData.colors.resize(total_vertices, float3(0,0,0));
+  preparedData.tc.resize(total_vertices, float2(0,0));
+  preparedData.normals.resize(total_vertices, float3(1,0,0));
+  preparedData.tangents.resize(total_vertices, float3(0,1,0));
+  
+  unsigned offset = 0;
+  preparedData.indices.resize(meshes.size());
+  for (int i=0;i<meshes.size();i++)
+  {
+    preparedData.indices[i] = std::vector<std::vector<unsigned>>{transforms[i].size(), std::vector<unsigned>()};
+    for (int j=0;j<transforms[i].size();j++)
+    {
+      float4x4 tr = transforms[i][j];
+      float4x4 n_tr = LiteMath::transpose(LiteMath::inverse4x4(tr));
+      preparedData.indices[i][j] = std::vector<unsigned>(meshes[i].indices.size(), (unsigned)-1);
+      for (int k = 0; k < meshes[i].indices.size(); k++)
+        preparedData.indices[i][j][k] = offset + meshes[i].indices[k];
+      
+      for (int k = 0; k < meshes[i].vertices.size(); k++)
+        preparedData.vertices[offset + k] = tr*meshes[i].vertices[k];
+      
+      assert(meshes[i].colors.size() == meshes[i].vertices.size() || meshes[i].colors.size() == 0);
+      for (int k = 0; k < meshes[i].colors.size(); k++)
+        preparedData.colors[offset + k] = meshes[i].colors[k];
+
+      assert(meshes[i].tc.size() == meshes[i].vertices.size() || meshes[i].tc.size() == 0);
+      for (int k = 0; k < meshes[i].tc.size(); k++)
+        preparedData.tc[offset + k] = meshes[i].tc[k];
+
+      assert(meshes[i].normals.size() == meshes[i].vertices.size() || meshes[i].normals.size() == 0);
+      for (int k = 0; k < meshes[i].normals.size(); k++)
+        preparedData.normals[offset + k] = n_tr*meshes[i].normals[k];
+
+      assert(meshes[i].tangents.size() == meshes[i].vertices.size() || meshes[i].tangents.size() == 0);
+      for (int k = 0; k < meshes[i].tangents.size(); k++)
+        preparedData.tangents[offset + k] = n_tr*meshes[i].tangents[k];
+      
+      offset += meshes[i].vertices.size();
+    }
+  }
+}
