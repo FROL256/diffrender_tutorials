@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) //
   auto g_uniforms = cameras[0];
 
   Scene initialScene, targetScene;
-  SHADING_MODEL mode = SHADING_MODEL::GGX;
+  SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
   {
     TriangleMesh initialMesh, targetMesh;
     //scn01_TwoTrisFlat(initialMesh, targetMesh);
@@ -106,9 +106,9 @@ int main(int argc, char *argv[]) //
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    scn11_Teapot3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4X(M_PI_4)});
-    targetScene.add_mesh(targetMesh);
+    scn03_Triangle3D_White(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4Z(M_PI_2)});
+    targetScene.add_mesh(targetMesh, {LiteMath::rotate4x4Z(M_PI_2)});
   }
 
   auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});

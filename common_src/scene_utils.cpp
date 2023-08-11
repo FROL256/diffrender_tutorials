@@ -149,3 +149,22 @@ void Scene::prepare_for_render() const
     }
   }
 }
+
+void Scene::get_prepared_mesh(TriangleMesh &mesh) const
+{
+  int total_indices = 0;
+  for (auto &ind_m : preparedData.indices)
+    for (auto &ind_i : ind_m)
+      total_indices += ind_i.size();
+  mesh.indices.resize(total_indices);
+  int ind = 0;
+  for (auto &ind_m : preparedData.indices)
+    for (auto &ind_i : ind_m)
+      for (auto &i : ind_i)
+        mesh.indices[ind++] = i;
+  mesh.vertices = preparedData.vertices;
+  mesh.colors = preparedData.colors;
+  mesh.tc = preparedData.tc;
+  mesh.normals = preparedData.normals;
+  mesh.tangents = preparedData.tangents;
+}

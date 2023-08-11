@@ -216,18 +216,16 @@ private:
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
     Scene scene2d;
-    for (auto &mesh3d : scene.get_meshes())
+    TriangleMesh mesh2d;
+    scene.get_prepared_mesh(mesh2d);
+    for (auto &v : mesh2d.vertices)
     {
-      TriangleMesh mesh2d = mesh3d;
-      for(auto& v : mesh2d.vertices) 
-      {
-        auto vCopy = v;
-        VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
-      }
-      scene2d.add_mesh(mesh2d);
+      auto vCopy = v;
+      VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
     }
+    scene2d.add_mesh(mesh2d);
     scene2d.prepare_for_render();
-  
+
     // (2) prepare edjes
     //
     auto edges        = collect_edges(scene2d);

@@ -71,13 +71,23 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
   const float dv1_dy = v1_d[1].y * d_v1.y; // + v1_dy.x*d_v1.x; ==> 0
   const float dv1_dz = (v1_d[0].z * d_v1.x + v1_d[1].z * d_v1.y);
 
-  d_pos[v0 * 3 + 0] += GradReal(dv0_dx);
-  d_pos[v0 * 3 + 1] += GradReal(dv0_dy);
-  d_pos[v0 * 3 + 2] += GradReal(dv0_dz);
+  //v0 = scene.get_index(mesh_id, instance_id, primitive_id)
+  //v0_3d = mesh[mesh_id].transforms[instance_id] * mesh[mesh_id].vertices[primitive_id]
+  //                       |                                     |
+  //                      tr                                     v
+  //we should calculate  both  d_v0/d_tr(d_v1/d_tr) and d_v0/d_v(d_v1/d_v)
 
-  d_pos[v1 * 3 + 0] += GradReal(dv1_dx);
-  d_pos[v1 * 3 + 1] += GradReal(dv1_dy);
-  d_pos[v1 * 3 + 2] += GradReal(dv1_dz);
+  float4x4 tr = LiteMath::inverse4x4(scene.get_transform(0)[0]);
+  //logerr("%f %f %f %f",tr(0,0), tr(0,1), tr(0,2), tr(0,3));
+
+  d_pos[v0 * 3 + 0] += tr(0,0)*dv0_dx + tr(0,1)*dv0_dy + tr(0,2)*dv0_dz;
+  d_pos[v0 * 3 + 1] += tr(1,0)*dv0_dx + tr(1,1)*dv0_dy + tr(1,2)*dv0_dz;
+  d_pos[v0 * 3 + 2] += tr(2,0)*dv0_dx + tr(2,1)*dv0_dy + tr(2,2)*dv0_dz;
+
+  d_pos[v1 * 3 + 0] += tr(0,0)*dv1_dx + tr(0,1)*dv1_dy + tr(0,2)*dv1_dz;
+  d_pos[v1 * 3 + 1] += tr(1,0)*dv1_dx + tr(1,1)*dv1_dy + tr(1,2)*dv1_dz;
+  d_pos[v1 * 3 + 2] += tr(2,0)*dv1_dx + tr(2,1)*dv1_dy + tr(2,2)*dv1_dz;
+
 }
 
 std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)

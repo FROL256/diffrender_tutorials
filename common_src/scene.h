@@ -160,6 +160,8 @@ public:
   //applies all transorms to meshes and puts them into one big structure
   void prepare_for_render() const;
 
+  void get_prepared_mesh(TriangleMesh &mesh) const;
+
 protected:
   std::vector<TriangleMesh> meshes;
   std::vector<std::vector<float4x4>> transforms;
