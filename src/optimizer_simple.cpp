@@ -61,6 +61,7 @@ OptSimple::IntervalLearningRate OptSimple::GetLR(DTriangleMesh& gradMesh)
 {
   IntervalLearningRate lr;
   lr.push_back({0, m_params.position_lr});
+  lr.push_back({gradMesh.transform_offs(), m_params.transforms_lr});
   lr.push_back({gradMesh.color_offs(), m_params.base_lr});
   if (gradMesh.tex_count() > 0)
     lr.push_back({gradMesh.tex_offset(0), m_params.textures_lr});
@@ -84,6 +85,25 @@ void OptSimple::OptUpdateScene(const DTriangleMesh &gradMesh, Scene* scene)
       mesh.vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];
       mesh.vertices[vertId].y -= gradMesh.vertices_s()[3*vertId+1];
       mesh.vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
+    }
+    assert(scene->get_transform(0).size() == 1);
+    {
+      auto &tr = scene->get_transform_modify(0)[0];
+
+      tr[0][0] -= gradMesh[gradMesh.transform_offs()+0];
+      tr[0][1] -= gradMesh[gradMesh.transform_offs()+1];
+      tr[0][2] -= gradMesh[gradMesh.transform_offs()+2];
+      tr[0][3] -= gradMesh[gradMesh.transform_offs()+3];
+
+      tr[1][0] -= gradMesh[gradMesh.transform_offs()+4];
+      tr[1][1] -= gradMesh[gradMesh.transform_offs()+5];
+      tr[1][2] -= gradMesh[gradMesh.transform_offs()+6];
+      tr[1][3] -= gradMesh[gradMesh.transform_offs()+7];
+
+      tr[2][0] -= gradMesh[gradMesh.transform_offs()+8];
+      tr[2][1] -= gradMesh[gradMesh.transform_offs()+9];
+      tr[2][2] -= gradMesh[gradMesh.transform_offs()+10];
+      tr[2][3] -= gradMesh[gradMesh.transform_offs()+11];
     }
     
     if (gradMesh.get_shading_model() == SHADING_MODEL::VERTEX_COLOR)

@@ -564,7 +564,7 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
   
-  transform(initial, mTranslate);
+  //transform(initial, mTranslate);
 }
 
 #include "cmesh.h"

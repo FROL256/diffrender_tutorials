@@ -37,14 +37,18 @@ struct DTriangleMesh
 
     m_numVertices = mesh.vertex_count();
     m_numFaces    = mesh.face_count();  
+    m_transformOffset = m_numVertices*3;
+    
+    //transform matrix has 12 variables
+    int transforms_size = 12*1;
     
     if (material == SHADING_MODEL::VERTEX_COLOR)
-      m_allParams.resize((3 + 3)*m_numVertices);
+      m_allParams.resize((3 + 3)*m_numVertices + transforms_size);
     else if (material == SHADING_MODEL::SILHOUETTE)
-      m_allParams.resize(3*m_numVertices);
+      m_allParams.resize(3*m_numVertices + transforms_size);
     else if (material != SHADING_MODEL::UNDEFINED)
     {
-      int off = m_numVertices*3;
+      int off = m_numVertices*3 + transforms_size;
       for (auto &t : mesh.textures)
       {
         m_texOffsets.push_back(off);
@@ -55,7 +59,7 @@ struct DTriangleMesh
     else
       assert(false);
     
-    m_colorOffset = m_numVertices*3;
+    m_colorOffset = m_transformOffset  + transforms_size;
     clear();
   }
 
@@ -65,6 +69,7 @@ struct DTriangleMesh
   //////////////////////////////////////////////////////////////////////////////////
   int vert_offs () const { return 0; }
   int color_offs() const { return m_colorOffset; }
+  int transform_offs() const { return m_transformOffset; }
 
   GradReal*       vertices_s()       { return m_allParams.data() + vert_offs(); }
   const GradReal* vertices_s() const { return m_allParams.data() + vert_offs(); }
@@ -98,6 +103,7 @@ protected:
 
   std::vector<GradReal> m_allParams;
   int m_colorOffset;
+  int m_transformOffset;
   int m_numVertices;
   int m_numFaces;
 

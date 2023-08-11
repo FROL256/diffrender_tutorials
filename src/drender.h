@@ -44,7 +44,7 @@ int sample(const Sampler &sampler, const float u);
 std::vector<Edge> collect_edges(const Scene &scene);
 
 inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<GradReal> &d_pos);
+                      std::vector<GradReal> &d_pos, int tr_offset);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -239,7 +239,7 @@ private:
     for(int i=0;i<MAXTHREADS;i++)
     {
       gens [i] = prng::RandomGenInit(7777 + i*i + 1);
-      grads[i].resize(d_mesh.numVerts()*3);
+      grads[i].resize(d_mesh.color_offs());
       memset(grads[i].data(), 0, grads[i].size()*sizeof(GradReal));
     }
   
@@ -293,7 +293,7 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()]);
+        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()], d_mesh.transform_offs());
       }
     }    
   
@@ -302,7 +302,7 @@ private:
     // accumulate gradient from different threads (parallel reduction/hist)
     //
     for(int i=0;i<MAXTHREADS;i++) 
-      for(size_t j=0;j<d_mesh.numVerts()*3; j++)
+      for(size_t j=0;j<d_mesh.color_offs(); j++)
         d_mesh[j] += grads[i][j];
   }
 

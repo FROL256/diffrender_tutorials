@@ -106,9 +106,9 @@ int main(int argc, char *argv[]) //
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    scn03_Triangle3D_White(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4Z(M_PI_2)});
-    targetScene.add_mesh(targetMesh, {LiteMath::rotate4x4Z(M_PI_2)});
+    scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.3,0))});
+    targetScene.add_mesh(targetMesh, {LiteMath::float4x4()});
   }
 
   auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
@@ -215,8 +215,9 @@ int main(int argc, char *argv[]) //
   IOptimizer* pOpt = CreateSimpleOptimizer();
 
   OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
-  op.position_lr = 0.05;
+  op.position_lr = 0.00;
   op.textures_lr = 0.2;
+  op.transforms_lr = 0.1;
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
   float error = 0;
