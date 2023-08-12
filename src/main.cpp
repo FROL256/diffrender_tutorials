@@ -27,6 +27,7 @@
 #include "Image2d.h"
 #include "tests.h"
 #include "enzyme.h"
+#include <chrono>
 
 constexpr static int  SAM_PER_PIXEL = 16;
 
@@ -221,7 +222,12 @@ int main(int argc, char *argv[]) //
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
   float error = 0;
-  Scene res_scene = pOpt->Run(300, error);
+  int iters = 100;
+  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+  Scene res_scene = pOpt->Run(iters, error);
+  std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+  float r = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  logerr("optimization took %.1f ms per iteration\n", r/iters);
   
   //img.clear(float3{0,0,0});
   //pDRender->commit(mesh3);

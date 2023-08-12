@@ -77,8 +77,10 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
   //                      tr                                     v
   //we should calculate  both  d_v0/d_tr(d_v1/d_tr) and d_v0/d_v(d_v1/d_v)
 
-  float4x4 tr = LiteMath::inverse4x4(scene.get_transform(0)[0]);
-  //logerr("%f %f %f %f",tr(0,0), tr(0,1), tr(0,2), tr(0,3));
+  int tr_n = 0;
+  float4x4 tr = scene.get_transform_inv(0)[tr_n];
+  float3 v0_orig = scene.get_pos_orig(v0);
+  float3 v1_orig = scene.get_pos_orig(v1);
 
   d_pos[v0 * 3 + 0] += tr(0,0)*dv0_dx + tr(0,1)*dv0_dy + tr(0,2)*dv0_dz;
   d_pos[v0 * 3 + 1] += tr(1,0)*dv0_dx + tr(1,1)*dv0_dy + tr(1,2)*dv0_dz;
@@ -88,9 +90,6 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
   d_pos[v1 * 3 + 1] += tr(1,0)*dv1_dx + tr(1,1)*dv1_dy + tr(1,2)*dv1_dz;
   d_pos[v1 * 3 + 2] += tr(2,0)*dv1_dx + tr(2,1)*dv1_dy + tr(2,2)*dv1_dz;
 
-  int tr_n = 0;
-  float3 v0_orig = tr*v0_3d;
-  float3 v1_orig = tr*v1_3d;
   d_pos[tr_offset + 12*tr_n + 0] += v0_orig.x*dv0_dx + v1_orig.x*dv1_dx;
   d_pos[tr_offset + 12*tr_n + 1] += v0_orig.y*dv0_dx + v1_orig.y*dv1_dx;
   d_pos[tr_offset + 12*tr_n + 2] += v0_orig.z*dv0_dx + v1_orig.z*dv1_dx;

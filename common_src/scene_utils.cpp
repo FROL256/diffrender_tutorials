@@ -108,6 +108,7 @@ void Scene::prepare_for_render() const
     total_vertices += transforms[i].size()*meshes[i].vertices.size();
 
   preparedData.vertices.resize(total_vertices, float3(0,0,0));
+  preparedData.orig_vertices.resize(total_vertices, float3(0,0,0));
   preparedData.colors.resize(total_vertices, float3(0,0,0));
   preparedData.tc.resize(total_vertices, float2(0,0));
   preparedData.normals.resize(total_vertices, float3(1,0,0));
@@ -127,7 +128,10 @@ void Scene::prepare_for_render() const
         preparedData.indices[i][j][k] = offset + meshes[i].indices[k];
       
       for (int k = 0; k < meshes[i].vertices.size(); k++)
+      {
         preparedData.vertices[offset + k] = tr*meshes[i].vertices[k];
+        preparedData.orig_vertices[offset + k] = meshes[i].vertices[k];
+      }
       
       assert(meshes[i].colors.size() == meshes[i].vertices.size() || meshes[i].colors.size() == 0);
       for (int k = 0; k < meshes[i].colors.size(); k++)
@@ -147,6 +151,14 @@ void Scene::prepare_for_render() const
       
       offset += meshes[i].vertices.size();
     }
+  }
+
+  transforms_inv.reserve(transforms.size());
+  for (auto &t : transforms)
+  {
+    transforms_inv.push_back(t);
+    for (int i=0;i<t.size();i++)
+      transforms_inv.back()[i] = LiteMath::inverse4x4(t[i]);
   }
 }
 

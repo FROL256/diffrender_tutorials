@@ -130,11 +130,12 @@ public:
     return preparedData.indices[mesh_id][instance_id][vertex_id]; 
   }
   //id is an index returned by get_index() function
-  inline float3 get_pos(unsigned id)    const { return preparedData.vertices[id]; }//TODO: support multiple meshes
-  inline float3 get_color(unsigned id)  const { return preparedData.colors[id]; }//TODO: support multiple meshes
-  inline float3 get_norm(unsigned id)   const { return preparedData.normals[id]; }//TODO: support multiple meshes
-  inline float3 get_tang(unsigned id)   const { return preparedData.tangents[id]; }//TODO: support multiple meshes
-  inline float2 get_tc(unsigned id)     const { return preparedData.tc[id]; }//TODO: support multiple meshes
+  inline float3 get_pos(unsigned id)     const { return preparedData.vertices[id]; }
+  inline float3 get_pos_orig(unsigned id)const { return preparedData.orig_vertices[id]; }
+  inline float3 get_color(unsigned id)   const { return preparedData.colors[id]; }
+  inline float3 get_norm(unsigned id)    const { return preparedData.normals[id]; }
+  inline float3 get_tang(unsigned id)    const { return preparedData.tangents[id]; }
+  inline float2 get_tc(unsigned id)      const { return preparedData.tc[id]; }
   
   inline const CPUTexture &get_tex(unsigned n) const { return meshes[0].textures[n]; }//TODO: support multiple meshes
   
@@ -145,6 +146,8 @@ public:
   
   inline const std::vector<float4x4>  &get_transform(unsigned n) const { return transforms[n]; }
   inline const std::vector<std::vector<float4x4>>  &get_transforms() const { return transforms; }
+  inline const std::vector<float4x4>  &get_transform_inv(unsigned n) const { return transforms_inv[n]; }
+  inline const std::vector<std::vector<float4x4>>  &get_transforms_inv() const { return transforms_inv; }
   inline std::vector<float4x4>  &get_transform_modify(unsigned n) { prepared = false; return transforms[n];  }
   inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { prepared = false; return transforms; }
   inline unsigned indices_size() const 
@@ -165,6 +168,7 @@ public:
 protected:
   std::vector<TriangleMesh> meshes;
   std::vector<std::vector<float4x4>> transforms;
+  mutable std::vector<std::vector<float4x4>> transforms_inv;
   std::map<std::string, int> meshes_by_name; //position in meshes vector
 
   float3 ambient_light_color = float3(0,0,0);
@@ -180,6 +184,7 @@ protected:
     std::vector<std::vector<std::vector<unsigned>>> indices;
 
     std::vector<float3>     vertices;
+    std::vector<float3>     orig_vertices;
     std::vector<float3>     colors;
     std::vector<float2>     tc;
     std::vector<float3>     normals;
