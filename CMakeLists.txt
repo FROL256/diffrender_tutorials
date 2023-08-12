@@ -2,9 +2,9 @@ cmake_minimum_required (VERSION 3.8)
 project (diffrender)
 
 #default build
-#cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON
-
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++-9")
+#cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -USE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9
+set(CLANG_VERSION "9" CACHE STRING "clang and LLVM version to use")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++-${CLANG_VERSION}")
 option(USE_EMBREE "Use Embree RT" OFF)
 option(DEBUG "Debug mode" OFF)
 option(USE_MITSUBA "Use Mitsuba 3" OFF)
@@ -94,7 +94,7 @@ add_executable(drender ${SOURCES}
 target_link_libraries(drender PUBLIC ${OMP_LIBS} ${RT_EMBREE_LIBS} ${MITSUBA_LIBS})
 
 if (USE_ENZYME)
-  set(ENZYME_FLAGS "-fplugin=/home/sammael/diff_render/diffrender_tutorials/external/enzyme/enzyme/build/Enzyme/ClangEnzyme-9.so")
+  set(ENZYME_FLAGS "-fplugin=${CMAKE_SOURCE_DIR}/external/enzyme/enzyme/build/Enzyme/ClangEnzyme-${CLANG_VERSION}.so")
   message(${ENZYME_FLAGS})
   target_compile_options(drender PUBLIC ${ENZYME_FLAGS})
 else()
