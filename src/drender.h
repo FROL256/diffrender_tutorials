@@ -215,21 +215,40 @@ private:
   {
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
-    Scene scene2d;
-    TriangleMesh mesh2d;
-    scene.get_prepared_mesh(mesh2d);
-    for (auto &v : mesh2d.vertices)
+    Scene scene2d_diff, scene2d_full;
     {
-      auto vCopy = v;
-      VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+      TriangleMesh mesh2d;
+      scene.get_prepared_mesh(mesh2d);
+      for (auto &v : mesh2d.vertices)
+      {
+        auto vCopy = v;
+        VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+      }
+      scene2d_full.add_mesh(mesh2d);
+      scene2d_full.prepare_for_render();
     }
-    scene2d.add_mesh(mesh2d);
-    scene2d.prepare_for_render();
+    {
+      std::vector<int> diff_mesh_n = {0};
+      for (int mesh_n : diff_mesh_n)
+      {
+        //TODO: support instancing for diff render
+        assert(scene.get_transform(mesh_n).size() == 1);
+        TriangleMesh m = scene.get_mesh(mesh_n);
+        transform(m, scene.get_transform(mesh_n)[0]);
+        for (auto &v : m.vertices)
+        {
+          auto vCopy = v;
+          VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+        }
+        scene2d_diff.add_mesh(m);
+      }
+    }
+    scene2d_diff.prepare_for_render();
 
     // (2) prepare edjes
     //
-    auto edges        = collect_edges(scene2d);
-    auto edge_sampler = build_edge_sampler(scene2d, edges);
+    auto edges        = collect_edges(scene2d_diff);
+    auto edge_sampler = build_edge_sampler(scene2d_diff, edges);
   
     // (3) do edje sampling
     // 
@@ -259,8 +278,8 @@ private:
       auto pmf     = edge_sampler.pmf[edge_id];
       
       // pick a point p on the edge
-      auto v0 = LiteMath::to_float2(scene2d.get_pos(edge.v0));
-      auto v1 = LiteMath::to_float2(scene2d.get_pos(edge.v1));
+      auto v0 = LiteMath::to_float2(scene2d_diff.get_pos(edge.v0));
+      auto v1 = LiteMath::to_float2(scene2d_diff.get_pos(edge.v1));
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
@@ -274,8 +293,8 @@ private:
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
 
-      const auto color_in  = shade<material>(scene2d, m_pTracer.get(), coordIn);
-      const auto color_out = shade<material>(scene2d, m_pTracer.get(), coordOut);
+      const auto color_in  = shade<material>(scene2d_full, m_pTracer.get(), coordIn);
+      const auto color_out = shade<material>(scene2d_full, m_pTracer.get(), coordOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
