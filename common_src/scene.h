@@ -127,7 +127,7 @@ public:
 
   inline unsigned get_index(unsigned mesh_id, unsigned instance_id, unsigned vertex_id) const 
   { 
-    return preparedData.indices[mesh_id][instance_id][vertex_id]; 
+    return preparedData.indices[mesh_id][instance_id_mapping[instance_id]][vertex_id]; 
   }
   //id is an index returned by get_index() function
   inline float3 get_pos(unsigned id)     const { return preparedData.vertices[id]; }
@@ -164,12 +164,16 @@ public:
   void prepare_for_render() const;
 
   void get_prepared_mesh(TriangleMesh &mesh) const;
+  void set_instance_id_mapping(std::vector<int> &v) const { instance_id_mapping = v; };
 
 protected:
   std::vector<TriangleMesh> meshes;
   std::vector<std::vector<float4x4>> transforms;
   mutable std::vector<std::vector<float4x4>> transforms_inv;
   std::map<std::string, int> meshes_by_name; //position in meshes vector
+  //index in this vector is the instanceId from ray tracer
+  //value is the instance id to take values from indices
+  mutable std::vector<int> instance_id_mapping;
 
   float3 ambient_light_color = float3(0,0,0);
   float3 environment_light_mult = float3(1,1,1);

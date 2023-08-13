@@ -29,13 +29,23 @@ struct EmbreeRT3D : public IRayTracer
     m_pAccelStruct->ClearGeom();
     m_pAccelStruct->ClearScene();
 
+    std::vector<int> instance_ids;
+
     for (int i=0;i<m_pScene->get_meshes().size();i++)
     {
       const TriangleMesh &mesh = m_pScene->get_mesh(i);
       auto geomId = m_pAccelStruct->AddGeom_Triangles3f((const float*)mesh.vertices.data(), mesh.vertices.size(), mesh.indices.data(), mesh.indices.size(), BUILD_MEDIUM); 
+      int k = 0;
       for (auto &transform : m_pScene->get_transform(i))
-        m_pAccelStruct->AddInstance(geomId, transform); // with identity matrix
+      {
+        int id = m_pAccelStruct->AddInstance(geomId, transform); // with identity matrix
+        if (instance_ids.size() <= id)
+          instance_ids.resize(id+1, 0);
+        instance_ids[id] = k;
+        k++;
+      }
     }
+    m_pScene->set_instance_id_mapping(instance_ids);
     m_pAccelStruct->CommitScene(BUILD_MEDIUM);
     //std::cout << "[EmbreeRT3D]: Init done" << std::endl;
   }
