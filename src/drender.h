@@ -217,32 +217,37 @@ private:
     //TODO: scene is prepared, we can project only the prepared arrays
     Scene scene2d_diff, scene2d_full;
     {
-      TriangleMesh mesh2d;
-      scene.get_prepared_mesh(mesh2d);
-      for (auto &v : mesh2d.vertices)
-      {
-        auto vCopy = v;
-        VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
-      }
-      scene2d_full.add_mesh(mesh2d);
-      scene2d_full.prepare_for_render();
-    }
-    {
       std::vector<int> diff_mesh_n = {0};
+      std::vector<bool> diff_mesh_b(scene.get_meshes().size(), false);
       for (int mesh_n : diff_mesh_n)
+        diff_mesh_b[mesh_n] = true;
+      for (int i=0; i<scene.get_meshes().size(); i++)
       {
         //TODO: support instancing for diff render
-        assert(scene.get_transform(mesh_n).size() == 1);
-        TriangleMesh m = scene.get_mesh(mesh_n);
-        transform(m, scene.get_transform(mesh_n)[0]);
-        for (auto &v : m.vertices)
+        if (diff_mesh_b[i])
+          assert(scene.get_transform(i).size() == 1);
+        for (auto &tr : scene.get_transform(i))
         {
-          auto vCopy = v;
-          VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+          TriangleMesh m = scene.get_mesh(i);
+          transform(m, tr);
+          for (auto &v : m.vertices)
+          {
+            auto vCopy = v;
+            VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+          }
+
+          scene2d_full.add_mesh(m);
+          if (diff_mesh_b[i])
+            scene2d_diff.add_mesh(m);
         }
-        scene2d_diff.add_mesh(m);
       }
     }
+    std::vector<int> map = scene.get_instance_id_mapping();
+    std::vector<int> map_2d(map.size(), 0);
+    scene2d_full.set_instance_id_mapping(map_2d);
+    scene2d_full.prepare_for_render();
+  
+    scene2d_diff.set_instance_id_mapping(map_2d);
     scene2d_diff.prepare_for_render();
 
     // (2) prepare edjes
