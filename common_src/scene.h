@@ -137,7 +137,7 @@ public:
   inline float3 get_tang(unsigned id)    const { return preparedData.tangents[id]; }
   inline float2 get_tc(unsigned id)      const { return preparedData.tc[id]; }
   
-  inline const CPUTexture &get_tex(unsigned n) const { return meshes[0].textures[n]; }//TODO: support multiple meshes
+  inline const CPUTexture &get_tex(unsigned mesh_id, unsigned n) const { return meshes[mesh_id].textures[n]; }
   
   inline const TriangleMesh &get_mesh(unsigned n) const { return meshes[n]; }
   inline const std::vector<TriangleMesh> &get_meshes() const { return meshes; }

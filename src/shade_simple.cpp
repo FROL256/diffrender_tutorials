@@ -119,7 +119,7 @@ float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, 
   const float v = surfInfo.v;
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
-  auto res = sample_bilinear_clamp(tc, scene.get_tex(0));
+  auto res = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
   return float3(res[0], res[1], res[2]);
 }
 
@@ -138,7 +138,7 @@ void shade_grad<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTrace
   const float u = surfInfo.u;
   const float v = surfInfo.v;
 
-  auto &tex = scene.get_tex(0);
+  auto &tex = scene.get_tex(surfInfo.geomId, 0);
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
   tc *= float2(tex.w, tex.h);
@@ -147,19 +147,19 @@ void shade_grad<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTrace
   float2 dtc = tc - float2(tc0);
   int off = grad.tex_offset(0);
 
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y)] += (1 - dtc.x) * (1 - dtc.y) * val.x;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc0.y) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc0.y)] += (1 - dtc.x) * (1 - dtc.y) * val.x;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc0.y) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc0.y) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z;
 
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y)] += (1 - dtc.x) * dtc.y * val.x;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y) + 1] += (1 - dtc.x) * dtc.y * val.y;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc0.x, tc1.y) + 2] += (1 - dtc.x) * dtc.y * val.z;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc1.y)] += (1 - dtc.x) * dtc.y * val.x;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc1.y) + 1] += (1 - dtc.x) * dtc.y * val.y;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc0.x, tc1.y) + 2] += (1 - dtc.x) * dtc.y * val.z;
 
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y)] += dtc.x * (1 - dtc.y) * val.x;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y) + 1] += dtc.x * (1 - dtc.y) * val.y;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc0.y) + 2] += dtc.x * (1 - dtc.y) * val.z;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc0.y)] += dtc.x * (1 - dtc.y) * val.x;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc0.y) + 1] += dtc.x * (1 - dtc.y) * val.y;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc0.y) + 2] += dtc.x * (1 - dtc.y) * val.z;
 
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y)] += dtc.x * dtc.y * val.x;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y) + 1] += dtc.x * dtc.y * val.y;
-  grad[off + scene.get_tex(0).pixel_to_offset(tc1.x, tc1.y) + 2] += dtc.x * dtc.y * val.z;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc1.y)] += dtc.x * dtc.y * val.x;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc1.y) + 1] += dtc.x * dtc.y * val.y;
+  grad[off + scene.get_tex(surfInfo.geomId, 0).pixel_to_offset(tc1.x, tc1.y) + 2] += dtc.x * dtc.y * val.z;
 }

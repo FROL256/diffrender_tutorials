@@ -23,7 +23,7 @@ float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, 
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
   float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
-  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
@@ -64,7 +64,7 @@ float3 shade<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, co
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
   float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
-  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
@@ -145,7 +145,7 @@ float3 shade<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, cons
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
   float3 n = scene.get_norm(A) * (1.0f - u - v) + scene.get_norm(B) * v + u * scene.get_norm(C);
-  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(0));
+  auto diffuse_v = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
   float3 diffuse = float3(diffuse_v[0], diffuse_v[1], diffuse_v[2]);
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;

@@ -153,7 +153,7 @@ ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceI
   res.pos = pos + 1e-4*res.n_geom;
   res.e_x = normalize(cross(n,tangent));
   res.e_y = normalize(cross(n,res.e_x)); 
-  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(0));
+  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
 
   return res;
 }
