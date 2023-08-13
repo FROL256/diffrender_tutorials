@@ -179,4 +179,5 @@ void Scene::get_prepared_mesh(TriangleMesh &mesh) const
   mesh.tc = preparedData.tc;
   mesh.normals = preparedData.normals;
   mesh.tangents = preparedData.tangents;
+  mesh.textures = meshes[0].textures;
 }
