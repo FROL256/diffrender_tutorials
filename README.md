@@ -17,8 +17,9 @@
 5) Enzyme - библиотека автоматического дифференцирования
  - установить llvm (должно поставиться вместе с clang)
  - собрать enzyme https://enzyme.mit.edu/Installation/
-   исходники уже лежат в external/enzyme
+   * исходники уже лежат в external/enzyme
+   * на Ubuntu 23 можно использовать такую команду: 'cmake -G Ninja .. -DLLVM_DIR=/usr/lib/llvm-16/share/llvm/cmake/ -DClang_DIR=/usr/lib/llvm-16/lib/cmake/clang/'  
  - указать правильную версию clang -DCLANG_VERSION=...
 
 рекомендуемая сборка:
-cmake CMakeLists.txt -DDEBUG=OFF -DUSE_EMBREE=ON -USE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9
+cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9

@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
-#include "omp.h"
+#include "myomp.h"
 
 #include "LiteMath.h"
 using namespace LiteMath;
