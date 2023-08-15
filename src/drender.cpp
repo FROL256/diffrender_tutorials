@@ -50,7 +50,7 @@ std::vector<Edge> collect_edges(const Scene &scene)
 }
 
 inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<GradReal> &d_pos, int tr_offset)
+                      std::vector<GradReal> &d_pos, std::vector<GradReal> &d_tr)
 {
   float3 v0_d[2] = {{0, 0, 0}, {0, 0, 0}};
   float3 v1_d[2] = {{0, 0, 0}, {0, 0, 0}};
@@ -81,6 +81,7 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
   float4x4 tr = scene.get_transform_inv(0)[tr_n];
   float3 v0_orig = scene.get_pos_orig(v0);
   float3 v1_orig = scene.get_pos_orig(v1);
+  //logerr("set %d %f %f %f %f %f %f",v0,tr(0,0),dv0_dx,tr(0,1),dv0_dy,tr(0,2),dv0_dz);
 
   d_pos[v0 * 3 + 0] += tr(0,0)*dv0_dx + tr(0,1)*dv0_dy + tr(0,2)*dv0_dz;
   d_pos[v0 * 3 + 1] += tr(1,0)*dv0_dx + tr(1,1)*dv0_dy + tr(1,2)*dv0_dz;
@@ -90,20 +91,20 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
   d_pos[v1 * 3 + 1] += tr(1,0)*dv1_dx + tr(1,1)*dv1_dy + tr(1,2)*dv1_dz;
   d_pos[v1 * 3 + 2] += tr(2,0)*dv1_dx + tr(2,1)*dv1_dy + tr(2,2)*dv1_dz;
 
-  d_pos[tr_offset + 12*tr_n + 0] += v0_orig.x*dv0_dx + v1_orig.x*dv1_dx;
-  d_pos[tr_offset + 12*tr_n + 1] += v0_orig.y*dv0_dx + v1_orig.y*dv1_dx;
-  d_pos[tr_offset + 12*tr_n + 2] += v0_orig.z*dv0_dx + v1_orig.z*dv1_dx;
-  d_pos[tr_offset + 12*tr_n + 3] +=         1*dv0_dx +         1*dv1_dx;
+  d_tr[12*tr_n + 0] += v0_orig.x*dv0_dx + v1_orig.x*dv1_dx;
+  d_tr[12*tr_n + 1] += v0_orig.y*dv0_dx + v1_orig.y*dv1_dx;
+  d_tr[12*tr_n + 2] += v0_orig.z*dv0_dx + v1_orig.z*dv1_dx;
+  d_tr[12*tr_n + 3] +=         1*dv0_dx +         1*dv1_dx;
 
-  d_pos[tr_offset + 12*tr_n + 4] += v0_orig.x*dv0_dy + v1_orig.x*dv1_dy;
-  d_pos[tr_offset + 12*tr_n + 5] += v0_orig.y*dv0_dy + v1_orig.y*dv1_dy;
-  d_pos[tr_offset + 12*tr_n + 6] += v0_orig.z*dv0_dy + v1_orig.z*dv1_dy;
-  d_pos[tr_offset + 12*tr_n + 7] +=         1*dv0_dy +         1*dv1_dy;
+  d_tr[12*tr_n + 4] += v0_orig.x*dv0_dy + v1_orig.x*dv1_dy;
+  d_tr[12*tr_n + 5] += v0_orig.y*dv0_dy + v1_orig.y*dv1_dy;
+  d_tr[12*tr_n + 6] += v0_orig.z*dv0_dy + v1_orig.z*dv1_dy;
+  d_tr[12*tr_n + 7] +=         1*dv0_dy +         1*dv1_dy;
 
-  d_pos[tr_offset + 12*tr_n + 8] += v0_orig.x*dv0_dz + v1_orig.x*dv1_dz;
-  d_pos[tr_offset + 12*tr_n + 9] += v0_orig.y*dv0_dz + v1_orig.y*dv1_dz;
-  d_pos[tr_offset + 12*tr_n + 10]+= v0_orig.z*dv0_dz + v1_orig.z*dv1_dz;
-  d_pos[tr_offset + 12*tr_n + 11]+=         1*dv0_dz +         1*dv1_dz;
+  d_tr[12*tr_n + 8] += v0_orig.x*dv0_dz + v1_orig.x*dv1_dz;
+  d_tr[12*tr_n + 9] += v0_orig.y*dv0_dz + v1_orig.y*dv1_dz;
+  d_tr[12*tr_n + 10]+= v0_orig.z*dv0_dz + v1_orig.z*dv1_dz;
+  d_tr[12*tr_n + 11]+=         1*dv0_dz +         1*dv1_dz;
 }
 
 std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)

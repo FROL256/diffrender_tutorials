@@ -64,8 +64,10 @@ void Tester::test_base_derivatives()
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh);
-    targetScene.add_mesh(targetMesh);
+    LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
+    transform(initialMesh, mTranslate);
+    initialScene.add_mesh(initialMesh); initialScene.restore_meshes(false, false, true);
+    targetScene.add_mesh(targetMesh); targetScene.restore_meshes(false, false, true);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP}, 100, 0);
 
     bool pass = res.pos_error < 0.05;
@@ -255,35 +257,40 @@ void mitsuba_compare_test(const std::string &test_name,
     targetsOurs[i].clear(float3{0, 0, 0});
   }
 
-  DTriangleMesh gradMeshMitsuba;
+  DScene gradMeshMitsuba;
   {
     pDRender->commit(targetScene);
     pDRender->render(targetScene, cameras.data(), targets, cameras_count);
-    gradMeshMitsuba.reset(initialScene.get_mesh(0), pDRender->mode);
+    gradMeshMitsuba.reset(initialScene, pDRender->mode, {0});
     pDRender->d_render_and_compare(initialScene, cameras.data(), targets, cameras_count, img.width()*img.height(), gradMeshMitsuba);
   }
 
-  DTriangleMesh gradMeshOurs;
+  DScene gradMeshOurs;
   {
     pDRenderOurs->commit(targetScene);
     pDRenderOurs->render(targetScene, cameras.data(), targetsOurs, cameras_count);
-    gradMeshOurs.reset(initialScene.get_mesh(0), pDRenderOurs->mode);
+    gradMeshOurs.reset(initialScene, pDRenderOurs->mode, {0});
     pDRenderOurs->d_render_and_compare(initialScene, cameras.data(), targetsOurs, cameras_count, img.width()*img.height(), gradMeshOurs);
   }
 
-  assert(gradMeshMitsuba.size() == gradMeshOurs.size());
-  int sz = gradMeshOurs.size();
+  assert(gradMeshMitsuba.get_dmeshes().size() == gradMeshOurs.get_dmeshes().size());
   float diff = 0;
-  double acc1 = 1e-12;
-  double acc2 = 1e-12;
-  for (int i=0;i<sz;i++)
-    acc1 += gradMeshMitsuba[i];
-  for (int i=0;i<sz;i++)
-    acc2 += gradMeshOurs[i];
-  for (int i=0;i<sz;i++)
+  int full_sz = 0;
+  for (int m=0; m<gradMeshMitsuba.get_dmeshes().size(); m++)
   {
-    //logerr("[%d]%f %f",i, sz*gradMeshMitsuba[i]/acc1, sz*gradMeshOurs[i]/acc2);
-    diff += abs(gradMeshMitsuba[i]/acc1 - gradMeshOurs[i]/acc2);
+    int sz = gradMeshOurs.get_dmeshes()[m].full_size();
+    full_sz += sz;
+    double acc1 = 1e-12;
+    double acc2 = 1e-12;
+    for (int i=0;i<sz;i++)
+      acc1 += gradMeshMitsuba.get_dmeshes()[m].full_data()[i];
+    for (int i=0;i<sz;i++)
+      acc2 += gradMeshOurs.get_dmeshes()[m].full_data()[i];
+    for (int i=0;i<sz;i++)
+    {
+      //logerr("[%d]%f %f",i, sz*gradMeshMitsuba[i]/acc1, sz*gradMeshOurs[i]/acc2);
+      diff += abs(gradMeshMitsuba.get_dmeshes()[m].full_data()[i]/acc1 - gradMeshOurs.get_dmeshes()[m].full_data()[i]/acc2);
+    }
   }
 
   double image_diff = 0.0;
@@ -297,7 +304,7 @@ void mitsuba_compare_test(const std::string &test_name,
   }
   image_diff /= cameras_count*img.width()*img.height();
   float psnr = -10*log10(max(1e-9,image_diff));
-  diff /= sz;
+  diff /= full_sz;
   delete pDRender;
     
   bool pass = diff < 0.05;
@@ -350,7 +357,8 @@ void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float
                    std::shared_ptr<IDiffRender> a_pDRImpl, bool geom_changed)
 {
   *param += delta;
-  
+  copy_scene.invalidate_prepared_scene();
+
   if (geom_changed)
     a_pDRImpl->commit(copy_scene);
   a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
@@ -398,30 +406,31 @@ std::vector<int> random_unique_indices(int from, int to, int cnt)
 }
 
 void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl,
-                           const CamInfo& a_camData, DTriangleMesh &d_mesh, int debug_mesh_id, int max_test_vertices, int max_test_texels,
+                           const CamInfo& a_camData, DScene &d_scene, int debug_mesh_id, int max_test_vertices, int max_test_texels,
                            std::vector<bool> &tested_mask)
 {
   float dPos = 2.0f/float(origin.width());
-  float dCol = 0.01f;
+  float dCol = 0.1f;
   bool save_images = true;
 
   Scene copy_scene = scene;
   a_pDRImpl->commit(copy_scene);
   TriangleMesh &mesh = copy_scene.get_mesh_modify(debug_mesh_id);
-  d_mesh.reset(mesh, a_pDRImpl->mode);
+  d_scene.reset(copy_scene, a_pDRImpl->mode, {debug_mesh_id});
+  DMesh &d_mesh = *d_scene.get_dmesh(debug_mesh_id);
   Img MSEOrigin = LiteImage::MSEImage(origin, target);
   Img img(origin.width(), origin.height());
 
-  #define pFinDiff(param, dmesh_offset, out_image, delta, geom_changed) \
-          tested_mask[(int)(dmesh_offset)] = true; finDiff_param(param, d_mesh.data() + (int)(dmesh_offset), out_image, delta, img, target, MSEOrigin, a_camData, copy_scene, a_pDRImpl, geom_changed);
+  #define pFinDiff(param, dmesh_ptr, out_image, delta, geom_changed) \
+          tested_mask[(int)((dmesh_ptr) - d_mesh.full_data())] = true; finDiff_param(param, dmesh_ptr, out_image, delta, img, target, MSEOrigin, a_camData, copy_scene, a_pDRImpl, geom_changed);
   
   std::vector<int> debug_vertex_ids = random_unique_indices(0, mesh.vertex_count(), max_test_vertices);
   Img pos_x, pos_y, pos_z;
   for(auto &i : debug_vertex_ids)
   {
-    pFinDiff(mesh.vertices[i].M + 0, d_mesh.vert_offs() + i*3+0, pos_x, dPos, true);
-    pFinDiff(mesh.vertices[i].M + 1, d_mesh.vert_offs() + i*3+1, pos_y, dPos, true);
-    pFinDiff(mesh.vertices[i].M + 2, d_mesh.vert_offs() + i*3+2, pos_z, dPos, true);
+    pFinDiff(mesh.vertices[i].M + 0, d_mesh.pos(i) + 0, pos_x, dPos, true);
+    pFinDiff(mesh.vertices[i].M + 1, d_mesh.pos(i) + 1, pos_y, dPos, true);
+    pFinDiff(mesh.vertices[i].M + 2, d_mesh.pos(i) + 2, pos_z, dPos, true);
 
     if (save_images)
     {
@@ -437,13 +446,21 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
         auto path = strOut.str();
         LiteImage::SaveImage(path.c_str(), diffImage);
       }
+      if(outFolder != nullptr)
+      {
+        std::stringstream strOut;
+        strOut << outFolder << "/" << "orig_xyz_" << i << ".bmp";
+        auto path = strOut.str();
+        LiteImage::SaveImage(path.c_str(), img);
+      }
     }
 
     if (mesh.colors.size() == mesh.vertices.size() && a_pDRImpl->mode == SHADING_MODEL::VERTEX_COLOR)
     {
-      pFinDiff(mesh.colors[i].M + 0, d_mesh.color_offs() + i*3+0, pos_x, dCol, true);
-      pFinDiff(mesh.colors[i].M + 1, d_mesh.color_offs() + i*3+1, pos_y, dCol, true);
-      pFinDiff(mesh.colors[i].M + 2, d_mesh.color_offs() + i*3+2, pos_z, dCol, true);
+      pFinDiff(mesh.colors[i].M + 0, d_mesh.color(i) + 0, pos_x, dCol, true);
+      pFinDiff(mesh.colors[i].M + 1, d_mesh.color(i) + 1, pos_y, dCol, true);
+      pFinDiff(mesh.colors[i].M + 2, d_mesh.color(i) + 2, pos_z, dCol, true);
+      logerr("dcol %d %f",i,*(d_mesh.color(i) + 0));
 
       if (save_images)
       {
@@ -477,8 +494,8 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
     {
       for (int ch =0; ch < tex.channels; ch++)
       {
-        int off = d_mesh.tex_offset(tex_n) + tex.pixel_to_offset(i.x, i.y) + ch;
-        pFinDiff(tex.data.data() + tex.pixel_to_offset(i.x, i.y) + ch, off, pos_x, 0.1, false);
+        int off = tex.pixel_to_offset(i.x, i.y) + ch;
+        pFinDiff(tex.data.data() + tex.pixel_to_offset(i.x, i.y) + ch, d_mesh.tex(tex_n, off), pos_x, 0.1, false);
       }
     }
   }
@@ -504,13 +521,13 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   int meshes_count = initial_scene.get_meshes().size();
   for (int i=0;i<meshes_count;i++)
   {
-    DTriangleMesh dMesh1 = DTriangleMesh(initial_scene.get_mesh(i), settings.mode);
-    DTriangleMesh dMesh2 = DTriangleMesh(initial_scene.get_mesh(i), settings.mode);
-    std::vector<bool> mask(dMesh1.size(), false);
+    DScene dMesh1 = DScene(initial_scene, settings.mode, {i});
+    DScene dMesh2 = DScene(initial_scene, settings.mode, {i});
+    std::vector<bool> mask(dMesh1.get_dmeshes()[0].full_size(), false);
     
     Render->commit(initial_scene);
     Render->d_render(initial_scene, &a_camData, &tmp, 1, target.width()*target.height(), dMesh1);
-    test_fin_diff(initial_scene, nullptr, original, target, Render, a_camData, dMesh2, i, max_test_vertices, max_test_texels, mask);
+    test_fin_diff(initial_scene, "output", original, target, Render, a_camData, dMesh2, i, max_test_vertices, max_test_texels, mask);
 
     auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask);
 
@@ -523,7 +540,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   return r;
 }
 
-Tester::DerivativesTestResults Tester::PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& grad2, const std::vector<bool> &tested_mask)
+Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask)
 {
   double posError = 0.0;
   double colError = 0.0;
@@ -532,51 +549,63 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(const DTriangleM
   double colLengthL1 = 1e-12;
   double texLengthL1 = 1e-12;
 
-  for(size_t i=0; i<grad1.color_offs(); i++) 
+  assert(grad1_scene.get_dmeshes().size() == 1 && grad2_scene.get_dmeshes().size() == 1);
+  DMesh grad1 = grad1_scene.get_dmeshes()[0];
+  DMesh grad2 = grad2_scene.get_dmeshes()[0];
+
+  for(size_t i=0; i<3*grad1.vertex_count(); i++) 
   {
     if (!tested_mask[i])
       continue;
-    double diff = std::abs(double(grad1[i] - grad2[i]));
+    double diff = std::abs(double(grad1.pos(i/3)[i%3] - grad2.pos(i/3)[i%3]));
     posError    += diff;
-    posLengthL1 += std::abs(grad1[i]) + std::abs(grad2[i]);
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+    posLengthL1 += std::abs(grad1.pos(i/3)[i%3]) + std::abs(grad2.pos(i/3)[i%3]);
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
+    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
   }
 
-  //std::cout << "--------------------------" << std::endl;
-  for(size_t i=grad1.color_offs();i<grad1.textures_offset();i++) 
+  std::cout << "--------------------------" << std::endl;
+  if (grad1.color(0))
   {
-    if (!tested_mask[i])
-      continue;
-    double diff = std::abs(double(grad1[i] - grad2[i]));
-    colError   += diff;
-    colLengthL1 += std::abs(grad1[i]) + std::abs(grad2[i]);
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+    for(size_t i=0; i<3*grad1.vertex_count(); i++)
+    {
+      if (!tested_mask[3*grad1.vertex_count()+i])
+        continue;
+      double diff = std::abs(double(grad1.color(i/3)[i%3] - grad2.color(i/3)[i%3]));
+      colError   += diff;
+      colLengthL1 += std::abs(grad1.color(i/3)[i%3]) + std::abs(grad2.color(i/3)[i%3]);
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
+    }
   }
   
-  assert(grad1.size() == grad2.size());
+  assert(grad1.full_size() == grad2.full_size());
 
   if (grad1.tex_count() > 0)
   {
-    for (int i=grad1.textures_offset();i<grad1.size();i++)
+    for (int t_n=0;t_n<grad1.tex_count();t_n++)
     {
-      if (!tested_mask[i])
-        continue;
-      double diff = std::abs(double(grad1[i] - grad2[i]));
-      texError += diff;
-      texLengthL1 += std::abs(grad1[i]) + std::abs(grad2[i]);
+      int3 p = grad1.get_tex_info(t_n);
+      int off = grad1.tex(t_n, 0) - grad1.full_data();
+      for (int i=0;i<p.x*p.y*p.z;i++)
+      {
+        if (!tested_mask[off+i])
+          continue;
+        double diff = std::abs(double(*(grad1.tex(t_n, i)) - *(grad2.tex(t_n, i))));
+        texError += diff;
+        texLengthL1 += std::abs(*(grad1.tex(t_n, i))) + std::abs(*(grad2.tex(t_n, i)));
+      }
     }
   }
 
   double totalError = posError + colError + texError;
   double totalLengthL1 = texLengthL1 + posLengthL1 + colLengthL1;
 
-  //std::cout << "==========================" << std::endl;
-  //std::cout << "GradErr[L1](vpos   ) = " << std::setw(10) << std::setprecision(4) << posError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
-  //std::cout << "GradErr[L1](color  ) = " << std::setw(10) << std::setprecision(4) << colError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
-  //std::cout << "GradErr[L1](texture) = " << std::setw(10) << std::setprecision(4) << texError                               << "\t which is \t" << 100.0*(texError/texLengthL1) << "%" << std::endl;
-  //std::cout << "GradErr[L1](average) = " << std::setw(10) << std::setprecision(4) << totalError/double(grad1.size())        << "\t which is \t" << 100.0*(totalError/totalLengthL1) << "%" << std::endl;
+  std::cout << "==========================" << std::endl;
+  std::cout << "GradErr[L1](vpos   ) = " << std::setw(10) << std::setprecision(4) << posError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
+  std::cout << "GradErr[L1](color  ) = " << std::setw(10) << std::setprecision(4) << colError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
+  std::cout << "GradErr[L1](texture) = " << std::setw(10) << std::setprecision(4) << texError                               << "\t which is \t" << 100.0*(texError/texLengthL1) << "%" << std::endl;
+  std::cout << "GradErr[L1](average) = " << std::setw(10) << std::setprecision(4) << totalError/double(grad1.full_size())        << "\t which is \t" << 100.0*(totalError/totalLengthL1) << "%" << std::endl;
 
   return DerivativesTestResults{posError/posLengthL1, colError/colLengthL1, texError/texLengthL1, totalError/totalLengthL1};
 }

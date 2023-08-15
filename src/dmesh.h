@@ -22,92 +22,204 @@ enum class SHADING_MODEL {UNDEFINED = 0,
 
 typedef float GradReal;
 
-/**
-\brief gradient of mesh
-
-*/
-struct DTriangleMesh 
+class DScene;
+extern void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2);
+class DMesh
 {
-  DTriangleMesh(){}
-  DTriangleMesh(const TriangleMesh &mesh, SHADING_MODEL material) { reset(mesh, material); }
-
-  void reset(const TriangleMesh &mesh, SHADING_MODEL material)
+public:
+  friend class DScene;
+  friend void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2);
+  DMesh(){};
+  DMesh(SHADING_MODEL mode, const TriangleMesh &mesh, int _instances)
   {
-    shading_model = material;
+    assert(mode != SHADING_MODEL::UNDEFINED);
 
-    m_numVertices = mesh.vertex_count();
-    m_numFaces    = mesh.face_count();  
-    m_transformOffset = m_numVertices*3;
+    bool dpos = true;
+    bool dcolor = mode == SHADING_MODEL::VERTEX_COLOR;
+    bool dtransform = true;
+    bool dtextures = !(mode == SHADING_MODEL::SILHOUETTE || mode == SHADING_MODEL::VERTEX_COLOR);
     
-    //transform matrix has 12 variables
-    int transforms_size = 12*1;
-    
-    if (material == SHADING_MODEL::VERTEX_COLOR)
-      m_allParams.resize((3 + 3)*m_numVertices + transforms_size);
-    else if (material == SHADING_MODEL::SILHOUETTE)
-      m_allParams.resize(3*m_numVertices + transforms_size);
-    else if (material != SHADING_MODEL::UNDEFINED)
+    int tex_size = 0;
+    for (auto &t : mesh.textures)
+      tex_size += t.w*t.h*t.channels;
+    int sz = 3*mesh.vertices.size()*dpos + 3*mesh.vertices.size()*dcolor + dtextures*tex_size + dtransform*TRANSFORM_SIZE*_instances;
+    data.resize(sz, 0);
+
+    vertices = mesh.vertices.size();
+    instances = _instances;
+    int offset = 0;
+    if (dpos)
     {
-      int off = m_numVertices*3 + transforms_size;
+      pos_ptr = data.data() + offset;
+      offset += 3*mesh.vertices.size();
+    }
+    if (dcolor)
+    {
+      color_ptr = data.data() + offset;
+      offset += 3*mesh.vertices.size();
+    }
+    if (dtextures)
+    {
       for (auto &t : mesh.textures)
       {
-        m_texOffsets.push_back(off);
-        off += t.w*t.h*t.channels;
+        tex_ptrs.push_back(data.data() + offset);
+        tex_params.push_back({t.w, t.h, t.channels});
+        offset += t.w*t.h*t.channels;
       }
-      m_allParams.resize(off);
     }
-    else
-      assert(false);
+    if (dtransform)
+    {
+      transform_ptr = data.data() + offset;
+      offset += TRANSFORM_SIZE*_instances;
+    }
+  }
+  ~DMesh() = default;
+ 
+  DMesh& operator=(const DMesh& dmesh)
+  {
+    copy(dmesh);
+    return *this;
+  }
+  DMesh(const DMesh& dmesh)
+  {
+    copy(dmesh);
+  }
+  void copy(const DMesh& dmesh)
+  {   
+    if (this == &dmesh)
+      return;
+    vertices = dmesh.vertices;
+    instances = dmesh.instances;
+    data = dmesh.data;
+    tex_params = dmesh.tex_params;
+
+    //restore points from offsets
+    if (dmesh.pos_ptr)
+      pos_ptr = data.data() + (dmesh.pos_ptr - dmesh.data.data());
     
-    m_colorOffset = m_transformOffset  + transforms_size;
-    clear();
+    if (dmesh.color_ptr)
+      color_ptr = data.data() + (dmesh.color_ptr - dmesh.data.data());
+    
+    tex_ptrs.resize(dmesh.tex_ptrs.size(), nullptr);
+    for (int i=0; i<dmesh.tex_ptrs.size();i++)
+      tex_ptrs[i] = data.data() + (dmesh.tex_ptrs[i] - dmesh.data.data());
+    
+    if (dmesh.transform_ptr)
+      transform_ptr = data.data() + (dmesh.transform_ptr - dmesh.data.data());
   }
 
-  int numVerts() const { return m_numVertices; }
-  int numFaces() const { return m_numFaces;    }
+  inline GradReal *pos(int index) { return pos_ptr + 3*index; }
+  inline GradReal *color(int index) { return color_ptr + 3*index; }
+  inline GradReal &tex(int tex_n, int px, int py, int channel) 
+  { 
+    return *(tex_ptrs[tex_n] + tex_params[tex_n].z*(tex_params[tex_n].x*py + px) + channel);
+  }
+  inline GradReal *tex(int tex_n, int offset) { return tex_ptrs[tex_n] + offset; }
+  inline int3 get_tex_info(int tex_n) const { return tex_params[tex_n]; } //(x,y,channels)
+  inline GradReal *transform_mat(int instance_n) { return transform_ptr + TRANSFORM_SIZE*instance_n; }
 
-  //////////////////////////////////////////////////////////////////////////////////
-  int vert_offs () const { return 0; }
-  int color_offs() const { return m_colorOffset; }
-  int transform_offs() const { return m_transformOffset; }
-
-  GradReal*       vertices_s()       { return m_allParams.data() + vert_offs(); }
-  const GradReal* vertices_s() const { return m_allParams.data() + vert_offs(); }
-
-  GradReal*       colors_s()       { return (m_allParams.data() + color_offs()); }
-  const GradReal* colors_s() const { return (m_allParams.data() + color_offs()); }
-
-  float3 vert_at(int i)  const { return float3(float(vertices_s()[3*i+0]), float(vertices_s()[3*i+1]), float(vertices_s()[3*i+2])); }
-  float3 color_at(int i) const { return float3(float(colors_s  ()[3*i+0]), float(colors_s  ()[3*i+1]), float(colors_s  ()[3*i+2])); }
-
-  std::vector<GradReal> subvecPos() const { return std::vector<GradReal>(m_allParams.begin(), m_allParams.begin() + color_offs()); }
-  std::vector<GradReal> subvecCol() const { return std::vector<GradReal>(m_allParams.begin() + color_offs(), m_allParams.end()); }
-
-  //////////////////////////////////////////////////////////////////////////////////
-
-  void clear() { for(auto& x : m_allParams) x = GradReal(0); }
-  size_t size() const { return m_allParams.size(); } 
-
-  inline const GradReal* data() const { return m_allParams.data(); }
-  inline GradReal*       data()       { return m_allParams.data(); }
-
-  inline GradReal& operator[](size_t i)       { return m_allParams[i]; }
-  inline GradReal  operator[](size_t i) const { return m_allParams[i]; }
-  
-  inline int tex_count() const { return m_texOffsets.size(); }
-  inline int tex_offset(int tex_n) const { return m_texOffsets[tex_n]; }
-  inline int textures_offset() const { return m_texOffsets.empty() ? size() : m_texOffsets[0]; }
-  inline SHADING_MODEL get_shading_model() const { return shading_model; }
-
+  inline GradReal *full_data() { return data.data(); }
+  inline int full_size() { return data.size(); }
+  inline int vertex_count() { return vertices; }
+  inline int instance_count() { return instances; }
+  inline int tex_count() { return tex_params.size(); }
 protected:
+  static constexpr int TRANSFORM_SIZE = 12;
+  std::vector<GradReal> data;
+  GradReal *pos_ptr = nullptr;
+  GradReal *color_ptr = nullptr;
+  std::vector<int3> tex_params;
+  std::vector<GradReal *> tex_ptrs;
+  GradReal *transform_ptr = nullptr;
+  int vertices = 0;
+  int instances = 0;
+};
+class DScene
+{
+public:
+  DScene(){};
+  DScene(const Scene &scene, SHADING_MODEL mode, const std::vector<int> &dmesh_ids)
+  {
+    reset(scene, mode, dmesh_ids);
+  }
+  ~DScene() = default;
+ 
+  DScene& operator=(const DScene& dscene)
+  {
+    copy(dscene);
+    return *this;
+  }
+  DScene(const DScene& dscene)
+  {
+    copy(dscene);
+  }
+  void copy(const DScene& dscene)
+  {
+    if (this == &dscene)
+      return;
+    
+    shading_model = dscene.shading_model;
+    dmeshes.resize(dscene.dmeshes.size());
+    dmeshes_by_id.resize(dscene.dmeshes_by_id.size(), nullptr);
+    int k = 0;
+    for (int i=0;i<dmeshes_by_id.size();i++)
+    {
+      if (dscene.dmeshes_by_id[i])
+      {
+        dmeshes[k] = *(dscene.dmeshes_by_id[i]);
+        dmeshes_by_id[i] = dmeshes.data() + k;
+        k++;
+      }
+    }
+  }
+  void reset(const Scene &scene, SHADING_MODEL mode, const std::vector<int> &dmesh_ids)
+  {
+    bool need_reset = (mode != shading_model) || (dmesh_ids.size() != dmeshes.size());
+    if (!need_reset)
+    {
+      for (auto mesh_id : dmesh_ids)
+        if (get_dmesh(mesh_id)->vertices != scene.get_mesh(mesh_id).vertices.size())
+          need_reset = true;
+    }
+    if (need_reset)
+    {
+      assert(dmesh_ids.size()>0);
+      shading_model = mode;
+      int max_mesh_id = 0;
 
-  std::vector<GradReal> m_allParams;
-  int m_colorOffset;
-  int m_transformOffset;
-  int m_numVertices;
-  int m_numFaces;
-
-  std::vector<int> m_texOffsets;
+      for (auto mesh_id : dmesh_ids)
+      {
+        max_mesh_id = std::max(max_mesh_id, mesh_id);
+        dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size()));
+      }
+      dmeshes_by_id.resize(max_mesh_id+1, nullptr);
+      for (int i=0;i<dmesh_ids.size();i++)
+        dmeshes_by_id[dmesh_ids[i]] = dmeshes.data()+i;
+    }
+    else
+    {
+      clear();
+    }
+  }
+  DMesh *get_dmesh(int mesh_id) { return dmeshes_by_id[mesh_id]; }
+  const std::vector<DMesh> &get_dmeshes() const { return dmeshes; }
+  std::vector<DMesh> &get_dmeshes() { return dmeshes; }
+  void clear()
+  {
+    for (auto &dm : dmeshes)
+      std::fill(dm.data.begin(), dm.data.end(), 0.0f);
+  }
+  int full_size()
+  {
+    int sz = 0;
+    for (auto &m : dmeshes)
+      sz += m.full_size();
+    return sz;
+  }
+  SHADING_MODEL get_shading_model() { return shading_model; }
+private:
+  std::vector<DMesh> dmeshes;
+  std::vector<DMesh*> dmeshes_by_id;
   SHADING_MODEL shading_model = SHADING_MODEL::UNDEFINED;
 };
 

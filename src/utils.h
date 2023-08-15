@@ -18,10 +18,9 @@ using LiteMath::normalize;
 
 using Img = LiteImage::Image2D<float3>;
 
-struct DTriangleMesh;
+struct DScene;
 
 float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff);
-void PrintMesh(const DTriangleMesh& a_mesh);
 
 void CHECK_NaN(float f);
 void CHECK_NaN(float3 f);

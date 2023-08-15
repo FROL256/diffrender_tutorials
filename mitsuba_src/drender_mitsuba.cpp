@@ -91,13 +91,13 @@ void DiffRenderMitsuba::render(const Scene &scene, const CamInfo* cams, Img *img
 }
 
 void DiffRenderMitsuba::d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
-                                 DTriangleMesh &d_mesh,
+                                 DScene &d_mesh,
                                  Img* debugImages, int debugImageNum)
 {
   
 }
 float DiffRenderMitsuba::d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
-                                              const int edge_samples_in_total, DTriangleMesh &d_mesh, Img* outImages)
+                                              const int edge_samples_in_total, DScene &d_mesh, Img* outImages)
 {
   if (!optimization_inited)
   {
@@ -129,6 +129,6 @@ float DiffRenderMitsuba::d_render_and_compare(const Scene &scene, const CamInfo*
   float mse = mi.render_and_compare(model, cameras, mi.get_default_scene_parameters());
   
   d_mesh.clear();
-  mi.get_pos_derivatives(d_mesh.vertices_s(), d_mesh.numVerts());
+  mi.get_pos_derivatives(d_mesh.get_dmeshes()[0].pos(0), d_mesh.get_dmeshes()[0].vertex_count());
   return mse;
 }                 

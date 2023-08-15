@@ -281,7 +281,7 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer
 
 template <>
 void shade_grad<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
-                                          const float3 val, const AuxData aux, DTriangleMesh &grad)
+                                          const float3 val, const AuxData aux, DScene &grad)
 {
   shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
 }

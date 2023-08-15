@@ -166,6 +166,7 @@ public:
   void get_prepared_mesh(TriangleMesh &mesh) const;
   void set_instance_id_mapping(const std::vector<int> &v) const { instance_id_mapping = v; }
   std::vector<int> get_instance_id_mapping() const { return instance_id_mapping; }
+  void invalidate_prepared_scene() const { prepared = false; }
 
 protected:
   std::vector<TriangleMesh> meshes;

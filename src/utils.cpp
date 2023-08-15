@@ -24,15 +24,6 @@ float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
   }
   return float(accumMSE);
 }
-void PrintMesh(const DTriangleMesh& a_mesh)
-{
-  for(int i=0; i<a_mesh.numVerts();i++)
-    std::cout << "ver[" << i << "]: " << a_mesh.vert_at(i).x << ", " << a_mesh.vert_at(i).y << std::endl;  
-  std::cout << std::endl;
-  for(size_t i=0; i<a_mesh.numFaces();i++)
-    std::cout << "col[" << i << "]: " << a_mesh.color_at(i).x << ", " << a_mesh.color_at(i).y << ", " << a_mesh.color_at(i).z << std::endl;
-  std::cout << std::endl;
-}
 
 void CHECK_NaN(float f)
 {

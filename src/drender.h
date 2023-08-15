@@ -44,7 +44,7 @@ int sample(const Sampler &sampler, const float u);
 std::vector<Edge> collect_edges(const Scene &scene);
 
 inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<GradReal> &d_pos, int tr_offset);
+                      std::vector<GradReal> &d_pos, std::vector<GradReal> &d_tr);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +118,7 @@ struct DiffRender : public IDiffRender
 
   
   void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
-                DTriangleMesh &d_mesh,
+                DScene &d_mesh,
                 Img* debugImages = nullptr, int debugImageNum = 0) override
   {  
     if(&scene != m_pLastPreparedScene)
@@ -143,7 +143,7 @@ struct DiffRender : public IDiffRender
   }
 
   virtual float d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
-                                     const int edge_samples_in_total, DTriangleMesh &d_mesh, Img* outImages = nullptr) override
+                                     const int edge_samples_in_total, DScene &d_mesh, Img* outImages = nullptr) override
   {
     std::vector<Img> local_images(a_viewsNum);
     Img *images = outImages ? outImages : local_images.data();
@@ -171,12 +171,12 @@ private:
   const Scene* m_pLastPreparedScene = nullptr;
 
   void interior_derivatives(const Scene &scene, const Img &adjoint,
-                            DTriangleMesh &d_mesh) 
+                            DScene &d_mesh) 
   {
     auto sqrt_num_samples = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
   
-    DTriangleMesh grads[MAXTHREADS];
+    DScene grads[MAXTHREADS];
     for(int i=0;i<MAXTHREADS;i++) {
       grads[i] = d_mesh;
       grads[i].clear(); // TODO: make this more effitiient
@@ -203,15 +203,16 @@ private:
     // accumulate gradient from different threads (parallel reduction/hist)
     //
     for(int i=0;i<MAXTHREADS;i++) 
-      for(size_t j=0;j<d_mesh.size(); j++)
-        d_mesh[j] += grads[i][j];
+      for (int m_n=0; m_n<d_mesh.get_dmeshes().size(); m_n++)
+        for(size_t j=0;j<d_mesh.get_dmeshes()[m_n].full_size(); j++)
+          d_mesh.get_dmeshes()[m_n].full_data()[j] += grads[i].get_dmeshes()[m_n].full_data()[j];
   }
 
   void edge_derivatives(
         const Scene &scene,
         const Img &adjoint,
         const int num_edge_samples,
-        DTriangleMesh &d_mesh) 
+        DScene &d_scene) 
   {
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
@@ -258,13 +259,14 @@ private:
     // (3) do edje sampling
     // 
     prng::RandomGen gens[MAXTHREADS];
-    std::vector<GradReal> grads[MAXTHREADS];
+    std::vector<GradReal> d_pos[MAXTHREADS];
+    std::vector<GradReal> d_tr[MAXTHREADS];
   
     for(int i=0;i<MAXTHREADS;i++)
     {
       gens [i] = prng::RandomGenInit(7777 + i*i + 1);
-      grads[i].resize(d_mesh.color_offs());
-      memset(grads[i].data(), 0, grads[i].size()*sizeof(GradReal));
+      d_pos[i].resize(3*d_scene.get_dmeshes()[0].vertex_count(), 0); //TODO: support multiple meshes
+      d_tr[i].resize(12*d_scene.get_dmeshes()[0].instance_count(), 0);
     }
   
     //float maxRelativeError = 0.0f;
@@ -317,17 +319,28 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()], d_mesh.transform_offs());
+        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, d_pos[omp_get_thread_num()], d_tr[omp_get_thread_num()]);
       }
     }    
   
     //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
   
     // accumulate gradient from different threads (parallel reduction/hist)
-    //
-    for(int i=0;i<MAXTHREADS;i++) 
-      for(size_t j=0;j<d_mesh.color_offs(); j++)
-        d_mesh[j] += grads[i][j];
+    //, logerr("dpos[%d %d] = %f",i,j,d_pos[i][j])
+    GradReal *accum_pos = d_scene.get_dmeshes()[0].pos(0);
+    if (accum_pos)
+    {
+      for(int i=0;i<MAXTHREADS;i++) 
+        for(size_t j=0;j<3*d_scene.get_dmeshes()[0].vertex_count(); j++)
+          accum_pos[j] += d_pos[i][j];
+    }
+    GradReal *accum_tr = d_scene.get_dmeshes()[0].transform_mat(0);
+    if (accum_tr)
+    {
+      for(int i=0;i<MAXTHREADS;i++) 
+        for(size_t j=0;j<12*d_scene.get_dmeshes()[0].instance_count(); j++)
+          accum_tr[j] += d_tr[i][j];
+    }
   }
 
 
