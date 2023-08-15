@@ -96,9 +96,10 @@ int main(int argc, char *argv[]) //
   auto g_uniforms = cameras[0];
 
   Scene initialScene, targetScene;
-  SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
+  SHADING_MODEL mode = SHADING_MODEL::DIFFUSE;
   {
     TriangleMesh initialMesh, targetMesh;
+    TriangleMesh initialMesh2, targetMesh2;
     //scn01_TwoTrisFlat(initialMesh, targetMesh);
     //scn02_TwoTrisSmooth(initialMesh, targetMesh);
     //scn03_Triangle3D_White(initialMesh, targetMesh);
@@ -108,8 +109,11 @@ int main(int argc, char *argv[]) //
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.3,0))});
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.1,0))});
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
+    
     targetScene.add_mesh(targetMesh, {LiteMath::float4x4()});
+    targetScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
   }
 
   auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
@@ -222,7 +226,7 @@ int main(int argc, char *argv[]) //
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
   float error = 0;
-  int iters = 100;
+  int iters = 300;
   std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
   Scene res_scene = pOpt->Run(iters, error);
   std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

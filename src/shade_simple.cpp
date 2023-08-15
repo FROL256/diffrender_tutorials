@@ -112,6 +112,7 @@ float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, 
   if (surfInfo.primId == unsigned(-1))
     return float3(0, 0, 0); // BGCOLOR
 
+  //logerr("%d %d %d",surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
   const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
   const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
   const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
