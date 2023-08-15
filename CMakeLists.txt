@@ -11,8 +11,8 @@ option(USE_MITSUBA "Use Mitsuba 3" OFF)
 option(USE_OPENMP "Use Open MP" ON)
 option(USE_ENZYME "Use Enzyme" OFF)
 
-set(AUX_OMP_INC "/usr/lib/llvm-15/lib/clang/15.0.7/include/") # MAKE SURE YOU SET THIS CORRECLY ON YOU SYSTEM FOR CLANG (!!!)
-set(AUX_OMP_LIB "/usr/lib/llvm-15/lib/")                      # MAKE SURE YOU SET THIS CORRECLY ON YOU SYSTEM FOR CLANG (!!!)
+set(AUX_OMP_INC "/usr/lib/llvm-15/lib/clang/15.0.7/include/") # use 'locate omp.h'     on you system to find apropriate dir for clang
+set(AUX_OMP_LIB "/usr/lib/llvm-15/lib/")                      # use 'locate libomp.so' on you system to find apropriate dir for clang
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
