@@ -110,7 +110,7 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_p
 }
 
 template <>
-float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
+float3 shade<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.primId == unsigned(-1))
@@ -129,7 +129,7 @@ float3 shade<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, 
 }
 
 template <>
-void shade_grad<SHADING_MODEL::DIFFUSE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
+void shade_grad<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                         const float3 val, const AuxData aux, DScene &grad)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);

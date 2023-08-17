@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
-#include "omp.h"
+#include "myomp.h"
 #include <functional>
 
 #include "LiteMath.h"
@@ -92,7 +92,7 @@ void Tester::test_base_derivatives()
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
     initialScene.add_mesh(initialMesh);
     targetScene.add_mesh(targetMesh);
-    auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::DIFFUSE, SILHOUETTE_SPP}, 0, 250);
+    auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::TEXTURE_COLOR, SILHOUETTE_SPP}, 0, 250);
 
     bool pass = res.texture_error < 0.05;
     printf("%s TEST 5: TEXTURE DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.texture_error);
@@ -217,9 +217,9 @@ void Tester::test_2_4_pyramid_vcol()
 
 void Tester::test_2_5_teapot_diffuse()
 {
-  optimization_test("TEST 2.5: TEAPOT DIFFUSE TEXTURE OPTIMIZATION",
+  optimization_test("TEST 2.5: TEAPOT TEXTURE_COLOR TEXTURE OPTIMIZATION",
                     scn10_Teapot3D_Textured,
-                    {SHADING_MODEL::DIFFUSE, 16},
+                    {SHADING_MODEL::TEXTURE_COLOR, 16},
                     {OptimizerParameters::GD_Adam, 0.0, 0.05},
                     300);
 }

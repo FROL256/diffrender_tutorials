@@ -129,9 +129,9 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const 
     return impl;
     }
     break;
-  case SHADING_MODEL::DIFFUSE:
+  case SHADING_MODEL::TEXTURE_COLOR:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::DIFFUSE>>();
+    auto impl = std::make_shared<DiffRender<SHADING_MODEL::TEXTURE_COLOR>>();
     impl->init(settings);
     return impl;
     }

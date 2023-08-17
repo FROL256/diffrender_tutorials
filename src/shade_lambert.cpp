@@ -35,7 +35,7 @@ template <>
 void shade_grad<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DScene &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
 
 template <>
@@ -78,7 +78,7 @@ template <>
 void shade_grad<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                      const float3 val, const AuxData aux, DScene &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
 
 float saturate(float x)
@@ -160,5 +160,5 @@ template <>
 void shade_grad<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
                                     const float3 val, const AuxData aux, DScene &grad)
 {
-  shade_grad<SHADING_MODEL::DIFFUSE>(scene, m_pTracer, screen_pos, val, aux, grad);
+  shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }

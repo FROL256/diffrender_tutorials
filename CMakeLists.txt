@@ -8,8 +8,11 @@ set(CMAKE_CXX_COMPILER "/usr/bin/clang++-${CLANG_VERSION}")
 option(USE_EMBREE "Use Embree RT" OFF)
 option(DEBUG "Debug mode" OFF)
 option(USE_MITSUBA "Use Mitsuba 3" OFF)
-option(USE_OPENMP "Use Open MP" OFF)
+option(USE_OPENMP "Use Open MP" ON)
 option(USE_ENZYME "Use Enzyme" OFF)
+
+set(AUX_OMP_INC "/usr/lib/llvm-15/lib/clang/15.0.7/include/") # use 'locate omp.h'     on you system to find apropriate dir for clang
+set(AUX_OMP_LIB "/usr/lib/llvm-15/lib/")                      # use 'locate libomp.so' on you system to find apropriate dir for clang
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -66,6 +69,8 @@ if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
   if(OpenMP_CXX_FOUND)
     add_definitions(-DUSE_OMP)
+    include_directories(${AUX_OMP_INC})
+    link_directories(${AUX_OMP_LIB})
     set(OMP_LIBS OpenMP::OpenMP_CXX)
   endif()
 endif()
@@ -83,7 +88,7 @@ file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "common_src/*
 if (DEBUG)
 set(CMAKE_CXX_FLAGS "-g -fsanitize=address -O1 -fno-omit-frame-pointer -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
 else()
-set(CMAKE_CXX_FLAGS "-O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
+set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -O3 -W -Wno-sign-compare -Wno-int-to-pointer-cast -Wno-register -Wreturn-type")
 endif()
 
 add_executable(drender ${SOURCES}

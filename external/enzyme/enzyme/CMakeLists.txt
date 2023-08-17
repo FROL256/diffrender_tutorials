@@ -59,7 +59,7 @@ message("CMAKE_PREFIX_PATH " ${CMAKE_PREFIX_PATH})
 
 find_package(LLVM REQUIRED CONFIG)
 
-set(LLVM_EXTERNAL_LIT /usr/lib/llvm-9/build/utils/lit/lit.py)
+set(LLVM_EXTERNAL_LIT /usr/lib/llvm-14/build/utils/lit/lit.py)
 message("llvm-lit__" ${LLVM_EXTERNAL_LIT})
 if (NOT DEFINED LLVM_EXTERNAL_LIT)
   if(LLVM_DIR MATCHES ".*/cmake/llvm/?$")

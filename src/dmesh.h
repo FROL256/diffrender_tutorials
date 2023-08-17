@@ -14,7 +14,7 @@
 enum class SHADING_MODEL {UNDEFINED = 0,
                           SILHOUETTE = 1,
                           VERTEX_COLOR = 2,
-                          DIFFUSE = 3, 
+                          TEXTURE_COLOR = 3, 
                           LAMBERT = 4,
                           PHONG = 5,
                           GGX = 6,

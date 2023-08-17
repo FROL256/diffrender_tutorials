@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
-#include "omp.h"
+#include "myomp.h"
 
 #include "LiteMath.h"
 
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) //
   auto g_uniforms = cameras[0];
 
   Scene initialScene, targetScene;
-  SHADING_MODEL mode = SHADING_MODEL::DIFFUSE;
+  SHADING_MODEL mode = SHADING_MODEL::LAMBERT;
   {
     TriangleMesh initialMesh, targetMesh;
     TriangleMesh initialMesh2, targetMesh2;
@@ -107,7 +107,6 @@ int main(int argc, char *argv[]) //
     //scn05_Pyramid3D(initialMesh, targetMesh);
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
-    //scn09_Sphere3D_Textured(initialMesh, targetMesh);
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
     initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.1,0))});
     initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
