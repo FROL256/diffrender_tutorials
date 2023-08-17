@@ -27,32 +27,6 @@ int sample(const Sampler &sampler, const float u)
   return clamp(std::upper_bound(cdf.begin(), cdf.end(), u) - cdf.begin() - 1, 0, cdf.size() - 2);
 }
 
-// given a triangle mesh, collect all edges.
-std::vector<Edge> collect_edges(const Scene &scene) 
-{
-  std::set<Edge> edges;
-  for (int i=0;i<scene.get_meshes().size();i++)
-  {
-    for (int j=0;j<scene.get_transform(i).size();j++)
-    {
-      for (size_t k=0; k<scene.get_mesh(i).indices.size();k+=3) 
-      {
-        auto A = scene.get_index(i, j, k);
-        auto B = scene.get_index(i, j, k+1);
-        auto C = scene.get_index(i, j, k+2); 
-        auto An = scene.get_vertex_n(i, k);
-        auto Bn = scene.get_vertex_n(i, k+1);
-        auto Cn = scene.get_vertex_n(i, k+2); 
-        edges.insert(Edge(A, B, An, Bn, i));
-        edges.insert(Edge(B, C, Bn, Cn, i));
-        edges.insert(Edge(C, A, Cn, An, i));
-        //logerr("tri (%d %d)(%d %d)(%d %d)", A, An, B, Bn, C, Cn);
-      }
-    }
-  }
-  return std::vector<Edge>(edges.begin(), edges.end());
-}
-
 inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
                       std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr)
 {
@@ -81,7 +55,7 @@ inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, cons
   //                      tr                                     v
   //we should calculate  both  d_v0/d_tr(d_v1/d_tr) and d_v0/d_v(d_v1/d_v)
 
-  int tr_n = 0;
+  int tr_n = e.instance_n;
   float4x4 tr = scene.get_transform_inv(0)[tr_n];
   float3 v0_orig = scene.get_pos_orig(e.v0);
   float3 v1_orig = scene.get_pos_orig(e.v1);

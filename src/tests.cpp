@@ -65,7 +65,6 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.2: EDGE SAMPLING PYRAMID with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
-  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
@@ -80,7 +79,6 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.3: EDGE SAMPLING SPHERE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
-  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
@@ -93,7 +91,6 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.4: VCOLOR DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.color_error);
   }
 
-  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
