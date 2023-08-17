@@ -44,9 +44,9 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_p
   if (surfInfo.primId == unsigned(-1))
     return;
 
-  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
+  const auto A = scene.get_vertex_n(surfInfo.geomId, surfInfo.primId * 3 + 0);
+  const auto B = scene.get_vertex_n(surfInfo.geomId, surfInfo.primId * 3 + 1);
+  const auto C = scene.get_vertex_n(surfInfo.geomId, surfInfo.primId * 3 + 2);
 
   const float u = surfInfo.u;
   const float v = surfInfo.v;
@@ -71,6 +71,7 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_p
     dm.color(C)[1] += GradReal(contribC.y);
     dm.color(C)[2] += GradReal(contribC.z);
 
+  /*
     const float3 c0 = scene.get_color(A);
     const float3 c1 = scene.get_color(B);
     const float3 c2 = scene.get_color(C);
@@ -104,6 +105,7 @@ void shade_grad<SHADING_MODEL::VERTEX_COLOR>(const Scene &scene, IRayTracer *m_p
       dm.pos(C)[1] += GradReal(contribVC.y);
       dm.pos(C)[2] += GradReal(contribVC.z);
     }
+  */
   }
 }
 

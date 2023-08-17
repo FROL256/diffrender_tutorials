@@ -129,6 +129,10 @@ public:
   { 
     return preparedData.indices[mesh_id][instance_id_mapping[instance_id]][vertex_id]; 
   }
+  inline unsigned get_vertex_n(unsigned mesh_id, unsigned vertex_id) const
+  {
+    return meshes[mesh_id].indices[vertex_id];
+  }
   //id is an index returned by get_index() function
   inline float3 get_pos(unsigned id)     const { return preparedData.vertices[id]; }
   inline float3 get_pos_orig(unsigned id)const { return preparedData.orig_vertices[id]; }

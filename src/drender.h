@@ -23,7 +23,26 @@ constexpr static int  MAXTHREADS    = 14;
 struct Edge 
 {
   int v0, v1; // vertex ID, v0 < v1
-  Edge(int a_v0, int a_v1) : v0(std::min(a_v0, a_v1)), v1(std::max(a_v0, a_v1)) {}
+  int vn0, vn1;
+  int mesh_n;
+  Edge(int a_v0, int a_v1, int a_vn0, int a_vn1, int a_mesh_n)
+  {
+    mesh_n = a_mesh_n;
+    if (a_v0 < a_v1)
+    {
+      v0 = a_v0;
+      vn0 = a_vn0;
+      v1 = a_v1;
+      vn1 = a_vn1;
+    }
+    else
+    {
+      v0 = a_v1;
+      vn0 = a_vn1;
+      v1 = a_v0;
+      vn1 = a_vn0;
+    }  
+  }
   bool operator<(const Edge &e) const { return this->v0 != e.v0 ? this->v0 < e.v0 : this->v1 < e.v1; } // for sorting edges
 };
 
@@ -43,8 +62,8 @@ int sample(const Sampler &sampler, const float u);
 // given a triangle mesh, collect all edges.
 std::vector<Edge> collect_edges(const Scene &scene);
 
-inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<GradReal> &d_pos, std::vector<GradReal> &d_tr);
+inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
+                      std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -259,14 +278,19 @@ private:
     // (3) do edje sampling
     // 
     prng::RandomGen gens[MAXTHREADS];
-    std::vector<GradReal> d_pos[MAXTHREADS];
-    std::vector<GradReal> d_tr[MAXTHREADS];
+    std::vector<std::vector<GradReal>> d_pos[MAXTHREADS];
+    std::vector<std::vector<GradReal>> d_tr[MAXTHREADS];
   
     for(int i=0;i<MAXTHREADS;i++)
     {
       gens [i] = prng::RandomGenInit(7777 + i*i + 1);
-      d_pos[i].resize(3*d_scene.get_dmeshes()[0].vertex_count(), 0); //TODO: support multiple meshes
-      d_tr[i].resize(12*d_scene.get_dmeshes()[0].instance_count(), 0);
+      for (auto &dmesh : d_scene.get_dmeshes())
+      {
+        d_pos[i].emplace_back();
+        d_pos[i].back().resize(3*dmesh.vertex_count(), 0);
+        d_tr[i].emplace_back();
+        d_tr[i].back().resize(12*dmesh.instance_count(), 0);
+      }
     }
   
     //float maxRelativeError = 0.0f;
@@ -319,7 +343,7 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, d_pos[omp_get_thread_num()], d_tr[omp_get_thread_num()]);
+        edge_grad(scene, edge, d_v0, d_v1, m_aux, d_pos[omp_get_thread_num()], d_tr[omp_get_thread_num()]);
       }
     }    
   
@@ -327,19 +351,24 @@ private:
   
     // accumulate gradient from different threads (parallel reduction/hist)
     //, logerr("dpos[%d %d] = %f",i,j,d_pos[i][j])
-    GradReal *accum_pos = d_scene.get_dmeshes()[0].pos(0);
-    if (accum_pos)
+    int mesh_pos = 0;
+    for (auto &dmesh : d_scene.get_dmeshes())
     {
-      for(int i=0;i<MAXTHREADS;i++) 
-        for(size_t j=0;j<3*d_scene.get_dmeshes()[0].vertex_count(); j++)
-          accum_pos[j] += d_pos[i][j];
-    }
-    GradReal *accum_tr = d_scene.get_dmeshes()[0].transform_mat(0);
-    if (accum_tr)
-    {
-      for(int i=0;i<MAXTHREADS;i++) 
-        for(size_t j=0;j<12*d_scene.get_dmeshes()[0].instance_count(); j++)
-          accum_tr[j] += d_tr[i][j];
+      GradReal *accum_pos = dmesh.pos(0);
+      if (accum_pos)
+      {
+        for(int i=0;i<MAXTHREADS;i++) 
+          for(size_t j=0;j<3*dmesh.vertex_count(); j++)
+            accum_pos[j] += d_pos[i][mesh_pos][j];
+      }
+      GradReal *accum_tr = dmesh.transform_mat(0);
+      if (accum_tr)
+      {
+        for(int i=0;i<MAXTHREADS;i++) 
+          for(size_t j=0;j<12*dmesh.instance_count(); j++)
+            accum_tr[j] += d_tr[i][mesh_pos][j];
+      }
+      mesh_pos++;
     }
   }
 

@@ -460,7 +460,6 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
       pFinDiff(mesh.colors[i].M + 0, d_mesh.color(i) + 0, pos_x, dCol, true);
       pFinDiff(mesh.colors[i].M + 1, d_mesh.color(i) + 1, pos_y, dCol, true);
       pFinDiff(mesh.colors[i].M + 2, d_mesh.color(i) + 2, pos_z, dCol, true);
-      logerr("dcol %d %f",i,*(d_mesh.color(i) + 0));
 
       if (save_images)
       {
@@ -560,8 +559,8 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
     double diff = std::abs(double(grad1.pos(i/3)[i%3] - grad2.pos(i/3)[i%3]));
     posError    += diff;
     posLengthL1 += std::abs(grad1.pos(i/3)[i%3]) + std::abs(grad2.pos(i/3)[i%3]);
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
+    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
+    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
   }
 
   std::cout << "--------------------------" << std::endl;
@@ -574,8 +573,8 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
       double diff = std::abs(double(grad1.color(i/3)[i%3] - grad2.color(i/3)[i%3]));
       colError   += diff;
       colLengthL1 += std::abs(grad1.color(i/3)[i%3]) + std::abs(grad2.color(i/3)[i%3]);
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
+      //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
+      //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
     }
   }
   
