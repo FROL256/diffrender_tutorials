@@ -36,5 +36,5 @@ public:
   static void test_fin_diff(const Scene &mesh, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
                             DScene &d_mesh, int debug_mesh_id, int max_test_vertices, int max_test_texels,
                             std::vector<bool> &tested_mask);
-  static DerivativesTestResults PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask);
+  static DerivativesTestResults PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask, bool print);
 };

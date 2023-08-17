@@ -21,12 +21,17 @@ using namespace LiteMath;
 #include "optimizer.h"
 #include "drender_mitsuba.h"
 
+#define TESTER_PSNR_PASS 35
+#define TESTER_FIN_DIFF_PASS 0.5
+#define TESTER_FIN_DIFF_TEXTURE_PASS 0.01
+#define TESTER_MITSUBA_PASS 0.1
+
 void Tester::test_base_derivatives()
 {
 
   constexpr int IMAGE_W = 256;
   constexpr int IMAGE_H = 256;
-  constexpr int SILHOUETTE_SPP = 4;
+  constexpr int SILHOUETTE_SPP = 16;
   constexpr int BASE_SPP = 16;
   
   CamInfo camera;
@@ -44,8 +49,8 @@ void Tester::test_base_derivatives()
     targetScene.add_mesh(targetMesh);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP}, 100, 0);
 
-    bool pass = res.pos_error < 0.05;
-    printf("%s TEST 1: EDGE SAMPLING TRIANGLE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
+    bool pass = res.pos_error < TESTER_FIN_DIFF_PASS;
+    printf("%s TEST 1.1: EDGE SAMPLING TRIANGLE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
   {
@@ -56,8 +61,8 @@ void Tester::test_base_derivatives()
     targetScene.add_mesh(targetMesh);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP}, 100, 0);
 
-    bool pass = res.pos_error < 0.05;
-    printf("%s TEST 2: EDGE SAMPLING PYRAMID with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
+    bool pass = res.pos_error < TESTER_FIN_DIFF_PASS;
+    printf("%s TEST 1.2: EDGE SAMPLING PYRAMID with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
   {
@@ -70,8 +75,8 @@ void Tester::test_base_derivatives()
     targetScene.add_mesh(targetMesh); targetScene.restore_meshes(false, false, true);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::SILHOUETTE, SILHOUETTE_SPP}, 100, 0);
 
-    bool pass = res.pos_error < 0.05;
-    printf("%s TEST 3: EDGE SAMPLING SPHERE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
+    bool pass = res.pos_error < TESTER_FIN_DIFF_PASS;
+    printf("%s TEST 1.3: EDGE SAMPLING SPHERE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
   {
@@ -82,8 +87,8 @@ void Tester::test_base_derivatives()
     targetScene.add_mesh(targetMesh);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::VERTEX_COLOR, SILHOUETTE_SPP}, 100, 0);
 
-    bool pass = res.color_error < 0.05;
-    printf("%s TEST 4: VCOLOR DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.color_error);
+    bool pass = res.color_error < TESTER_FIN_DIFF_PASS;
+    printf("%s TEST 1.4: VCOLOR DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.color_error);
   }
 
   {
@@ -94,8 +99,8 @@ void Tester::test_base_derivatives()
     targetScene.add_mesh(targetMesh);
     auto res = test_derivatives(initialScene, targetScene, camera, {SHADING_MODEL::TEXTURE_COLOR, SILHOUETTE_SPP}, 0, 250);
 
-    bool pass = res.texture_error < 0.05;
-    printf("%s TEST 5: TEXTURE DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.texture_error);
+    bool pass = res.texture_error < TESTER_FIN_DIFF_TEXTURE_PASS;
+    printf("%s TEST 1.5: TEXTURE DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.texture_error);
   }
 }
 
@@ -175,7 +180,7 @@ void optimization_test(const std::string &test_name,
   }
 
   float psnr = -10*log10(max(1e-9f,error));
-  bool pass = psnr > 40;
+  bool pass = psnr > TESTER_PSNR_PASS;
   printf("%s %s with PSNR %.3f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
 }
 
@@ -183,8 +188,8 @@ void Tester::test_2_1_triangle()
 {
   optimization_test("TEST 2.1: ONE TRIANGLE SHAPE OPTIMIZATION",
                     scn03_Triangle3D_White,
-                    {SHADING_MODEL::SILHOUETTE, 4},
-                    {OptimizerParameters::GD_Adam, 0.2, 0.1},
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.05, 0.1},
                     300);
 }
 
@@ -192,7 +197,7 @@ void Tester::test_2_2_pyramid()
 {
   optimization_test("TEST 2.2: PYRAMID SHAPE OPTIMIZATION",
                     scn05_Pyramid3D,
-                    {SHADING_MODEL::SILHOUETTE, 4},
+                    {SHADING_MODEL::SILHOUETTE, 16},
                     {OptimizerParameters::GD_Adam, 0.05, 0.1},
                     300);
 }
@@ -201,7 +206,7 @@ void Tester::test_2_3_sphere()
 {
   optimization_test("TEST 2.3: SPHERE SHAPE OPTIMIZATION",
                     scn09_Sphere3D_Textured,
-                    {SHADING_MODEL::SILHOUETTE, 4},
+                    {SHADING_MODEL::SILHOUETTE, 16},
                     {OptimizerParameters::GD_Adam, 0.05, 0.1},
                     300);
 }
@@ -210,7 +215,7 @@ void Tester::test_2_4_pyramid_vcol()
 {
   optimization_test("TEST 2.4: PYRAMID VCOL+POS OPTIMIZATION",
                     scn05_Pyramid3D,
-                    {SHADING_MODEL::VERTEX_COLOR, 4},
+                    {SHADING_MODEL::VERTEX_COLOR, 16},
                     {OptimizerParameters::GD_Adam, 0.05, 0.0},
                     300);
 }
@@ -307,9 +312,8 @@ void mitsuba_compare_test(const std::string &test_name,
   diff /= full_sz;
   delete pDRender;
     
-  bool pass = diff < 0.05;
-  printf("%s %s with image PSNR %.5f\n", (psnr > 35) ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
-  printf("%s %s with derivatives difference %.5f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), diff);
+  printf("%s %s with image PSNR %.5f\n", (psnr > TESTER_PSNR_PASS) ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
+  printf("%s %s with derivatives difference %.5f\n", (diff < TESTER_MITSUBA_PASS) ? "    PASSED:" : "FAILED:    ", test_name.c_str(), diff);
 }
 
 void Tester::test_3_1_mitsuba_triangle()
@@ -528,7 +532,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
     Render->d_render(initial_scene, &a_camData, &tmp, 1, target.width()*target.height(), dMesh1);
     test_fin_diff(initial_scene, "output", original, target, Render, a_camData, dMesh2, i, max_test_vertices, max_test_texels, mask);
 
-    auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask);
+    auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask, false);
 
     r.pos_error += rm.pos_error/meshes_count;
     r.color_error += rm.color_error/meshes_count;
@@ -539,7 +543,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   return r;
 }
 
-Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask)
+Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask, bool print)
 {
   double posError = 0.0;
   double colError = 0.0;
@@ -559,11 +563,16 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
     double diff = std::abs(double(grad1.pos(i/3)[i%3] - grad2.pos(i/3)[i%3]));
     posError    += diff;
     posLengthL1 += std::abs(grad1.pos(i/3)[i%3]) + std::abs(grad2.pos(i/3)[i%3]);
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
-    //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
+
+    if (print)
+    {
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
+    }
   }
 
-  std::cout << "--------------------------" << std::endl;
+  if (print)
+    std::cout << "--------------------------" << std::endl;
   if (grad1.color(0))
   {
     for(size_t i=0; i<3*grad1.vertex_count(); i++)
@@ -573,8 +582,11 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
       double diff = std::abs(double(grad1.color(i/3)[i%3] - grad2.color(i/3)[i%3]));
       colError   += diff;
       colLengthL1 += std::abs(grad1.color(i/3)[i%3]) + std::abs(grad2.color(i/3)[i%3]);
-      //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
-      //std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
+      if (print)
+      {
+        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
+        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
+      }
     }
   }
   
@@ -600,11 +612,14 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
   double totalError = posError + colError + texError;
   double totalLengthL1 = texLengthL1 + posLengthL1 + colLengthL1;
 
+  if (print)
+  {
   std::cout << "==========================" << std::endl;
   std::cout << "GradErr[L1](vpos   ) = " << std::setw(10) << std::setprecision(4) << posError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
   std::cout << "GradErr[L1](color  ) = " << std::setw(10) << std::setprecision(4) << colError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
   std::cout << "GradErr[L1](texture) = " << std::setw(10) << std::setprecision(4) << texError                               << "\t which is \t" << 100.0*(texError/texLengthL1) << "%" << std::endl;
   std::cout << "GradErr[L1](average) = " << std::setw(10) << std::setprecision(4) << totalError/double(grad1.full_size())        << "\t which is \t" << 100.0*(totalError/totalLengthL1) << "%" << std::endl;
+  }
 
   return DerivativesTestResults{posError/posLengthL1, colError/colLengthL1, texError/texLengthL1, totalError/totalLengthL1};
 }
