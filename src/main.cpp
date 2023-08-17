@@ -63,7 +63,10 @@ int main(int argc, char *argv[]) //
     t.test_2_2_pyramid();
     t.test_2_3_sphere();
     t.test_2_4_pyramid_vcol();
-    t.test_2_5_teapot_diffuse();
+    //t.test_2_5_teapot_diffuse(); Embree crashes
+    t.test_2_7_mesh_on_static_scene();
+    t.test_2_8_instancing();
+    t.test_2_9_transform();
 
     return 0;
   }

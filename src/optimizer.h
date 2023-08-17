@@ -13,12 +13,13 @@ struct OptimizerParameters
     alg = _alg;
     set_default();
   }
-  OptimizerParameters(OPT_ALGORITHM _alg, float pos_lr, float tex_lr, bool _verbose = false)
+  OptimizerParameters(OPT_ALGORITHM _alg, float pos_lr, float tex_lr, float _transforms_lr = 0.1, bool _verbose = false)
   {
     alg = _alg;
     set_default();
     position_lr = pos_lr;
     textures_lr = tex_lr;
+    transforms_lr = _transforms_lr;
     verbose = _verbose;
   }
   OPT_ALGORITHM alg = GD_Naive;

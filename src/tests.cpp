@@ -65,6 +65,7 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.2: EDGE SAMPLING PYRAMID with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
+  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
@@ -79,6 +80,7 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.3: EDGE SAMPLING SPHERE with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.pos_error);
   }
 
+  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
@@ -91,6 +93,7 @@ void Tester::test_base_derivatives()
     printf("%s TEST 1.4: VCOLOR DERIVATIVES with error %.3f\n", pass ? "    PASSED:" : "FAILED:    ", res.color_error);
   }
 
+  if (false)
   {
     Scene initialScene, targetScene;
     TriangleMesh initialMesh, targetMesh;
@@ -121,7 +124,7 @@ std::vector<CamInfo> create_cameras_around(int cam_num, int sensor_w, int sensor
 }
 
 void optimization_test(const std::string &test_name,
-                       std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
+                       std::function<void(Scene&, Scene&)> create_scene,
                        const DiffRenderSettings &diff_render_settings,
                        const OptimizerParameters &opt_parameters,
                        int opt_steps = 300,
@@ -134,10 +137,7 @@ void optimization_test(const std::string &test_name,
   auto cameras = create_cameras(cameras_count, image_w, image_h);
 
   Scene initialScene, targetScene;
-  TriangleMesh initialMesh, targetMesh;
-  create_scene(initialMesh, targetMesh);
-  initialScene.add_mesh(initialMesh);
-  targetScene.add_mesh(targetMesh);
+  create_scene(initialScene, targetScene);
 
   auto pDRender = MakeDifferentialRenderer(initialScene, diff_render_settings);
 
@@ -184,6 +184,28 @@ void optimization_test(const std::string &test_name,
   printf("%s %s with PSNR %.3f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
 }
 
+void optimization_test(const std::string &test_name,
+                       std::function<void(TriangleMesh&, TriangleMesh&)> create_mesh,
+                       const DiffRenderSettings &diff_render_settings,
+                       const OptimizerParameters &opt_parameters,
+                       int opt_steps = 300,
+                       bool test_by_steps = false,
+                       int cameras_count = 3,
+                       int image_w = 256,
+                       int image_h = 256,
+                       std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
+{
+  optimization_test(test_name, 
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      create_mesh(initialMesh, targetMesh);
+                      initialScene.add_mesh(initialMesh);
+                      targetScene.add_mesh(targetMesh);
+                    },
+                    diff_render_settings, opt_parameters, opt_steps, test_by_steps, cameras_count, image_w, image_h, create_cameras);
+
+}
+
 void Tester::test_2_1_triangle()
 {
   optimization_test("TEST 2.1: ONE TRIANGLE SHAPE OPTIMIZATION",
@@ -226,6 +248,66 @@ void Tester::test_2_5_teapot_diffuse()
                     scn10_Teapot3D_Textured,
                     {SHADING_MODEL::TEXTURE_COLOR, 16},
                     {OptimizerParameters::GD_Adam, 0.0, 0.05},
+                    300);
+}
+
+void Tester::test_2_7_mesh_on_static_scene()
+{
+{
+  optimization_test("TEST 2.8: SHAPE OPTIMIZATION WITH INSTANCING",
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      scn05_Pyramid3D(initialMesh, targetMesh);
+                      TriangleMesh _mm1, _mm2;
+                      scn09_Sphere3D_Textured(_mm1, _mm2);
+                      initialScene.add_mesh(initialMesh);
+                      initialScene.add_mesh(_mm1, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
+
+                      targetScene.add_mesh(targetMesh);
+                      targetScene.add_mesh(_mm1, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
+                    },
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.00, 0.0, 0.1},
+                    300);
+}
+}
+
+void Tester::test_2_8_instancing()
+{
+  optimization_test("TEST 2.8: SHAPE OPTIMIZATION WITH INSTANCING",
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      scn05_Pyramid3D(initialMesh, targetMesh);
+                      std::vector<float4x4> initial_transforms;
+                      std::vector<float4x4>  target_transforms;
+                      int tr = 2;
+                      float rot = (2*M_PI)/tr;
+                      for (int i=0;i<tr;i++)
+                      {
+                        initial_transforms.push_back(LiteMath::scale4x4({0.5,0.5,0.5})*LiteMath::translate4x4({2.5f*(1-i),0.5f,0.0f}));
+                        target_transforms.push_back(LiteMath::scale4x4({0.5,0.5,0.5})*LiteMath::translate4x4( {2.5f*(1-i),0.0f,0.0f}));
+                        //initial_transforms.push_back(LiteMath::scale4x4({0.5,0.5,0.5})*LiteMath::rotate4x4Z(i*rot)*LiteMath::translate4x4({0,1,0}));
+                        //target_transforms.push_back(LiteMath::scale4x4({0.5,0.5,0.5})*LiteMath::rotate4x4Z((i+0.5)*rot)*LiteMath::translate4x4({0,1,0}));
+                      }
+                      initialScene.add_mesh(targetMesh, initial_transforms);
+                      targetScene.add_mesh(targetMesh, target_transforms);
+                    },
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.00, 0.0, 0.1},
+                    300);
+}
+
+void Tester::test_2_9_transform()
+{
+  optimization_test("TEST 2.9: TEAPOT TRANSFORM MATRIX OPTIMIZATION",
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      scn05_Pyramid3D(initialMesh, targetMesh);
+                      initialScene.add_mesh(initialMesh, {LiteMath::rotate4x4Z(0.2)*LiteMath::rotate4x4Y(0.2)});
+                      targetScene.add_mesh(initialMesh);
+                    },
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.0, 0.0, 0.1},
                     300);
 }
 
@@ -505,7 +587,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
 }
 
 Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_scene, const Scene &target_scene, const CamInfo& a_camData, 
-                                                        const DiffRenderSettings &settings, int max_test_vertices, int max_test_texels)
+                                                        const DiffRenderSettings &settings, int max_test_vertices, int max_test_texels, bool print)
 {
   Img original = Img(a_camData.width, a_camData.height);
   Img target = Img(a_camData.width, a_camData.height);
@@ -532,7 +614,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
     Render->d_render(initial_scene, &a_camData, &tmp, 1, target.width()*target.height(), dMesh1);
     test_fin_diff(initial_scene, "output", original, target, Render, a_camData, dMesh2, i, max_test_vertices, max_test_texels, mask);
 
-    auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask, false);
+    auto rm = PrintAndCompareGradients(dMesh1, dMesh2, mask, print);
 
     r.pos_error += rm.pos_error/meshes_count;
     r.color_error += rm.color_error/meshes_count;

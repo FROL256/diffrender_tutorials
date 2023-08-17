@@ -25,9 +25,11 @@ struct Edge
   int v0, v1; // vertex ID, v0 < v1
   int vn0, vn1;
   int mesh_n;
-  Edge(int a_v0, int a_v1, int a_vn0, int a_vn1, int a_mesh_n)
+  int instance_n;
+  Edge(int a_v0, int a_v1, int a_vn0, int a_vn1, int a_mesh_n, int a_instance_n)
   {
     mesh_n = a_mesh_n;
+    instance_n = a_instance_n;
     if (a_v0 < a_v1)
     {
       v0 = a_v0;
@@ -58,9 +60,6 @@ Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges);
 
 // binary search for inverting the CDF in the sampler
 int sample(const Sampler &sampler, const float u);
-
-// given a triangle mesh, collect all edges.
-std::vector<Edge> collect_edges(const Scene &scene);
 
 inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
                       std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr);
@@ -236,20 +235,24 @@ private:
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
     Scene scene2d_diff, scene2d_full;
+    std::set<Edge> edges_s;
     {
       std::vector<int> diff_mesh_n = {0};
       std::vector<bool> diff_mesh_b(scene.get_meshes().size(), false);
-      for (int mesh_n : diff_mesh_n)
-        diff_mesh_b[mesh_n] = true;
+      for (int i = 0; i< scene.get_meshes().size(); i++)
+      {
+        if (d_scene.get_dmesh(i))
+          diff_mesh_b[i] = true;
+      }
       for (int i=0; i<scene.get_meshes().size(); i++)
       {
         //TODO: support instancing for diff render
-        if (diff_mesh_b[i])
-          assert(scene.get_transform(i).size() == 1);
-        for (auto &tr : scene.get_transform(i))
+        //if (diff_mesh_b[i])
+        //  assert(scene.get_transform(i).size() == 1);
+        for (int j=0;j<scene.get_transform(i).size();j++)
         {
           TriangleMesh m = scene.get_mesh(i);
-          transform(m, tr);
+          transform(m, scene.get_transform(i)[j]);
           for (auto &v : m.vertices)
           {
             auto vCopy = v;
@@ -257,8 +260,25 @@ private:
           }
 
           scene2d_full.add_mesh(m);
-          if (diff_mesh_b[i])
+          if (d_scene.get_dmesh(i))
+          {
+            //this mesh is differentiable, we shoud add it to diff scene and collect edges for it
             scene2d_diff.add_mesh(m);
+
+            for (size_t k=0; k<scene.get_mesh(i).indices.size();k+=3) 
+            {
+              auto A = scene.get_index(i, j, k);
+              auto B = scene.get_index(i, j, k+1);
+              auto C = scene.get_index(i, j, k+2); 
+              auto An = scene.get_vertex_n(i, k);
+              auto Bn = scene.get_vertex_n(i, k+1);
+              auto Cn = scene.get_vertex_n(i, k+2); 
+              edges_s.insert(Edge(A, B, An, Bn, i, j));
+              edges_s.insert(Edge(B, C, Bn, Cn, i, j));
+              edges_s.insert(Edge(C, A, Cn, An, i, j));
+              //logerr("tri (%d %d)(%d %d)(%d %d)", A, An, B, Bn, C, Cn);
+            }
+          }
         }
       }
     }
@@ -270,9 +290,9 @@ private:
     scene2d_diff.set_instance_id_mapping(map_2d);
     scene2d_diff.prepare_for_render();
 
-    // (2) prepare edjes
-    //
-    auto edges        = collect_edges(scene2d_diff);
+    std::vector<Edge> edges = std::vector<Edge>(edges_s.begin(), edges_s.end());
+
+    // (2) prepare edge sampler
     auto edge_sampler = build_edge_sampler(scene2d_diff, edges);
   
     // (3) do edje sampling
