@@ -8,6 +8,7 @@
 #include <iomanip>
 #include "myomp.h"
 #include <functional>
+#include <chrono>
 
 #include "LiteMath.h"
 using namespace LiteMath;
@@ -131,12 +132,17 @@ void optimization_test(const std::string &test_name,
                        int image_h = 256,
                        std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
 {
-  auto cameras = create_cameras(cameras_count, image_w, image_h);
+  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
+  auto cameras = create_cameras(cameras_count, image_w, image_h);
   Scene initialScene, targetScene;
   create_scene(initialScene, targetScene);
 
+  std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
   auto pDRender = MakeDifferentialRenderer(initialScene, diff_render_settings);
+
+  std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
   Img img(image_w, image_h);
   Img targets[cameras_count];
@@ -149,6 +155,8 @@ void optimization_test(const std::string &test_name,
   pDRender->commit(targetScene);
   pDRender->render(targetScene, cameras.data(), targets, cameras_count);
 
+  std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+
   for(int i=0;i<cameras_count;i++) 
   {
     std::stringstream strOut;
@@ -156,13 +164,17 @@ void optimization_test(const std::string &test_name,
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
   }
+  std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
 
+  std::chrono::steady_clock::time_point t6 = t5, t7 = t5;
   IOptimizer *pOpt = CreateSimpleOptimizer();
   float error = 1e9;
   if (!test_by_steps)
   {
     pOpt->Init(initialScene, pDRender, cameras.data(), targets, cameras_count, opt_parameters);
+    t6 = std::chrono::steady_clock::now();
     Scene res_scene = pOpt->Run(opt_steps, error);
+    t7 = std::chrono::steady_clock::now();
   }
   else
   {
@@ -178,7 +190,16 @@ void optimization_test(const std::string &test_name,
 
   float psnr = -10*log10(max(1e-9f,error));
   bool pass = psnr > TESTER_PSNR_PASS;
-  printf("%s %s with PSNR %.3f\n", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
+  printf("%s %s with PSNR %.3f ", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
+
+  float scene_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  float dr_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+  float targ1_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
+  float targ2_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
+  float opt_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count();
+  float main_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count();
+  printf(" %.1f + %.1f ms/iter [%.1f %.1f %.1f %.1f %.1f %.1f]\n", main_ms/opt_steps, (scene_ms+dr_ms+opt_ms)/opt_steps,
+         scene_ms, dr_ms, targ1_ms, targ2_ms, opt_ms, main_ms);
 }
 
 void optimization_test(const std::string &test_name,

@@ -274,12 +274,6 @@ Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *
     OptUpdateScene(gradScene, &m_scene);
     StepDecay(iter, lr);
 
-    if(error <= 1e-6 && (iter < a_numIters-10)) // perform last 10 iterations and stop
-    {
-      if (m_params.verbose)
-        std::cout << "----------------------------> stop by error, perform last 10 iterations: " << std::endl;
-      iter = a_numIters-10;
-    }
     if (iterations_dump)
       iterations_dump->push_back(m_scene);
   }
