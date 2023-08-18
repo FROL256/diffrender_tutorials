@@ -116,16 +116,16 @@ struct ExtendedSurfaceInfo
   float3 e_y;       //y vector of local coordinate system, lays on surface
   std::vector<float> sampled_texture;  //sampled texture. Size and content depends on material
 
-  inline float3 WorldToLocal(const float3 &v) const 
+  inline float3 WorldToLocal(const float3 &_v) const 
   {
-    return float3(dot(v, e_x), dot(v, e_y), dot(v, n));
+    return float3(dot(_v, e_x), dot(_v, e_y), dot(_v, n));
   }
 
-  inline float3 LocalToWorld(const float3 &v) const 
+  inline float3 LocalToWorld(const float3 &_v) const 
   {
-    return float3(e_x.x * v.x + e_y.x * v.y + n.x * v.z,
-                  e_x.y * v.x + e_y.y * v.y + n.y * v.z,
-                  e_x.z * v.x + e_y.z * v.y + n.z * v.z);
+    return float3(e_x.x * _v.x + e_y.x * _v.y + n.x * _v.z,
+                  e_x.y * _v.x + e_y.y * _v.y + n.y * _v.z,
+                  e_x.z * _v.x + e_y.z * _v.y + n.z * _v.z);
   }
 };
 

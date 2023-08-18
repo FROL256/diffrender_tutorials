@@ -217,18 +217,18 @@ std::string get_loss_function_name(MitsubaInterface::LossFunction loss_function)
   return loss_function_name;
 }
 void MitsubaInterface::init_optimization(const std::vector<std::string> &reference_image_dir, LossFunction loss_function,
-                                         RenderSettings render_settings, ModelInfo model_info,
+                                         RenderSettings r_settings, ModelInfo m_info,
                                          bool save_intermediate_images)
 {
-  init_optimization_internal("init_optimization", reference_image_dir, loss_function, render_settings, model_info,
+  init_optimization_internal("init_optimization", reference_image_dir, loss_function, r_settings, m_info,
                              0, save_intermediate_images);
 }
 
 void MitsubaInterface::init_optimization_internal(const std::string &function_name, const std::vector<std::string> &reference_images_dir,
-                                                  LossFunction loss_function, RenderSettings render_settings, ModelInfo model_info,
+                                                  LossFunction loss_function, RenderSettings r_settings, ModelInfo m_info,
                                                   float texture_rec_learing_rate, bool save_intermediate_images)
 {
-  init_scene_and_settings(render_settings, model_info);
+  init_scene_and_settings(r_settings, m_info);
 
   std::string loss_function_name = get_loss_function_name(loss_function);
   
@@ -266,13 +266,13 @@ void MitsubaInterface::init_optimization_internal(const std::string &function_na
 }
 
 void MitsubaInterface::init_optimization_with_tex(const std::vector<std::string> &reference_image_dir, LossFunction loss_function, 
-                                                  RenderSettings render_settings, ModelInfo model_info, 
+                                                  RenderSettings r_settings, ModelInfo m_info, 
                                                   float texture_rec_learing_rate,
                                                   bool save_intermediate_images)
 {
-  render_settings.renderStyle = RenderStyle::TEXTURED_CONST;
-  init_optimization_internal("init_optimization_with_tex", reference_image_dir, loss_function, render_settings,
-                             model_info, texture_rec_learing_rate, save_intermediate_images);
+  r_settings.renderStyle = RenderStyle::TEXTURED_CONST;
+  init_optimization_internal("init_optimization_with_tex", reference_image_dir, loss_function, r_settings,
+                             m_info, texture_rec_learing_rate, save_intermediate_images);
 }
 
 void MitsubaInterface::model_to_ctx(const DFModel &model)
