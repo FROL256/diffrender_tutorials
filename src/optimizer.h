@@ -36,6 +36,7 @@ private:
 
 struct IOptimizer
 {
+  virtual ~IOptimizer() {};
   virtual void Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) = 0;
 

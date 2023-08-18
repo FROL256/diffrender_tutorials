@@ -70,6 +70,8 @@ inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, cons
 template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
 {
+  DiffRender() { };
+  virtual ~DiffRender() override { };
   virtual void init(const DiffRenderSettings &settings) override
   {
     m_samples_per_pixel = settings.spp;
@@ -82,7 +84,7 @@ struct DiffRender : public IDiffRender
   }
   
   
-  void commit(const Scene &scene) 
+  void commit(const Scene &scene) override
   {
     scene.prepare_for_render();
     m_pTracer->Init(&scene); // Build Acceleration structurres and e.t.c. if needed

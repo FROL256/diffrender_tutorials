@@ -12,6 +12,7 @@ struct DiffRenderSettings
 
 struct IDiffRender
 {
+  virtual ~IDiffRender() {};
   virtual void init(const DiffRenderSettings &settings) = 0;
   virtual void commit(const Scene &scene) = 0;
   virtual void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) = 0;

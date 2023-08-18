@@ -5,7 +5,7 @@
 struct DiffRenderMitsuba : public IDiffRender
 {
   DiffRenderMitsuba();
-  ~DiffRenderMitsuba();
+  virtual ~DiffRenderMitsuba() override;
   virtual void init(const DiffRenderSettings &settings) override;
   virtual void commit(const Scene &scene) override;
   virtual void render(const Scene &scene, const CamInfo* cams, Img *imgames, int a_viewsNum) override;

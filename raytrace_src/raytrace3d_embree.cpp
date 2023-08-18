@@ -19,7 +19,7 @@ using LiteMath::to_float3;
 struct EmbreeRT3D : public IRayTracer
 {
   EmbreeRT3D(){}
-  ~EmbreeRT3D() override {}
+  ~EmbreeRT3D() override { };
 
   void Init(const Scene* pScene) override 
   {

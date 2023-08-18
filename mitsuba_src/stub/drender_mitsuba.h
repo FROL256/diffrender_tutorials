@@ -4,7 +4,7 @@
 struct DiffRenderMitsuba : public IDiffRender
 {
   DiffRenderMitsuba() {};
-  ~DiffRenderMitsuba() {};
+  virtual ~DiffRenderMitsuba() override {};
   virtual void init(const DiffRenderSettings &settings) override
   {
     logerr("Mitsuba differentiable renderer not implemented. Use cmake option -DUSE_MITSUBA=ON");
