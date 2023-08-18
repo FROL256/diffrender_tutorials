@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) //
   IOptimizer* pOpt = CreateSimpleOptimizer();
 
   OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
-  op.position_lr = 0.00;
+  op.position_lr = 0.0;
   op.textures_lr = 0.2;
   op.transforms_lr = 0.1;
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);

@@ -1,4 +1,5 @@
-Проект по написанию собственного дифференцируемого рендера
+Проект по созданию кросс-платформенного дифференцируемого рендера
+
 
 Все зависимости проекта на данный момент опциональны. Вы можете собрать программу
 без них.
@@ -24,3 +25,10 @@
 
 рекомендуемая сборка:
 cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9
+
+Примеры тестоовых оптимизаций:<br>
+<img src="gifs/cube.gif"/> <br>
+<img src="gifs/pyramid.gif"/> <br>
+<img src="gifs/sphere.gif"/> <br>
+
+
