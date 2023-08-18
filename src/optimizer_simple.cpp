@@ -90,7 +90,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
 {
   for (int mesh_id = 0; mesh_id < scene->get_meshes().size(); mesh_id++)
   {
-    auto &mesh = scene->get_mesh_modify(mesh_id);//TODO: support multiple meshes
+    auto &mesh = scene->get_mesh_modify(mesh_id);
     auto *dmesh_ptr = gradScene.get_dmesh(mesh_id);
     if (!dmesh_ptr)
       continue;
@@ -246,7 +246,7 @@ void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImp
 Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump) 
 { 
   DScene gradScene;
-  gradScene.reset(m_scene, m_pDR->mode, {0});//TODO: support multiple meshes
+  gradScene.reset(m_scene, m_pDR->mode, m_params.differentiable_mesh_ids);
 
   if(m_params.alg >= OptimizerParameters::GD_AdaGrad) {
     m_GSquare.resize(gradScene.full_size());

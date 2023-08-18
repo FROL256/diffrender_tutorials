@@ -28,6 +28,7 @@ public:
   static void test_2_7_mesh_on_static_scene();
   static void test_2_8_instancing();
   static void test_2_9_transform();
+  static void test_2_10_multiple_meshes();
 
   static void test_3_1_mitsuba_triangle();
   static void test_3_2_mitsuba_sphere();

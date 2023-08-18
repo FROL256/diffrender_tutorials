@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) //
     t.test_2_7_mesh_on_static_scene();
     t.test_2_8_instancing();
     t.test_2_9_transform();
+    t.test_2_10_multiple_meshes();
 
     return 0;
   }

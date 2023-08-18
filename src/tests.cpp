@@ -250,8 +250,7 @@ void Tester::test_2_5_teapot_diffuse()
 
 void Tester::test_2_7_mesh_on_static_scene()
 {
-{
-  optimization_test("TEST 2.8: SHAPE OPTIMIZATION WITH INSTANCING",
+  optimization_test("TEST 2.7: SHAPE OPTIMIZATION ON STATIC SCENE",
                     [&](Scene &initialScene, Scene &targetScene){
                       TriangleMesh initialMesh, targetMesh;
                       scn05_Pyramid3D(initialMesh, targetMesh);
@@ -266,7 +265,6 @@ void Tester::test_2_7_mesh_on_static_scene()
                     {SHADING_MODEL::SILHOUETTE, 16},
                     {OptimizerParameters::GD_Adam, 0.00, 0.0, 0.1},
                     300);
-}
 }
 
 void Tester::test_2_8_instancing()
@@ -308,6 +306,24 @@ void Tester::test_2_9_transform()
                     300);
 }
 
+void Tester::test_2_10_multiple_meshes()
+{
+  optimization_test("TEST 2.10: SHAPE OPTIMIZATION MULTIPLE MESHES",
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      scn05_Pyramid3D(initialMesh, targetMesh);
+                      TriangleMesh _mm1, _mm2;
+                      scn03_Triangle3D_White(_mm1, _mm2);
+                      initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.0,1,0))});
+                      initialScene.add_mesh(_mm1, {LiteMath::translate4x4(float3(0.0,-1,0))});
+
+                      targetScene.add_mesh(targetMesh, {LiteMath::translate4x4(float3(0.0,1,0))});
+                      targetScene.add_mesh(_mm2, {LiteMath::translate4x4(float3(0.0,-1,0))});
+                    },
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.02, 0.0, 0.0, {0,1}},
+                    300);
+}
 void mitsuba_compare_test(const std::string &test_name,
                           std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
                           const DiffRenderSettings &diff_render_settings,
