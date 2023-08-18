@@ -63,7 +63,11 @@ int main(int argc, char *argv[]) //
     t.test_2_2_pyramid();
     t.test_2_3_sphere();
     t.test_2_4_pyramid_vcol();
-    t.test_2_5_teapot_diffuse();
+    //t.test_2_5_teapot_diffuse(); Embree crashes
+    t.test_2_7_mesh_on_static_scene();
+    t.test_2_8_instancing();
+    t.test_2_9_transform();
+    t.test_2_10_multiple_meshes();
 
     return 0;
   }
@@ -99,6 +103,7 @@ int main(int argc, char *argv[]) //
   SHADING_MODEL mode = SHADING_MODEL::LAMBERT;
   {
     TriangleMesh initialMesh, targetMesh;
+    TriangleMesh initialMesh2, targetMesh2;
     //scn01_TwoTrisFlat(initialMesh, targetMesh);
     //scn02_TwoTrisSmooth(initialMesh, targetMesh);
     //scn03_Triangle3D_White(initialMesh, targetMesh);
@@ -107,94 +112,14 @@ int main(int argc, char *argv[]) //
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
     //scn08_Cube3D_Textured(initialMesh, targetMesh);
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.3,0))});
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.1,0))});
+    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
+    
     targetScene.add_mesh(targetMesh, {LiteMath::float4x4()});
+    targetScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
   }
 
   auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
-
-  if(0) // check gradients for different image views
-  {
-    std::vector<Img> targets(camsNum), images(camsNum), adjoints(camsNum);
-    for(int i=0;i<camsNum;i++) {
-      targets [i] = Img(img.width(), img.height(), float3{0, 0, 0});
-      images  [i] = Img(img.width(), img.height(), float3{0, 0, 0});
-      adjoints[i] = Img(img.width(), img.height(), float3{0, 0, 0});
-    }
-  
-    pDRender->commit(targetScene);
-    pDRender->render(targetScene, cameras, targets.data(), camsNum);
-    
-    for(int i=0;i<camsNum;i++) {
-      std::stringstream strOut;
-      strOut << "output/rendered/target" << i << ".bmp";
-      auto fileName = strOut.str();
-      LiteImage::SaveImage(fileName.c_str(), targets[i]);
-    }
-
-    pDRender->commit(initialScene);
-    pDRender->render(initialScene, cameras, images.data(), camsNum);
-
-    for(int i=0;i<camsNum;i++) {
-      std::stringstream strOut;
-      strOut << "output/rendered/initial" << i << ".bmp";
-      auto fileName = strOut.str();
-      LiteImage::SaveImage(fileName.c_str(), images[i]);
-    }
-
-    for(int i=0;i<camsNum;i++)
-      LossAndDiffLoss(images[i], targets[i], adjoints[i]); 
-  
-    DTriangleMesh grad1(initialScene.get_mesh(0), mode);
-    DTriangleMesh grad2(initialScene.get_mesh(0), mode);
-    
-    if(0) // check gradient obtained from 2 images
-    {
-      pDRender->d_render(initialScene, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad1);
-      pDRender->d_render(initialScene, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad2);
-
-      DTriangleMesh grad_avg; grad_avg.reset(initialScene.get_mesh(0), mode);
-      for(size_t i=0;i<grad_avg.size();i++)
-        grad_avg[i] = 1.0f*(grad1[i] + grad2[i]);
-      
-      DTriangleMesh grad12; grad12.reset(initialScene.get_mesh(0), mode);
-      pDRender->d_render(initialScene, cameras+0, &adjoints[0], 2, img.width()*img.height(), grad12);
-      //pDRender->d_render(initialScene, cameras+0, &adjoints[0], 1, img.width()*img.height(), grad12);
-      //pDRender->d_render(initialScene, cameras+1, &adjoints[1], 1, img.width()*img.height(), grad12);
-
-      
-      PrintAndCompareGradients(grad1, grad2);
-      std::cout << "********************************************" << std::endl;
-      std::cout << "********************************************" << std::endl;
-      PrintAndCompareGradients(grad12, grad_avg);
-      return 0;
-    }
-    
-    if(0) // check gradients with fin.diff
-    {
-      Img dxyzDebug[3];
-      for(int i=0;i<3;i++)
-        dxyzDebug[i] = Img(img.width(), img.height(), float3{0, 0, 0});
-
-      pDRender->d_render(initialScene, cameras, adjoints.data(), 1, img.width()*img.height(), 
-                         grad1, dxyzDebug, 3);
-  
-      for(int i=0;i<3;i++)
-      {
-        std::stringstream strOut;
-        strOut << "our_diff/pos_xyz_" << G_DEBUG_VERT_ID+i << ".bmp";
-        auto path = strOut.str();
-        LiteImage::SaveImage(path.c_str(), dxyzDebug[i]);
-      }
-  
-      const float dPos = 2.0f/float(img.width());
-      d_finDiff (initialScene, "output/fin_diff", images[0], targets[0],  pDRender, g_uniforms, grad2, dPos, 0.01f);
-      
-      PrintAndCompareGradients(grad1, grad2);
-      return 0;
-    }
-  }
-
   
   Img targets[camsNum];
   for(int i=0;i<camsNum;i++) {
@@ -221,7 +146,7 @@ int main(int argc, char *argv[]) //
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
   float error = 0;
-  int iters = 100;
+  int iters = 300;
   std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
   Scene res_scene = pOpt->Run(iters, error);
   std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

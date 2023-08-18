@@ -75,6 +75,13 @@ struct BruteForce3D : public IRayTracer
   {
     m_pScene = pScene;
     //std::cout << "[BruteForce3D]: Init done" << std::endl;
+    int max_instances = 0;
+    for (const auto &t : pScene->get_transforms())
+      max_instances = std::max(max_instances, (int)t.size());
+    std::vector<int> instance_ids;
+    for (int i=0;i<max_instances;i++)
+      instance_ids.push_back(i);
+    pScene->set_instance_id_mapping(instance_ids);
   }
 
   float3 GetCameraPos() const override

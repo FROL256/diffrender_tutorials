@@ -116,16 +116,16 @@ struct ExtendedSurfaceInfo
   float3 e_y;       //y vector of local coordinate system, lays on surface
   std::vector<float> sampled_texture;  //sampled texture. Size and content depends on material
 
-  inline float3 WorldToLocal(const float3 &v) const 
+  inline float3 WorldToLocal(const float3 &_v) const 
   {
-    return float3(dot(v, e_x), dot(v, e_y), dot(v, n));
+    return float3(dot(_v, e_x), dot(_v, e_y), dot(_v, n));
   }
 
-  inline float3 LocalToWorld(const float3 &v) const 
+  inline float3 LocalToWorld(const float3 &_v) const 
   {
-    return float3(e_x.x * v.x + e_y.x * v.y + n.x * v.z,
-                  e_x.y * v.x + e_y.y * v.y + n.y * v.z,
-                  e_x.z * v.x + e_y.z * v.y + n.z * v.z);
+    return float3(e_x.x * _v.x + e_y.x * _v.y + n.x * _v.z,
+                  e_x.y * _v.x + e_y.y * _v.y + n.y * _v.z,
+                  e_x.z * _v.x + e_y.z * _v.y + n.z * _v.z);
   }
 };
 
@@ -153,7 +153,7 @@ ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceI
   res.pos = pos + 1e-4*res.n_geom;
   res.e_x = normalize(cross(n,tangent));
   res.e_y = normalize(cross(n,res.e_x)); 
-  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(0));
+  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
 
   return res;
 }
@@ -281,7 +281,7 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer
 
 template <>
 void shade_grad<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
-                                          const float3 val, const AuxData aux, DTriangleMesh &grad)
+                                          const float3 val, const AuxData aux, DScene &grad)
 {
   shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }

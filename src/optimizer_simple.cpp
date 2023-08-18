@@ -32,12 +32,12 @@ struct OptSimple : public IOptimizer
 
 protected:
   
-  typedef std::vector<std::pair<int, float>> IntervalLearningRate; //offset, learning rate
+  typedef std::vector<std::vector<std::pair<int, float>>> IntervalLearningRate; //{offset, learning rate} for every diff. mesh
 
-  float EvalFunction(const Scene& mesh, DTriangleMesh& gradMesh);
-  IntervalLearningRate GetLR(DTriangleMesh& gradMesh);
-  void  OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr);
-  void  OptUpdateScene(const DTriangleMesh &gradMesh, Scene* mesh);
+  float EvalFunction(const Scene& mesh, DScene& gradScene);
+  IntervalLearningRate GetLR(DScene& gradScene);
+  void  OptStep(DScene &gradScene, const IntervalLearningRate &lr);
+  void  OptUpdateScene(DScene &gradScene, Scene* mesh);
   void  StepDecay(int a_iterId, IntervalLearningRate &lr) const;
 
   Scene        m_scene; ///<! global mesh optimized mesh
@@ -57,125 +57,162 @@ IOptimizer* CreateSimpleOptimizer() { return new OptSimple; };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-OptSimple::IntervalLearningRate OptSimple::GetLR(DTriangleMesh& gradMesh)
+OptSimple::IntervalLearningRate OptSimple::GetLR(DScene& gradScene)
 {
-  IntervalLearningRate lr;
-  lr.push_back({0, m_params.position_lr});
-  lr.push_back({gradMesh.transform_offs(), m_params.transforms_lr});
-  lr.push_back({gradMesh.color_offs(), m_params.base_lr});
-  if (gradMesh.tex_count() > 0)
-    lr.push_back({gradMesh.tex_offset(0), m_params.textures_lr});
-  return lr;
+  IntervalLearningRate lrr;
+  for (auto &dmesh : gradScene.get_dmeshes())
+  {
+    GradReal *ptr = dmesh.full_data();
+    lrr.emplace_back();
+    auto &lr = lrr.back();
+    lr.push_back({0, m_params.position_lr});
+    if (dmesh.color(0))
+      lr.push_back({dmesh.color(0) - ptr, m_params.base_lr});
+    if (dmesh.tex_count() > 0)
+      lr.push_back({dmesh.tex(0,0) - ptr, m_params.textures_lr});
+    if (dmesh.transform_mat(0))
+      lr.push_back({dmesh.transform_mat(0) - ptr, m_params.transforms_lr});
+  }
+  return lrr;
 }
 
-void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lr) const
+void  OptSimple::StepDecay(int a_iterId, IntervalLearningRate &lrr) const
 {
   if(a_iterId > 0 && a_iterId % m_params.decayPeriod == 0)
   {
-    for (auto &p : lr)
-      p.second *= m_params.decay_mult;
+    for (auto &lr : lrr)
+      for (auto &p : lr)
+        p.second *= m_params.decay_mult;
   }
 }
 
-void OptSimple::OptUpdateScene(const DTriangleMesh &gradMesh, Scene* scene)
+void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
 {
-  auto &mesh = scene->get_mesh_modify(0);//TODO: support multiple meshes
-    for(int vertId=0; vertId< mesh.vertex_count(); vertId++)
+  for (int mesh_id = 0; mesh_id < scene->get_meshes().size(); mesh_id++)
+  {
+    auto &mesh = scene->get_mesh_modify(mesh_id);
+    auto *dmesh_ptr = gradScene.get_dmesh(mesh_id);
+    if (!dmesh_ptr)
+      continue;
+    auto &dmesh = *dmesh_ptr;
+    assert(dmesh.vertex_count() == mesh.vertex_count());
+    
+    GradReal *d_pos = dmesh.pos(0);
+    if (d_pos)
     {
-      mesh.vertices[vertId].x -= gradMesh.vertices_s()[3*vertId+0];
-      mesh.vertices[vertId].y -= gradMesh.vertices_s()[3*vertId+1];
-      mesh.vertices[vertId].z -= gradMesh.vertices_s()[3*vertId+2];
-    }
-    assert(scene->get_transform(0).size() == 1);
-    {
-      auto &tr = scene->get_transform_modify(0)[0];
-
-      tr[0][0] -= gradMesh[gradMesh.transform_offs()+0];
-      tr[0][1] -= gradMesh[gradMesh.transform_offs()+1];
-      tr[0][2] -= gradMesh[gradMesh.transform_offs()+2];
-      tr[0][3] -= gradMesh[gradMesh.transform_offs()+3];
-
-      tr[1][0] -= gradMesh[gradMesh.transform_offs()+4];
-      tr[1][1] -= gradMesh[gradMesh.transform_offs()+5];
-      tr[1][2] -= gradMesh[gradMesh.transform_offs()+6];
-      tr[1][3] -= gradMesh[gradMesh.transform_offs()+7];
-
-      tr[2][0] -= gradMesh[gradMesh.transform_offs()+8];
-      tr[2][1] -= gradMesh[gradMesh.transform_offs()+9];
-      tr[2][2] -= gradMesh[gradMesh.transform_offs()+10];
-      tr[2][3] -= gradMesh[gradMesh.transform_offs()+11];
+      for(int vertId=0; vertId< mesh.vertex_count(); vertId++)
+      {
+        mesh.vertices[vertId].x -= d_pos[3*vertId+0];
+        mesh.vertices[vertId].y -= d_pos[3*vertId+1];
+        mesh.vertices[vertId].z -= d_pos[3*vertId+2];
+      }
     }
     
-    if (gradMesh.get_shading_model() == SHADING_MODEL::VERTEX_COLOR)
+    GradReal *d_tr = dmesh.transform_mat(0);
+    if (d_tr)
     {
+      for (int tr_n=0; tr_n<scene->get_transform_modify(mesh_id).size(); tr_n++)
+      {
+        auto &tr = scene->get_transform_modify(mesh_id)[tr_n];
+        d_tr = dmesh.transform_mat(tr_n);
+
+        tr[0][0] -= d_tr[0];
+        tr[0][1] -= d_tr[1];
+        tr[0][2] -= d_tr[2];
+        tr[0][3] -= d_tr[3];
+
+        tr[1][0] -= d_tr[4];
+        tr[1][1] -= d_tr[5];
+        tr[1][2] -= d_tr[6];
+        tr[1][3] -= d_tr[7];
+
+        tr[2][0] -= d_tr[8];
+        tr[2][1] -= d_tr[9];
+        tr[2][2] -= d_tr[10];
+        tr[2][3] -= d_tr[11];
+      }
+    }
+
+    GradReal *d_col = dmesh.color(0);
+    if (d_col)
+    {
+      assert(dmesh.vertex_count() == mesh.colors.size());
       for(int faceId=0; faceId < mesh.colors.size(); faceId++)
       {
-        mesh.colors[faceId].x -= gradMesh.colors_s()[3*faceId+0];
-        mesh.colors[faceId].y -= gradMesh.colors_s()[3*faceId+1];
-        mesh.colors[faceId].z -= gradMesh.colors_s()[3*faceId+2];
+        mesh.colors[faceId].x -= d_col[3*faceId+0];
+        mesh.colors[faceId].y -= d_col[3*faceId+1];
+        mesh.colors[faceId].z -= d_col[3*faceId+2];
       }
     }
     
-    if (gradMesh.get_shading_model() != SHADING_MODEL::SILHOUETTE &&
-        gradMesh.get_shading_model() != SHADING_MODEL::VERTEX_COLOR)
+    if (gradScene.get_shading_model() != SHADING_MODEL::SILHOUETTE &&
+        gradScene.get_shading_model() != SHADING_MODEL::VERTEX_COLOR)
     {
-      for (int i=0;i<gradMesh.tex_count();i++)
+      for (int i=0;i<dmesh.tex_count();i++)
       {
         int sz = mesh.textures[i].data.size();
-        int off = gradMesh.tex_offset(i);
+        GradReal *d_tex = dmesh.tex(i, 0);
         for (int j=0;j<sz;j++)
-          mesh.textures[i].data[j] -= gradMesh[off + j];
+          mesh.textures[i].data[j] -= d_tex[j];
       }
     }
+  }
 }
 
-void OptSimple::OptStep(DTriangleMesh &gradMesh, const IntervalLearningRate &lr)
+void OptSimple::OptStep(DScene &gradScene, const IntervalLearningRate &lr)
 {
-  if(m_params.alg >= OptimizerParameters::GD_AdaGrad)
+  int off = 0;
+  int lr_n = 0;
+  for (auto &gradMesh : gradScene.get_dmeshes())
   {
-    if(m_params.alg == OptimizerParameters::GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
+    GradReal *grad = gradMesh.full_data();
+    if(m_params.alg >= OptimizerParameters::GD_AdaGrad)
     {
-      for(size_t i=0;i<gradMesh.size();i++)
-        m_GSquare[i] += (gradMesh[i]*gradMesh[i]);
-    }
-    else if(m_params.alg == OptimizerParameters::GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
-    {
-      const float alpha = 0.5f;
-      for(size_t i=0;i<gradMesh.size();i++)
-        m_GSquare[i] = 2.0f*(m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha)); // does not works without 2.0f
-    }
-    else if(m_params.alg == OptimizerParameters::GD_Adam) // ==> Adam(m[i] = b*mPrev[i] + (1-b)*gradF[i], GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i])
-    {
-      const float alpha = 0.5f;
-      const float beta  = 0.25f;
-      for(size_t i=0;i<m_vec.size();i++)
-        m_vec[i] = m_vec[i]*beta + gradMesh[i]*(1.0f-beta);
+      if(m_params.alg == OptimizerParameters::GD_AdaGrad)  // ==> GSquare[i] = gradF[i]*gradF[i]
+      {
+        for(size_t i=0;i<gradMesh.full_size();i++)
+          m_GSquare[off+i] += (grad[i]*grad[i]);
+      }
+      else if(m_params.alg == OptimizerParameters::GD_RMSProp) // ==> GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i]
+      {
+        const float alpha = 0.5f;
+        for(size_t i=0;i<gradMesh.full_size();i++)
+          m_GSquare[off+i] = 2.0f*(m_GSquare[off+i]*alpha + (grad[i]*grad[i])*(1.0f-alpha)); // does not works without 2.0f
+      }
+      else if(m_params.alg == OptimizerParameters::GD_Adam) // ==> Adam(m[i] = b*mPrev[i] + (1-b)*gradF[i], GSquare[i] = GSquarePrev[i]*a + (1.0f-a)*gradF[i]*gradF[i])
+      {
+        const float alpha = 0.5f;
+        const float beta  = 0.25f;
+        for(size_t i=0;i<gradMesh.full_size();i++)
+          m_vec[off+i] = m_vec[off+i]*beta + grad[i]*(1.0f-beta);
 
-      for(size_t i=0;i<gradMesh.size();i++)
-        m_GSquare[i] = 2.0f*(m_GSquare[i]*alpha + (gradMesh[i]*gradMesh[i])*(1.0f-alpha)); // does not works without 2.0f
+        for(size_t i=0;i<gradMesh.full_size();i++)
+          m_GSquare[off+i] = 2.0f*(m_GSquare[off+i]*alpha + (grad[i]*grad[i])*(1.0f-alpha)); // does not works without 2.0f
 
-      DTriangleMesh& gradUpdated = const_cast<DTriangleMesh&>(gradMesh);
-      for(size_t i=0;i<m_vec.size();i++)
-        gradUpdated[i] = m_vec[i];
+        for(size_t i=0;i<gradMesh.full_size();i++)
+          grad[i] = m_vec[off+i];
+      }
+      
+      //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
+      for (int i=0;i<gradMesh.full_size();i++)
+        grad[i] = grad[i]/( std::sqrt(m_GSquare[i] + GradReal(1e-8f)));
     }
     
-    //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
-    for (int i=0;i<m_vec.size();i++)
-      gradMesh[i] = gradMesh[i]/( std::sqrt(m_GSquare[i] + GradReal(1e-8f)));
-  }
-  
-  for (int i=0;i<lr.size();i++)
-  {
-    int next_offset = (i == lr.size() - 1) ? m_vec.size() : lr[i+1].first;
-    for (int j=lr[i].first; j<next_offset; j++)
-      gradMesh[j] *= lr[i].second;
+    for (int i=0;i<lr[lr_n].size();i++)
+    {
+      int next_offset = (i == lr[lr_n].size() - 1) ? gradMesh.full_size() : lr[lr_n][i+1].first;
+      for (int j=lr[lr_n][i].first; j<next_offset; j++)
+        grad[j] *= lr[lr_n][i].second;
+    }
+    off += gradMesh.full_size();
+    lr_n++;
   }
 }
 
-float OptSimple::EvalFunction(const Scene& scene, DTriangleMesh& gradMesh)
+float OptSimple::EvalFunction(const Scene& scene, DScene& gradScene)
 {
   std::vector<Img> images(m_numViews);
-  float mse = m_pDR->d_render_and_compare(scene, m_cams, m_targets, m_numViews, m_targets[0].width()*m_targets[0].height(), gradMesh, 
+  float mse = m_pDR->d_render_and_compare(scene, m_cams, m_targets, m_numViews, m_targets[0].width()*m_targets[0].height(), gradScene, 
                                           m_params.verbose ? images.data() : nullptr);
   if (m_params.verbose)
   {
@@ -208,20 +245,20 @@ void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImp
 
 Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump) 
 { 
-  DTriangleMesh gradMesh;
-  gradMesh.reset(m_scene.get_mesh(0), m_pDR->mode);//TODO: support multiple meshes
+  DScene gradScene;
+  gradScene.reset(m_scene, m_pDR->mode, m_params.differentiable_mesh_ids);
 
   if(m_params.alg >= OptimizerParameters::GD_AdaGrad) {
-    m_GSquare.resize(gradMesh.size());
+    m_GSquare.resize(gradScene.full_size());
     memset(m_GSquare.data(), 0, sizeof(GradReal)*m_GSquare.size());
   }
 
   if(m_params.alg == OptimizerParameters::GD_Adam) {
-    m_vec.resize(gradMesh.size());
+    m_vec.resize(gradScene.full_size());
     memset(m_vec.data(), 0, sizeof(GradReal)*m_vec.size());
   }
 
-  auto lr = GetLR(gradMesh);
+  auto lr = GetLR(gradScene);
   
   m_iter = 0;
   float error = 0;
@@ -229,21 +266,14 @@ Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *
 
   for(size_t iter=0, trueIter = 0; iter < a_numIters; iter++, trueIter++)
   {
-    error = EvalFunction(m_scene, gradMesh);
+    error = EvalFunction(m_scene, gradScene);
     psnr = -10*log10(max(1e-9f,error));
     if (m_params.verbose)
       std::cout << "iter " << trueIter << ", PSNR = " << psnr << std::endl;
-    //PrintMesh(gradMesh);
-    OptStep(gradMesh, lr);
-    OptUpdateScene(gradMesh, &m_scene);
+    OptStep(gradScene, lr);
+    OptUpdateScene(gradScene, &m_scene);
     StepDecay(iter, lr);
 
-    if(error <= 1e-6 && (iter < a_numIters-10)) // perform last 10 iterations and stop
-    {
-      if (m_params.verbose)
-        std::cout << "----------------------------> stop by error, perform last 10 iterations: " << std::endl;
-      iter = a_numIters-10;
-    }
     if (iterations_dump)
       iterations_dump->push_back(m_scene);
   }

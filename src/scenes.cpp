@@ -658,7 +658,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
     float3 tang = LiteMath::to_float3(tmpMesh.vTang4f[i]);
     if (length(tang) > 1e-4)
       initial.tangents[i] = normalize(tang);
-    else if (abs(initial.normals[i].y) < 0.99999)
+    else if (fabsf(initial.normals[i].y) < 0.99999)
       initial.tangents[i] = normalize(cross(initial.normals[i], float3(0,1,0)));
     else
       initial.tangents[i] = normalize(cross(initial.normals[i], float3(1,0,0)));

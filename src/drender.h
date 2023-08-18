@@ -23,7 +23,28 @@ constexpr static int  MAXTHREADS    = 14;
 struct Edge 
 {
   int v0, v1; // vertex ID, v0 < v1
-  Edge(int a_v0, int a_v1) : v0(std::min(a_v0, a_v1)), v1(std::max(a_v0, a_v1)) {}
+  int vn0, vn1;
+  int mesh_n;
+  int instance_n;
+  Edge(int a_v0, int a_v1, int a_vn0, int a_vn1, int a_mesh_n, int a_instance_n)
+  {
+    mesh_n = a_mesh_n;
+    instance_n = a_instance_n;
+    if (a_v0 < a_v1)
+    {
+      v0 = a_v0;
+      vn0 = a_vn0;
+      v1 = a_v1;
+      vn1 = a_vn1;
+    }
+    else
+    {
+      v0 = a_v1;
+      vn0 = a_vn1;
+      v1 = a_v0;
+      vn1 = a_vn0;
+    }  
+  }
   bool operator<(const Edge &e) const { return this->v0 != e.v0 ? this->v0 < e.v0 : this->v1 < e.v1; } // for sorting edges
 };
 
@@ -40,11 +61,8 @@ Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges);
 // binary search for inverting the CDF in the sampler
 int sample(const Sampler &sampler, const float u);
 
-// given a triangle mesh, collect all edges.
-std::vector<Edge> collect_edges(const Scene &scene);
-
-inline void edge_grad(const Scene &scene, const int v0, const int v1, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<GradReal> &d_pos, int tr_offset);
+inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
+                      std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +70,8 @@ inline void edge_grad(const Scene &scene, const int v0, const int v1, const floa
 template<SHADING_MODEL material>
 struct DiffRender : public IDiffRender
 {
+  DiffRender() { };
+  virtual ~DiffRender() override { };
   virtual void init(const DiffRenderSettings &settings) override
   {
     m_samples_per_pixel = settings.spp;
@@ -64,7 +84,7 @@ struct DiffRender : public IDiffRender
   }
   
   
-  void commit(const Scene &scene) 
+  void commit(const Scene &scene) override
   {
     scene.prepare_for_render();
     m_pTracer->Init(&scene); // Build Acceleration structurres and e.t.c. if needed
@@ -118,7 +138,7 @@ struct DiffRender : public IDiffRender
 
   
   void d_render(const Scene &scene, const CamInfo* cams, const Img *adjoints, int a_viewsNum, const int edge_samples_in_total,
-                DTriangleMesh &d_mesh,
+                DScene &d_mesh,
                 Img* debugImages = nullptr, int debugImageNum = 0) override
   {  
     if(&scene != m_pLastPreparedScene)
@@ -143,7 +163,7 @@ struct DiffRender : public IDiffRender
   }
 
   virtual float d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
-                                     const int edge_samples_in_total, DTriangleMesh &d_mesh, Img* outImages = nullptr) override
+                                     const int edge_samples_in_total, DScene &d_mesh, Img* outImages = nullptr) override
   {
     std::vector<Img> local_images(a_viewsNum);
     Img *images = outImages ? outImages : local_images.data();
@@ -171,12 +191,12 @@ private:
   const Scene* m_pLastPreparedScene = nullptr;
 
   void interior_derivatives(const Scene &scene, const Img &adjoint,
-                            DTriangleMesh &d_mesh) 
+                            DScene &d_mesh) 
   {
     auto sqrt_num_samples = (int)sqrt((float)m_samples_per_pixel);
     auto samples_per_pixel = sqrt_num_samples * sqrt_num_samples;
   
-    DTriangleMesh grads[MAXTHREADS];
+    DScene grads[MAXTHREADS];
     for(int i=0;i<MAXTHREADS;i++) {
       grads[i] = d_mesh;
       grads[i].clear(); // TODO: make this more effitiient
@@ -203,44 +223,96 @@ private:
     // accumulate gradient from different threads (parallel reduction/hist)
     //
     for(int i=0;i<MAXTHREADS;i++) 
-      for(size_t j=0;j<d_mesh.size(); j++)
-        d_mesh[j] += grads[i][j];
+      for (int m_n=0; m_n<d_mesh.get_dmeshes().size(); m_n++)
+        for(size_t j=0;j<d_mesh.get_dmeshes()[m_n].full_size(); j++)
+          d_mesh.get_dmeshes()[m_n].full_data()[j] += grads[i].get_dmeshes()[m_n].full_data()[j];
   }
 
   void edge_derivatives(
         const Scene &scene,
         const Img &adjoint,
         const int num_edge_samples,
-        DTriangleMesh &d_mesh) 
+        DScene &d_scene) 
   {
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
-    Scene scene2d;
-    TriangleMesh mesh2d;
-    scene.get_prepared_mesh(mesh2d);
-    for (auto &v : mesh2d.vertices)
+    Scene scene2d_diff, scene2d_full;
+    std::set<Edge> edges_s;
     {
-      auto vCopy = v;
-      VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
-    }
-    scene2d.add_mesh(mesh2d);
-    scene2d.prepare_for_render();
+      std::vector<int> diff_mesh_n = {0};
+      std::vector<bool> diff_mesh_b(scene.get_meshes().size(), false);
+      for (int i = 0; i< scene.get_meshes().size(); i++)
+      {
+        if (d_scene.get_dmesh(i))
+          diff_mesh_b[i] = true;
+      }
+      for (int i=0; i<scene.get_meshes().size(); i++)
+      {
+        //TODO: support instancing for diff render
+        //if (diff_mesh_b[i])
+        //  assert(scene.get_transform(i).size() == 1);
+        for (int j=0;j<scene.get_transform(i).size();j++)
+        {
+          TriangleMesh m = scene.get_mesh(i);
+          transform(m, scene.get_transform(i)[j]);
+          for (auto &v : m.vertices)
+          {
+            auto vCopy = v;
+            VertexShader(*(m_aux.pCamInfo), vCopy.x, vCopy.y, vCopy.z, v.M);
+          }
 
-    // (2) prepare edjes
-    //
-    auto edges        = collect_edges(scene2d);
-    auto edge_sampler = build_edge_sampler(scene2d, edges);
+          scene2d_full.add_mesh(m);
+          if (d_scene.get_dmesh(i))
+          {
+            //this mesh is differentiable, we shoud add it to diff scene and collect edges for it
+            scene2d_diff.add_mesh(m);
+
+            for (size_t k=0; k<scene.get_mesh(i).indices.size();k+=3) 
+            {
+              auto A = scene.get_index(i, j, k);
+              auto B = scene.get_index(i, j, k+1);
+              auto C = scene.get_index(i, j, k+2); 
+              auto An = scene.get_vertex_n(i, k);
+              auto Bn = scene.get_vertex_n(i, k+1);
+              auto Cn = scene.get_vertex_n(i, k+2); 
+              edges_s.insert(Edge(A, B, An, Bn, i, j));
+              edges_s.insert(Edge(B, C, Bn, Cn, i, j));
+              edges_s.insert(Edge(C, A, Cn, An, i, j));
+              //logerr("tri (%d %d)(%d %d)(%d %d)", A, An, B, Bn, C, Cn);
+            }
+          }
+        }
+      }
+    }
+    std::vector<int> map = scene.get_instance_id_mapping();
+    std::vector<int> map_2d(map.size(), 0);
+    scene2d_full.set_instance_id_mapping(map_2d);
+    scene2d_full.prepare_for_render();
+  
+    scene2d_diff.set_instance_id_mapping(map_2d);
+    scene2d_diff.prepare_for_render();
+
+    std::vector<Edge> edges = std::vector<Edge>(edges_s.begin(), edges_s.end());
+
+    // (2) prepare edge sampler
+    auto edge_sampler = build_edge_sampler(scene2d_diff, edges);
   
     // (3) do edje sampling
     // 
     prng::RandomGen gens[MAXTHREADS];
-    std::vector<GradReal> grads[MAXTHREADS];
+    std::vector<std::vector<GradReal>> d_pos[MAXTHREADS];
+    std::vector<std::vector<GradReal>> d_tr[MAXTHREADS];
   
     for(int i=0;i<MAXTHREADS;i++)
     {
       gens [i] = prng::RandomGenInit(7777 + i*i + 1);
-      grads[i].resize(d_mesh.color_offs());
-      memset(grads[i].data(), 0, grads[i].size()*sizeof(GradReal));
+      for (auto &dmesh : d_scene.get_dmeshes())
+      {
+        d_pos[i].emplace_back();
+        d_pos[i].back().resize(3*dmesh.vertex_count(), 0);
+        d_tr[i].emplace_back();
+        d_tr[i].back().resize(12*dmesh.instance_count(), 0);
+      }
     }
   
     //float maxRelativeError = 0.0f;
@@ -259,8 +331,8 @@ private:
       auto pmf     = edge_sampler.pmf[edge_id];
       
       // pick a point p on the edge
-      auto v0 = LiteMath::to_float2(scene2d.get_pos(edge.v0));
-      auto v1 = LiteMath::to_float2(scene2d.get_pos(edge.v1));
+      auto v0 = LiteMath::to_float2(scene2d_diff.get_pos(edge.v0));
+      auto v1 = LiteMath::to_float2(scene2d_diff.get_pos(edge.v1));
       auto t = rnd1;
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
@@ -274,8 +346,8 @@ private:
       const float2 coordIn  = p - 1e-3f * n;
       const float2 coordOut = p + 1e-3f * n;
 
-      const auto color_in  = shade<material>(scene2d, m_pTracer.get(), coordIn);
-      const auto color_out = shade<material>(scene2d, m_pTracer.get(), coordOut);
+      const auto color_in  = shade<material>(scene2d_full, m_pTracer.get(), coordIn);
+      const auto color_out = shade<material>(scene2d_full, m_pTracer.get(), coordOut);
 
       // get corresponding adjoint from the adjoint image,
       // multiply with the color difference and divide by the pdf & number of samples.
@@ -293,17 +365,33 @@ private:
         auto d_v0 = float2{(1 - t) * n.x, (1 - t) * n.y} * adj * weight; // v0: (dF/dx_proj, dF/dy_proj)
         auto d_v1 = float2{     t  * n.x,      t  * n.y} * adj * weight; // v1: (dF/dx_proj, dF/dy_proj)
         
-        edge_grad(scene, edge.v0, edge.v1, d_v0, d_v1, m_aux, grads[omp_get_thread_num()], d_mesh.transform_offs());
+        edge_grad(scene, edge, d_v0, d_v1, m_aux, d_pos[omp_get_thread_num()], d_tr[omp_get_thread_num()]);
       }
     }    
   
     //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
   
     // accumulate gradient from different threads (parallel reduction/hist)
-    //
-    for(int i=0;i<MAXTHREADS;i++) 
-      for(size_t j=0;j<d_mesh.color_offs(); j++)
-        d_mesh[j] += grads[i][j];
+    //, logerr("dpos[%d %d] = %f",i,j,d_pos[i][j])
+    int mesh_pos = 0;
+    for (auto &dmesh : d_scene.get_dmeshes())
+    {
+      GradReal *accum_pos = dmesh.pos(0);
+      if (accum_pos)
+      {
+        for(int i=0;i<MAXTHREADS;i++) 
+          for(size_t j=0;j<3*dmesh.vertex_count(); j++)
+            accum_pos[j] += d_pos[i][mesh_pos][j];
+      }
+      GradReal *accum_tr = dmesh.transform_mat(0);
+      if (accum_tr)
+      {
+        for(int i=0;i<MAXTHREADS;i++) 
+          for(size_t j=0;j<12*dmesh.instance_count(); j++)
+            accum_tr[j] += d_tr[i][mesh_pos][j];
+      }
+      mesh_pos++;
+    }
   }
 
 

@@ -13,13 +13,17 @@ struct OptimizerParameters
     alg = _alg;
     set_default();
   }
-  OptimizerParameters(OPT_ALGORITHM _alg, float pos_lr, float tex_lr, bool _verbose = false)
+  OptimizerParameters(OPT_ALGORITHM _alg, float pos_lr, float tex_lr, float _transforms_lr = 0.1, 
+                      std::vector<int> diff_mesh_ids = {0},
+                      bool _verbose = false)
   {
     alg = _alg;
     set_default();
     position_lr = pos_lr;
     textures_lr = tex_lr;
+    transforms_lr = _transforms_lr;
     verbose = _verbose;
+    differentiable_mesh_ids = diff_mesh_ids;
   }
   OPT_ALGORITHM alg = GD_Naive;
   int decayPeriod   = 25;
@@ -28,6 +32,7 @@ struct OptimizerParameters
   float position_lr = 0.1;
   float textures_lr = 0.1;
   float transforms_lr = 0.1;
+  std::vector<int> differentiable_mesh_ids = {0};
   bool verbose = true;
 private:
   void set_default();
@@ -35,6 +40,7 @@ private:
 
 struct IOptimizer
 {
+  virtual ~IOptimizer() {};
   virtual void Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) = 0;
 

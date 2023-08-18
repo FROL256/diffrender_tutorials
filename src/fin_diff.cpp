@@ -19,14 +19,15 @@ using namespace LiteMath;
 constexpr static int SAM_PER_PIXEL = 16;
 
 void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
-               DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f) 
+               DScene &d_scene, float dPos = 1.0f, float dCol = 0.01f) 
 {
   int debug_mesh_id = 0;
 
   const TriangleMesh &mesh = scene.get_mesh(debug_mesh_id);
   Img img(origin.width(), origin.height());
 
-  d_mesh.reset(mesh, a_pDRImpl->mode);
+  d_scene.reset(scene, a_pDRImpl->mode, {debug_mesh_id});
+  auto &d_mesh = *d_scene.get_dmesh(debug_mesh_id);
   
   const float MSEOrigin = MSE(origin, target);
   const float scale = float(256*256*3);
@@ -48,7 +49,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices_s()[i*3+0] += GradReal(diffToTarget*scale);
+    d_mesh.pos(i)[0] += GradReal(diffToTarget*scale);
     
     // dy
     //
@@ -62,7 +63,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
 
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices_s()[3*i+1] += GradReal(diffToTarget*scale);
+    d_mesh.pos(i)[1] += GradReal(diffToTarget*scale);
 
     // dz 
     //
@@ -76,7 +77,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dPos;
-    d_mesh.vertices_s()[3*i+2] += GradReal(diffToTarget*scale);
+    d_mesh.pos(i)[2] += GradReal(diffToTarget*scale);
   }
   
   size_t colrsNum = mesh.vertex_count();
@@ -98,7 +99,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
     
     auto diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors_s()[i*3+0] += GradReal(diffToTarget*scale);
+    d_mesh.color(i)[0] += GradReal(diffToTarget*scale);
 
     // d_green
     //
@@ -112,7 +113,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors_s()[i*3+1] += GradReal(diffToTarget*scale);
+    d_mesh.color(i)[1] += GradReal(diffToTarget*scale);
 
     // d_blue
     //
@@ -126,20 +127,21 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
     a_pDRImpl->render(copy_scene, &a_camData, &img, 1);
     
     diffToTarget = (MSE(img,target) - MSEOrigin)/dCol;
-    d_mesh.colors_s()[i*3+2] += GradReal(diffToTarget*scale);
+    d_mesh.color(i)[2] += GradReal(diffToTarget*scale);
   }
 
 }
 
 void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
-                DTriangleMesh &d_mesh, float dPos = 1.0f, float dCol = 0.01f) 
+                DScene &d_scene, float dPos = 1.0f, float dCol = 0.01f) 
 {
   int debug_mesh_id = 0;
 
   const TriangleMesh &mesh = scene.get_mesh(debug_mesh_id);
   Img img(origin.width(), origin.height());
 
-  d_mesh.reset(mesh, a_pDRImpl->mode);
+  d_scene.reset(scene, a_pDRImpl->mode, {debug_mesh_id});
+  auto &d_mesh = *d_scene.get_dmesh(debug_mesh_id);
   
   const Img MSEOrigin = LiteImage::MSEImage(origin, target);
 
@@ -161,7 +163,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
     
     auto diffImageX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     float3 summColor = SummOfPixels(diffImageX); 
-    d_mesh.vertices_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.pos(i)[0] += GradReal(summColor.x + summColor.y + summColor.z);
     
     // dy
     //
@@ -176,7 +178,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
 
     auto diffImageY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dPos;   
     summColor = SummOfPixels(diffImageY); 
-    d_mesh.vertices_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.pos(i)[1] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // dz 
     //
@@ -203,7 +205,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
       LiteImage::SaveImage(path.c_str(), diffImage);
     }
     summColor = SummOfPixels(diffImageZ); 
-    d_mesh.vertices_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.pos(i)[2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
   
   size_t colrsNum = mesh.vertex_count();
@@ -226,7 +228,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
     
     auto diffToTargetX = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     float3 summColor = SummOfPixels(diffToTargetX); 
-    d_mesh.colors_s()[i*3+0] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.color(i)[0] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_green
     //
@@ -241,7 +243,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
     
     auto diffToTargetY = (LiteImage::MSEImage(img,target) - MSEOrigin)/dCol;
     summColor = SummOfPixels(diffToTargetY); 
-    d_mesh.colors_s()[i*3+1] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.color(i)[1] += GradReal(summColor.x + summColor.y + summColor.z);
 
     // d_blue
     //
@@ -270,12 +272,12 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
       LiteImage::SaveImage(path.c_str(), diffImage); // 
     }
     summColor = SummOfPixels(diffToTargetZ); 
-    d_mesh.colors_s()[i*3+2] += GradReal(summColor.x + summColor.y + summColor.z);
+    d_mesh.color(i)[2] += GradReal(summColor.x + summColor.y + summColor.z);
   }
 
 }
 
-void PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& grad2)
+void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2)
 {
   double totalError = 0.0;
   double posError = 0.0;
@@ -283,33 +285,39 @@ void PrintAndCompareGradients(const DTriangleMesh& grad1, const DTriangleMesh& g
   double posLengthL1 = 0.0;
   double colLengthL1 = 0.0;
 
-  auto subvecPos1 = grad1.subvecPos();
-  auto subvecCol1 = grad1.subvecCol();
+  const auto &dm1 = grad1.get_dmeshes();
+  const auto &dm2 = grad2.get_dmeshes();
+  assert(dm1.size() == dm2.size());
 
-  auto subvecPos2 = grad2.subvecPos();
-  auto subvecCol2 = grad2.subvecCol();
+  for (int dmn = 0; dmn < dm1.size(); dmn++)
+  {
+    for(size_t i=0;i<3*dm1[dmn].vertices;i++) 
+    {
+      double diff = std::abs(double(dm1[dmn].pos_ptr[i] - dm2[dmn].pos_ptr[i]));
+      posError    += diff;
+      totalError  += diff;
+      posLengthL1 += std::abs(dm2[dmn].pos_ptr[i]);
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm1[dmn].pos_ptr[i] << "\t";  
+      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm2[dmn].pos_ptr[i] << std::endl;
+    }
 
-  for(size_t i=0;i<subvecPos1.size();i++) {
-    double diff = std::abs(double(subvecPos1[i] - subvecPos2[i]));
-    posError    += diff;
-    totalError  += diff;
-    posLengthL1 += std::abs(subvecPos2[i]);
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[i] << "\t";  
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[i] << std::endl;
+    if (dm1[dmn].color_ptr)
+    {
+      std::cout << "--------------------------" << std::endl;
+      for(size_t i=0;i<3*dm1[dmn].vertices;i++) 
+      {
+        double diff = std::abs(double(dm1[dmn].color_ptr[i] - dm2[dmn].color_ptr[i]));
+        colError   += diff;
+        totalError += diff;
+        colLengthL1 += std::abs(dm2[dmn].color_ptr[i]);
+        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm1[dmn].color_ptr[i] << "\t";  
+        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm2[dmn].color_ptr[i] << std::endl;
+      }
+    }
+    
+    std::cout << "==========================" << std::endl;
+    std::cout << "GradErr[L1](vpos ) = " << posError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
+    std::cout << "GradErr[L1](color) = " << colError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
+    std::cout << "GradErr[L1](total) = " << totalError/double(dm1[dmn].data.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
   }
-
-  std::cout << "--------------------------" << std::endl;
-  for(size_t i=0;i<subvecCol1.size();i++) {
-    double diff = std::abs(double(subvecCol1[i] - subvecCol2[i]));
-    colError   += diff;
-    totalError += diff;
-    colLengthL1 += std::abs(subvecCol2[i]);
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1[subvecPos1.size() + i] << "\t";  
-    std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2[subvecPos1.size() + i] << std::endl;
-  }
-  
-  std::cout << "==========================" << std::endl;
-  std::cout << "GradErr[L1](vpos ) = " << posError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
-  std::cout << "GradErr[L1](color) = " << colError/double(grad1.numVerts()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
-  std::cout << "GradErr[L1](total) = " << totalError/double(grad1.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
 }
