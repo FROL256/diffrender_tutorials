@@ -342,9 +342,24 @@ void Tester::test_2_10_multiple_meshes()
                       targetScene.add_mesh(_mm2, {LiteMath::translate4x4(float3(0.0,-1,0))});
                     },
                     {SHADING_MODEL::SILHOUETTE, 16},
-                    {OptimizerParameters::GD_Adam, 0.02, 0.0, 0.0, {0,1}},
+                    {OptimizerParameters::GD_Adam, 0.0, 0.0, 0.05, {0,1}},
                     300);
 }
+
+void Tester::test_2_11_restricted_transforms()
+{
+  optimization_test("TEST 2.11: RESTRICTED TRANSFORMS OPTIMIZATION",
+                    [&](Scene &initialScene, Scene &targetScene){
+                      TriangleMesh initialMesh, targetMesh;
+                      scn05_Pyramid3D(initialMesh, targetMesh);
+                      initialScene.add_mesh(initialMesh, {TransformR({0,0,0}, {0.0,0.2,0.2}, 1)});
+                      targetScene.add_mesh(initialMesh, {TransformR()});
+                    },
+                    {SHADING_MODEL::SILHOUETTE, 16},
+                    {OptimizerParameters::GD_Adam, 0.0, 0.0, 0.05},
+                    300);
+}
+
 void mitsuba_compare_test(const std::string &test_name,
                           std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
                           const DiffRenderSettings &diff_render_settings,

@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) //
     t.test_2_8_instancing();
     t.test_2_9_transform();
     t.test_2_10_multiple_meshes();
+    t.test_2_11_restricted_transforms();
 
     return 0;
   }
