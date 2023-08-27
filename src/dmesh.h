@@ -184,8 +184,9 @@ public:
     if (need_reset)
     {
       assert(dmesh_ids.size()>0);
+      scene.prepare_for_render();
       shading_model = mode;
-      int max_mesh_id = 0;
+      int max_mesh_id = scene.get_meshes().size();
 
       for (auto mesh_id : dmesh_ids)
       {
