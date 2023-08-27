@@ -26,9 +26,9 @@ struct OptimizerParameters
     differentiable_mesh_ids = diff_mesh_ids;
   }
   OPT_ALGORITHM alg = GD_Naive;
-  int decayPeriod   = 30;
-  float decay_mult = 0.75;
-  float base_lr = 0.1;
+  int decayPeriod   = 25;
+  float decay_mult  = 0.75;
+  float base_lr     = 0.1;
   float position_lr = 0.1;
   float textures_lr = 0.1;
   float transforms_lr = 0.1;
