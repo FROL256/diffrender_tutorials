@@ -30,9 +30,10 @@ public:
   friend class DScene;
   friend void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2);
   DMesh(){};
-  DMesh(SHADING_MODEL mode, const TriangleMesh &mesh, int _instances, Scene::MeshInstancingType instance_type)
+  DMesh(SHADING_MODEL mode, const TriangleMesh &mesh, int _instances, Scene::MeshInstancingType instance_type, int m_id)
   {
     assert(mode != SHADING_MODEL::UNDEFINED);
+    mesh_id = m_id;
 
     bool dpos = true;
     bool dcolor = mode == SHADING_MODEL::VERTEX_COLOR;
@@ -99,6 +100,7 @@ public:
     instances = dmesh.instances;
     data = dmesh.data;
     tex_params = dmesh.tex_params;
+    mesh_id = dmesh.mesh_id;
 
     //restore points from offsets
     if (dmesh.pos_ptr)
@@ -134,6 +136,7 @@ public:
   inline int vertex_count() { return vertices; }
   inline int instance_count() { return instances; }
   inline int tex_count() { return tex_params.size(); }
+  inline int get_mesh_id() { return mesh_id; }
 
   static constexpr int TRANSFORM_SIZE = 12;
   static constexpr int RESTRICTED_TRANSFORM_SIZE = 7;
@@ -147,6 +150,7 @@ protected:
   GradReal *restricted_transform_ptr = nullptr;
   int vertices = 0;
   int instances = 0;
+  int mesh_id = -1;
 };
 class DScene
 {
@@ -205,7 +209,7 @@ public:
       for (auto mesh_id : dmesh_ids)
       {
         max_mesh_id = std::max(max_mesh_id, mesh_id);
-        dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size(), scene.get_instancing_type(mesh_id)));
+        dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size(), scene.get_instancing_type(mesh_id), mesh_id));
       }
       dmeshes_by_id.resize(max_mesh_id+1, nullptr);
       for (int i=0;i<dmesh_ids.size();i++)

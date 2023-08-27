@@ -63,6 +63,8 @@ int sample(const Sampler &sampler, const float u);
 
 inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
                       std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr);
+
+void dmat_dtransforms_jac(float const mat[DMesh::RESTRICTED_TRANSFORM_SIZE], float jac[DMesh::RESTRICTED_TRANSFORM_SIZE][DMesh::TRANSFORM_SIZE]);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -409,9 +411,7 @@ private:
           for (int k=0;k<DMesh::RESTRICTED_TRANSFORM_SIZE; k++)
             for (int l=0;l<DMesh::TRANSFORM_SIZE; l++)
               jac[k][l] = 0;
-          jac[0][3] = 1;
-          jac[1][7] = 1;
-          jac[2][11] = 1;
+          dmat_dtransforms_jac(scene.get_restricted_transform(dmesh.get_mesh_id())[j].M, jac);
 
           for (int k=0;k<DMesh::RESTRICTED_TRANSFORM_SIZE; k++)
             for (int l=0;l<DMesh::TRANSFORM_SIZE; l++)

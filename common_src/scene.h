@@ -202,6 +202,8 @@ public:
   
   inline const std::vector<float4x4>  &get_transform(unsigned n) const { return transforms[n]; }
   inline const std::vector<std::vector<float4x4>>  &get_transforms() const { return transforms; }
+  inline const std::vector<TransformR>  &get_restricted_transform(unsigned n) const { return restricted_transforms[n]; }
+  inline const std::vector<std::vector<TransformR>>  &get_restricted_transforms() const { return restricted_transforms; }
   inline const std::vector<float4x4>  &get_transform_inv(unsigned n) const { return transforms_inv[n]; }
   inline const std::vector<std::vector<float4x4>>  &get_transforms_inv() const { return transforms_inv; }
   inline std::vector<float4x4>  &get_transform_modify(unsigned n) { prepared = false; return transforms[n];  }
