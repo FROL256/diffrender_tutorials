@@ -100,17 +100,72 @@ struct AreaLight
   TriangleMesh mesh;
 };
 
+struct TransformR
+{
+  TransformR():
+    TransformR(float3(0,0,0), float3(0,0,0), 1.0f)
+  { };
+  TransformR(float3 tr, float3 rot, float sc):
+    translate(tr), rotate(rot), scale(sc)
+  { };
+  float4x4 to_mat() const
+  {
+    return LiteMath::translate4x4(translate)*
+           LiteMath::rotate4x4Z(rotate.z)*LiteMath::rotate4x4Y(rotate.y)*LiteMath::rotate4x4X(rotate.x)*
+           LiteMath::scale4x4({scale, scale, scale});
+  }
+  union
+  {
+    struct 
+    {
+      float3 translate;
+      float3 rotate;
+      float scale;
+    };
+
+    float M[7];
+  };
+};
+
 /**
 \brief base scene description without auxilary data for differentiable rendering
 */
 struct Scene
 {
 public:
+  enum MeshInstancingType
+  {
+    SINGLE,
+    BASE_TRANSFORM,
+    RESTRICTED_TRANSFORM
+  };
   void add_mesh(const TriangleMesh &mesh, const std::vector<float4x4> &transform = {float4x4()}, std::string name = "")
   {
     meshes.push_back(mesh);
+    mesh_instancing_types.push_back(transform.size() == 1 ? SINGLE : BASE_TRANSFORM);
     transforms.push_back(transform);
     meshes_by_name.emplace(name, meshes.size()-1);
+    prepared = false;
+  }
+
+  void add_mesh(const TriangleMesh &mesh, const std::vector<TransformR> &transform, std::string name = "")
+  {
+    meshes.push_back(mesh);
+    mesh_instancing_types.push_back(RESTRICTED_TRANSFORM);
+    restricted_transforms.push_back(transform);
+    meshes_by_name.emplace(name, meshes.size()-1);
+    prepared = false;
+  }
+
+  void set_mesh(const TriangleMesh &mesh, int id, const std::vector<TransformR> &transform)
+  {
+    if (id >= meshes.size())
+      meshes.resize(id+1);
+    if (id >= restricted_transforms.size())
+      restricted_transforms.resize(id+1);
+    meshes[id] = mesh;
+    mesh_instancing_types[id] = RESTRICTED_TRANSFORM;
+    restricted_transforms[id] = transform;
     prepared = false;
   }
 
@@ -121,6 +176,7 @@ public:
     if (id >= transforms.size())
       transforms.resize(id+1);
     meshes[id] = mesh;
+    mesh_instancing_types[id] = transform.size() == 1 ? SINGLE : BASE_TRANSFORM;
     transforms[id] = transform;
     prepared = false;
   }
@@ -154,6 +210,8 @@ public:
   inline const std::vector<std::vector<float4x4>>  &get_transforms_inv() const { return transforms_inv; }
   inline std::vector<float4x4>  &get_transform_modify(unsigned n) { prepared = false; return transforms[n];  }
   inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { prepared = false; return transforms; }
+  inline std::vector<TransformR>  &get_restricted_transform_modify(unsigned n) { prepared = false; return restricted_transforms[n];  }
+  inline std::vector<std::vector<TransformR>>  &get_restricted_transforms_modify() { prepared = false; return restricted_transforms; }
   inline unsigned indices_size() const 
   {
     unsigned c = 0;
@@ -174,7 +232,9 @@ public:
 
 protected:
   std::vector<TriangleMesh> meshes;
-  std::vector<std::vector<float4x4>> transforms;
+  std::vector<MeshInstancingType> mesh_instancing_types;
+  std::vector<std::vector<TransformR>> restricted_transforms;
+  mutable std::vector<std::vector<float4x4>> transforms;
   mutable std::vector<std::vector<float4x4>> transforms_inv;
   std::map<std::string, int> meshes_by_name; //position in meshes vector
   //index in this vector is the instanceId from ray tracer

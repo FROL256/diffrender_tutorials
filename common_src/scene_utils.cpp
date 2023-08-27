@@ -101,7 +101,24 @@ void Scene::prepare_for_render() const
   prepared = true;
   if (meshes.size() == 0)
     return;
+
+  assert(meshes.size() == restricted_transforms.size());
   assert(meshes.size() == transforms.size());
+  assert(meshes.size() == mesh_instancing_types.size());
+
+  transforms_inv.reserve(transforms.size());
+  for (int i = 0; i < meshes.size(); i++)
+  {
+    if (mesh_instancing_types[i] == RESTRICTED_TRANSFORM)
+    {
+      transforms[i] = std::vector<float4x4>(restricted_transforms[i].size());
+      for (int j=0;j<restricted_transforms[i].size();j++)
+        transforms[i][j] = restricted_transforms[i][j].to_mat();
+    }
+    transforms_inv.push_back(transforms[i]);
+    for (int j=0;j<transforms[i].size();j++)
+      transforms_inv.back()[j] = LiteMath::inverse4x4(transforms[i][j]);
+  }
 
   int total_vertices = 0;
   for (int i=0;i<meshes.size();i++)
@@ -151,14 +168,6 @@ void Scene::prepare_for_render() const
       
       offset += meshes[i].vertices.size();
     }
-  }
-
-  transforms_inv.reserve(transforms.size());
-  for (auto &t : transforms)
-  {
-    transforms_inv.push_back(t);
-    for (int i=0;i<t.size();i++)
-      transforms_inv.back()[i] = LiteMath::inverse4x4(t[i]);
   }
 }
 
