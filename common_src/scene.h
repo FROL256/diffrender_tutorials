@@ -144,6 +144,7 @@ public:
     meshes.push_back(mesh);
     mesh_instancing_types.push_back(transform.size() == 1 ? SINGLE : BASE_TRANSFORM);
     transforms.push_back(transform);
+    restricted_transforms.emplace_back();
     meshes_by_name.emplace(name, meshes.size()-1);
     prepared = false;
   }
@@ -152,6 +153,7 @@ public:
   {
     meshes.push_back(mesh);
     mesh_instancing_types.push_back(RESTRICTED_TRANSFORM);
+    transforms.emplace_back();
     restricted_transforms.push_back(transform);
     meshes_by_name.emplace(name, meshes.size()-1);
     prepared = false;
@@ -159,10 +161,7 @@ public:
 
   void set_mesh(const TriangleMesh &mesh, int id, const std::vector<TransformR> &transform)
   {
-    if (id >= meshes.size())
-      meshes.resize(id+1);
-    if (id >= restricted_transforms.size())
-      restricted_transforms.resize(id+1);
+    assert(id >= 0 && id < meshes.size());
     meshes[id] = mesh;
     mesh_instancing_types[id] = RESTRICTED_TRANSFORM;
     restricted_transforms[id] = transform;
@@ -171,10 +170,7 @@ public:
 
   void set_mesh(const TriangleMesh &mesh, int id, const std::vector<float4x4> &transform = {float4x4()})
   {
-    if (id >= meshes.size())
-      meshes.resize(id+1);
-    if (id >= transforms.size())
-      transforms.resize(id+1);
+    assert(id >= 0 && id < meshes.size());
     meshes[id] = mesh;
     mesh_instancing_types[id] = transform.size() == 1 ? SINGLE : BASE_TRANSFORM;
     transforms[id] = transform;
