@@ -72,6 +72,8 @@ OptSimple::IntervalLearningRate OptSimple::GetLR(DScene& gradScene)
       lr.push_back({dmesh.tex(0,0) - ptr, m_params.textures_lr});
     if (dmesh.transform_mat(0))
       lr.push_back({dmesh.transform_mat(0) - ptr, m_params.transforms_lr});
+    if (dmesh.restricted_transform(0))
+      lr.push_back({dmesh.restricted_transform(0) - ptr, m_params.transforms_lr});
   }
   return lrr;
 }
@@ -130,6 +132,28 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
         tr[2][1] -= d_tr[9];
         tr[2][2] -= d_tr[10];
         tr[2][3] -= d_tr[11];
+      }
+    }
+    else
+    {
+      d_tr = dmesh.restricted_transform(0);
+      if (d_tr)
+      {
+        for (int tr_n=0; tr_n<scene->get_restricted_transform_modify(mesh_id).size(); tr_n++)
+        {
+          auto &tr = scene->get_restricted_transform_modify(mesh_id)[tr_n];
+          d_tr = dmesh.restricted_transform(tr_n);
+
+          tr.translate.x -= d_tr[0];
+          tr.translate.y -= d_tr[1];
+          tr.translate.z -= d_tr[2];
+
+          tr.rotate.x -= d_tr[3];
+          tr.rotate.y -= d_tr[4];
+          tr.rotate.z -= d_tr[5];
+
+          tr.scale -= d_tr[6];
+        }
       }
     }
 

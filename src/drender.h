@@ -311,7 +311,7 @@ private:
         d_pos[i].emplace_back();
         d_pos[i].back().resize(3*dmesh.vertex_count(), 0);
         d_tr[i].emplace_back();
-        d_tr[i].back().resize(12*dmesh.instance_count(), 0);
+        d_tr[i].back().resize(DMesh::TRANSFORM_SIZE*dmesh.instance_count(), 0);
       }
     }
   
@@ -386,9 +386,37 @@ private:
       GradReal *accum_tr = dmesh.transform_mat(0);
       if (accum_tr)
       {
+        //optimize transform matrix directly
         for(int i=0;i<MAXTHREADS;i++) 
-          for(size_t j=0;j<12*dmesh.instance_count(); j++)
+          for(size_t j=0;j<DMesh::TRANSFORM_SIZE*dmesh.instance_count(); j++)
             accum_tr[j] += d_tr[i][mesh_pos][j];
+      }
+      else
+      {
+        //optimize simple transformation parameters (translation + rotation + scale)
+        accum_tr = dmesh.restricted_transform(0);
+        assert(accum_tr);
+        std::vector<GradReal> accum_tr_mat(DMesh::TRANSFORM_SIZE*dmesh.instance_count(), 0);
+        GradReal jac[DMesh::RESTRICTED_TRANSFORM_SIZE][DMesh::TRANSFORM_SIZE];
+      
+        for(int i=0;i<MAXTHREADS;i++) 
+          for(size_t j=0;j<DMesh::TRANSFORM_SIZE*dmesh.instance_count(); j++)
+            accum_tr_mat[j] += d_tr[i][mesh_pos][j];
+
+        for(size_t j=0;j<dmesh.instance_count(); j++)
+        {
+          //calculate jacobian
+          for (int k=0;k<DMesh::RESTRICTED_TRANSFORM_SIZE; k++)
+            for (int l=0;l<DMesh::TRANSFORM_SIZE; l++)
+              jac[k][l] = 0;
+          jac[0][3] = 1;
+          jac[1][7] = 1;
+          jac[2][11] = 1;
+
+          for (int k=0;k<DMesh::RESTRICTED_TRANSFORM_SIZE; k++)
+            for (int l=0;l<DMesh::TRANSFORM_SIZE; l++)
+              accum_tr[DMesh::RESTRICTED_TRANSFORM_SIZE*j + k] += jac[k][l]*accum_tr_mat[DMesh::TRANSFORM_SIZE*j + l];
+        }
       }
       mesh_pos++;
     }

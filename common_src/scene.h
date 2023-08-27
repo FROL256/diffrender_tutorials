@@ -208,6 +208,7 @@ public:
   inline std::vector<std::vector<float4x4>>  &get_transforms_modify() { prepared = false; return transforms; }
   inline std::vector<TransformR>  &get_restricted_transform_modify(unsigned n) { prepared = false; return restricted_transforms[n];  }
   inline std::vector<std::vector<TransformR>>  &get_restricted_transforms_modify() { prepared = false; return restricted_transforms; }
+  inline MeshInstancingType get_instancing_type(unsigned n) const { return mesh_instancing_types[n]; }
   inline unsigned indices_size() const 
   {
     unsigned c = 0;

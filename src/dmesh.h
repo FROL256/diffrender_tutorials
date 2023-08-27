@@ -30,19 +30,21 @@ public:
   friend class DScene;
   friend void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2);
   DMesh(){};
-  DMesh(SHADING_MODEL mode, const TriangleMesh &mesh, int _instances)
+  DMesh(SHADING_MODEL mode, const TriangleMesh &mesh, int _instances, Scene::MeshInstancingType instance_type)
   {
     assert(mode != SHADING_MODEL::UNDEFINED);
 
     bool dpos = true;
     bool dcolor = mode == SHADING_MODEL::VERTEX_COLOR;
-    bool dtransform = true;
+    bool dtransform = instance_type != Scene::RESTRICTED_TRANSFORM;
+    bool dresttransform = instance_type == Scene::RESTRICTED_TRANSFORM;
     bool dtextures = !(mode == SHADING_MODEL::SILHOUETTE || mode == SHADING_MODEL::VERTEX_COLOR);
     
     int tex_size = 0;
     for (auto &t : mesh.textures)
       tex_size += t.w*t.h*t.channels;
-    int sz = 3*mesh.vertices.size()*dpos + 3*mesh.vertices.size()*dcolor + dtextures*tex_size + dtransform*TRANSFORM_SIZE*_instances;
+    int sz = 3*mesh.vertices.size()*dpos + 3*mesh.vertices.size()*dcolor + dtextures*tex_size + 
+             dtransform*TRANSFORM_SIZE*_instances + dresttransform*RESTRICTED_TRANSFORM_SIZE*_instances;
     data.resize(sz, 0);
 
     vertices = mesh.vertices.size();
@@ -71,6 +73,11 @@ public:
     {
       transform_ptr = data.data() + offset;
       offset += TRANSFORM_SIZE*_instances;
+    }
+    if (dresttransform)
+    {
+      restricted_transform_ptr = data.data() + offset;
+      offset += RESTRICTED_TRANSFORM_SIZE*_instances;      
     }
   }
   ~DMesh() = default;
@@ -106,6 +113,9 @@ public:
     
     if (dmesh.transform_ptr)
       transform_ptr = data.data() + (dmesh.transform_ptr - dmesh.data.data());
+
+    if (dmesh.restricted_transform_ptr)
+      restricted_transform_ptr = data.data() + (dmesh.restricted_transform_ptr - dmesh.data.data());
   }
 
   inline GradReal *pos(int index) { return pos_ptr + 3*index; }
@@ -116,21 +126,25 @@ public:
   }
   inline GradReal *tex(int tex_n, int offset) { return tex_ptrs[tex_n] + offset; }
   inline int3 get_tex_info(int tex_n) const { return tex_params[tex_n]; } //(x,y,channels)
-  inline GradReal *transform_mat(int instance_n) { return transform_ptr + TRANSFORM_SIZE*instance_n; }
+  inline GradReal *transform_mat(int instance_n) { return transform_ptr ? transform_ptr + TRANSFORM_SIZE*instance_n : nullptr; }
+  inline GradReal *restricted_transform(int instance_n) { return restricted_transform_ptr ? restricted_transform_ptr + RESTRICTED_TRANSFORM_SIZE*instance_n : nullptr; }
 
   inline GradReal *full_data() { return data.data(); }
   inline int full_size() { return data.size(); }
   inline int vertex_count() { return vertices; }
   inline int instance_count() { return instances; }
   inline int tex_count() { return tex_params.size(); }
-protected:
+
   static constexpr int TRANSFORM_SIZE = 12;
+  static constexpr int RESTRICTED_TRANSFORM_SIZE = 7;
+protected:
   std::vector<GradReal> data;
   GradReal *pos_ptr = nullptr;
   GradReal *color_ptr = nullptr;
   std::vector<int3> tex_params;
   std::vector<GradReal *> tex_ptrs;
   GradReal *transform_ptr = nullptr;
+  GradReal *restricted_transform_ptr = nullptr;
   int vertices = 0;
   int instances = 0;
 };
@@ -191,7 +205,7 @@ public:
       for (auto mesh_id : dmesh_ids)
       {
         max_mesh_id = std::max(max_mesh_id, mesh_id);
-        dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size()));
+        dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size(), scene.get_instancing_type(mesh_id)));
       }
       dmeshes_by_id.resize(max_mesh_id+1, nullptr);
       for (int i=0;i<dmesh_ids.size();i++)
