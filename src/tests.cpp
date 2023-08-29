@@ -21,7 +21,8 @@ using namespace LiteMath;
 #include "scenes.h"
 #include "optimizer.h"
 #include "drender_mitsuba.h"
-
+namespace diff_render
+{
 #define TESTER_PSNR_PASS 35
 #define TESTER_FIN_DIFF_PASS 0.5
 #define TESTER_FIN_DIFF_TEXTURE_PASS 0.01
@@ -105,9 +106,9 @@ void Tester::test_base_derivatives()
   }
 }
 
-std::vector<CamInfo> create_cameras_around(int cam_num, int sensor_w, int sensor_h)
+::std::vector<CamInfo> create_cameras_around(int cam_num, int sensor_w, int sensor_h)
 {
-  std::vector<CamInfo> cameras;
+  ::std::vector<CamInfo> cameras;
   float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, sensor_w/sensor_h, 0.1f, 100.0f);
   float rot_y = (2*M_PI)/cam_num;
   float rot_x = (M_PI_2)/cam_num;
@@ -121,8 +122,8 @@ std::vector<CamInfo> create_cameras_around(int cam_num, int sensor_w, int sensor
   return cameras;
 }
 
-void optimization_test(const std::string &test_name,
-                       std::function<void(Scene&, Scene&)> create_scene,
+void optimization_test(const ::std::string &test_name,
+                       ::std::function<void(Scene&, Scene&)> create_scene,
                        const DiffRenderSettings &diff_render_settings,
                        const OptimizerParameters &opt_parameters,
                        int opt_steps = 300,
@@ -130,19 +131,19 @@ void optimization_test(const std::string &test_name,
                        int cameras_count = 3,
                        int image_w = 256,
                        int image_h = 256,
-                       std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
+                       ::std::function<::std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
 {
-  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t1 = ::std::chrono::steady_clock::now();
 
   auto cameras = create_cameras(cameras_count, image_w, image_h);
   Scene initialScene, targetScene;
   create_scene(initialScene, targetScene);
 
-  std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t2 = ::std::chrono::steady_clock::now();
 
   auto pDRender = MakeDifferentialRenderer(initialScene, diff_render_settings);
 
-  std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t3 = ::std::chrono::steady_clock::now();
 
   Img img(image_w, image_h);
   Img targets[cameras_count];
@@ -155,30 +156,30 @@ void optimization_test(const std::string &test_name,
   pDRender->commit(targetScene);
   pDRender->render(targetScene, cameras.data(), targets, cameras_count);
 
-  std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t4 = ::std::chrono::steady_clock::now();
 
   for(int i=0;i<cameras_count;i++) 
   {
-    std::stringstream strOut;
+    ::std::stringstream strOut;
     strOut  << "output/rendered_opt" << i << "/z_target.bmp";
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
   }
-  std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t5 = ::std::chrono::steady_clock::now();
 
-  std::chrono::steady_clock::time_point t6 = t5, t7 = t5;
+  ::std::chrono::steady_clock::time_point t6 = t5, t7 = t5;
   IOptimizer *pOpt = CreateSimpleOptimizer();
   float error = 1e9;
   if (!test_by_steps)
   {
     pOpt->Init(initialScene, pDRender, cameras.data(), targets, cameras_count, opt_parameters);
-    t6 = std::chrono::steady_clock::now();
+    t6 = ::std::chrono::steady_clock::now();
     Scene res_scene = pOpt->Run(opt_steps, error);
-    t7 = std::chrono::steady_clock::now();
+    t7 = ::std::chrono::steady_clock::now();
   }
   else
   {
-    std::vector<Scene> iter_scenes;
+    ::std::vector<Scene> iter_scenes;
     pOpt->Init(initialScene, pDRender, cameras.data(), targets, cameras_count, opt_parameters);
     Scene res_scene = pOpt->Run(opt_steps, error, &iter_scenes);
     for (auto &s : iter_scenes)
@@ -192,18 +193,18 @@ void optimization_test(const std::string &test_name,
   bool pass = psnr > TESTER_PSNR_PASS;
   printf("%s %s with PSNR %.3f ", pass ? "    PASSED:" : "FAILED:    ", test_name.c_str(), psnr);
 
-  float scene_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-  float dr_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-  float targ1_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
-  float targ2_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count();
-  float opt_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count();
-  float main_ms = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count();
+  float scene_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t2 - t1).count();
+  float dr_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t3 - t2).count();
+  float targ1_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t4 - t3).count();
+  float targ2_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t5 - t4).count();
+  float opt_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t6 - t5).count();
+  float main_ms = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t7 - t6).count();
   printf(" %.1f + %.1f ms/iter [%.1f %.1f %.1f %.1f %.1f %.1f]\n", main_ms/opt_steps, (scene_ms+dr_ms+opt_ms)/opt_steps,
          scene_ms, dr_ms, targ1_ms, targ2_ms, opt_ms, main_ms);
 }
 
-void optimization_test(const std::string &test_name,
-                       std::function<void(TriangleMesh&, TriangleMesh&)> create_mesh,
+void optimization_test(const ::std::string &test_name,
+                       ::std::function<void(TriangleMesh&, TriangleMesh&)> create_mesh,
                        const DiffRenderSettings &diff_render_settings,
                        const OptimizerParameters &opt_parameters,
                        int opt_steps = 300,
@@ -211,7 +212,7 @@ void optimization_test(const std::string &test_name,
                        int cameras_count = 3,
                        int image_w = 256,
                        int image_h = 256,
-                       std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
+                       ::std::function<::std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
 {
   optimization_test(test_name, 
                     [&](Scene &initialScene, Scene &targetScene){
@@ -294,8 +295,8 @@ void Tester::test_2_8_instancing()
                     [&](Scene &initialScene, Scene &targetScene){
                       TriangleMesh initialMesh, targetMesh;
                       scn05_Pyramid3D(initialMesh, targetMesh);
-                      std::vector<float4x4> initial_transforms;
-                      std::vector<float4x4>  target_transforms;
+                      ::std::vector<float4x4> initial_transforms;
+                      ::std::vector<float4x4>  target_transforms;
                       int tr = 2;
                       float rot = (2*M_PI)/tr;
                       for (int i=0;i<tr;i++)
@@ -360,13 +361,13 @@ void Tester::test_2_11_restricted_transforms()
                     300);
 }
 
-void mitsuba_compare_test(const std::string &test_name,
-                          std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
+void mitsuba_compare_test(const ::std::string &test_name,
+                          ::std::function<void(TriangleMesh&, TriangleMesh&)> create_scene,
                           const DiffRenderSettings &diff_render_settings,
                           int cameras_count = 3,
                           int image_w = 256,
                           int image_h = 256,
-                          std::function<std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
+                          ::std::function<::std::vector<CamInfo>(int, int, int)> create_cameras = create_cameras_around)
 {
   auto cameras = create_cameras(cameras_count, image_w, image_h);
 
@@ -432,8 +433,8 @@ void mitsuba_compare_test(const std::string &test_name,
   double image_diff = 0.0;
   for (int i=0;i<cameras_count;i++)
   {
-    std::string path1 = "output/t"+std::to_string(i)+"_1.png";
-    std::string path2 = "output/t"+std::to_string(i)+"_2.png";
+    ::std::string path1 = "output/t"+::std::to_string(i)+"_1.png";
+    ::std::string path2 = "output/t"+::std::to_string(i)+"_2.png";
     LiteImage::SaveImage(path1.c_str(), targets[i]);
     LiteImage::SaveImage(path2.c_str(), targetsOurs[i]);
     image_diff += LossAndDiffLoss(targets[i], targetsOurs[i], img);
@@ -489,7 +490,7 @@ void Tester::test_3_4_mitsuba_cube()
 
 void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float delta,
                    Img &img, const Img &target, const Img &MSEOrigin, const CamInfo& a_camData, const Scene &copy_scene,
-                   std::shared_ptr<IDiffRender> a_pDRImpl, bool geom_changed)
+                   ::std::shared_ptr<IDiffRender> a_pDRImpl, bool geom_changed)
 {
   *param += delta;
   copy_scene.invalidate_prepared_scene();
@@ -506,11 +507,11 @@ void finDiff_param(float *param, GradReal *param_diff, Img &out_diffImage, float
 }
 
 //cnt unique integers in range [from, to)
-std::vector<int> random_unique_indices(int from, int to, int cnt)
+::std::vector<int> random_unique_indices(int from, int to, int cnt)
 {
   if (cnt <= 0)
     return {};
-  std::vector<int> res;
+  ::std::vector<int> res;
   if (to - from <= cnt)
   {
     res.resize(to-from, 0);
@@ -521,7 +522,7 @@ std::vector<int> random_unique_indices(int from, int to, int cnt)
   {
     int sh_cnt = min(4*cnt, to - from);
     int step = (to - from)/sh_cnt;
-    std::vector<int> sh;
+    ::std::vector<int> sh;
     sh.reserve((to - from)/step);
     if (step == 1)
     {
@@ -534,15 +535,15 @@ std::vector<int> random_unique_indices(int from, int to, int cnt)
         sh.push_back(i + rand()%step);
     }
 
-    std::random_shuffle(sh.begin(), sh.end());
-    res = std::vector<int>(sh.begin(), sh.begin() + cnt);
+    ::std::random_shuffle(sh.begin(), sh.end());
+    res = ::std::vector<int>(sh.begin(), sh.begin() + cnt);
   }
   return res;
 }
 
-void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl,
+void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, ::std::shared_ptr<IDiffRender> a_pDRImpl,
                            const CamInfo& a_camData, DScene &d_scene, int debug_mesh_id, int max_test_vertices, int max_test_texels,
-                           std::vector<bool> &tested_mask)
+                           ::std::vector<bool> &tested_mask)
 {
   float dPos = 2.0f/float(origin.width());
   float dCol = 0.1f;
@@ -559,7 +560,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
   #define pFinDiff(param, dmesh_ptr, out_image, delta, geom_changed) \
           tested_mask[(int)((dmesh_ptr) - d_mesh.full_data())] = true; finDiff_param(param, dmesh_ptr, out_image, delta, img, target, MSEOrigin, a_camData, copy_scene, a_pDRImpl, geom_changed);
   
-  std::vector<int> debug_vertex_ids = random_unique_indices(0, mesh.vertex_count(), max_test_vertices);
+  ::std::vector<int> debug_vertex_ids = random_unique_indices(0, mesh.vertex_count(), max_test_vertices);
   Img pos_x, pos_y, pos_z;
   for(auto &i : debug_vertex_ids)
   {
@@ -576,14 +577,14 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
 
       if(outFolder != nullptr)
       {
-        std::stringstream strOut;
+        ::std::stringstream strOut;
         strOut << outFolder << "/" << "pos_xyz_" << i << ".bmp";
         auto path = strOut.str();
         LiteImage::SaveImage(path.c_str(), diffImage);
       }
       if(outFolder != nullptr)
       {
-        std::stringstream strOut;
+        ::std::stringstream strOut;
         strOut << outFolder << "/" << "orig_xyz_" << i << ".bmp";
         auto path = strOut.str();
         LiteImage::SaveImage(path.c_str(), img);
@@ -605,7 +606,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
 
         if(outFolder != nullptr)
         {
-          std::stringstream strOut;
+          ::std::stringstream strOut;
           strOut << outFolder << "/" << "color_xyz_" << i << ".bmp";
           auto path = strOut.str();
           LiteImage::SaveImage(path.c_str(), diffImage);
@@ -617,8 +618,8 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
   for (int tex_n = 0; tex_n < mesh.textures.size(); tex_n++)
   {
     CPUTexture &tex = mesh.textures[tex_n];
-    std::vector<int2> debug_texel_ids;
-    std::vector<int> dtids = random_unique_indices(0, tex.w*tex.h, max_test_texels);
+    ::std::vector<int2> debug_texel_ids;
+    ::std::vector<int> dtids = random_unique_indices(0, tex.w*tex.h, max_test_texels);
     for(auto ind : dtids)
     {
       debug_texel_ids.push_back(int2(ind % tex.w, ind / tex.w));
@@ -657,7 +658,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   {
     DScene dMesh1 = DScene(initial_scene, settings.mode, {i});
     DScene dMesh2 = DScene(initial_scene, settings.mode, {i});
-    std::vector<bool> mask(dMesh1.get_dmeshes()[0].full_size(), false);
+    ::std::vector<bool> mask(dMesh1.get_dmeshes()[0].full_size(), false);
     
     Render->commit(initial_scene);
     Render->d_render(initial_scene, &a_camData, &tmp, 1, target.width()*target.height(), dMesh1);
@@ -674,7 +675,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   return r;
 }
 
-Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, std::vector<bool> &tested_mask, bool print)
+Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_scene, DScene& grad2_scene, ::std::vector<bool> &tested_mask, bool print)
 {
   double posError = 0.0;
   double colError = 0.0;
@@ -691,32 +692,32 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
   {
     if (!tested_mask[i])
       continue;
-    double diff = std::abs(double(grad1.pos(i/3)[i%3] - grad2.pos(i/3)[i%3]));
+    double diff = ::std::abs(double(grad1.pos(i/3)[i%3] - grad2.pos(i/3)[i%3]));
     posError    += diff;
-    posLengthL1 += std::abs(grad1.pos(i/3)[i%3]) + std::abs(grad2.pos(i/3)[i%3]);
+    posLengthL1 += ::std::abs(grad1.pos(i/3)[i%3]) + ::std::abs(grad2.pos(i/3)[i%3]);
 
     if (print)
     {
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.pos(i/3)[i%3] << std::endl;
+      ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << grad1.pos(i/3)[i%3] << "\t";  
+      ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << grad2.pos(i/3)[i%3] << ::std::endl;
     }
   }
 
   if (print)
-    std::cout << "--------------------------" << std::endl;
+    ::std::cout << "--------------------------" << ::std::endl;
   if (grad1.color(0))
   {
     for(size_t i=0; i<3*grad1.vertex_count(); i++)
     {
       if (!tested_mask[3*grad1.vertex_count()+i])
         continue;
-      double diff = std::abs(double(grad1.color(i/3)[i%3] - grad2.color(i/3)[i%3]));
+      double diff = ::std::abs(double(grad1.color(i/3)[i%3] - grad2.color(i/3)[i%3]));
       colError   += diff;
-      colLengthL1 += std::abs(grad1.color(i/3)[i%3]) + std::abs(grad2.color(i/3)[i%3]);
+      colLengthL1 += ::std::abs(grad1.color(i/3)[i%3]) + ::std::abs(grad2.color(i/3)[i%3]);
       if (print)
       {
-        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
-        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << grad2.color(i/3)[i%3] << std::endl;
+        ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << grad1.color(i/3)[i%3] << "\t";  
+        ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << grad2.color(i/3)[i%3] << ::std::endl;
       }
     }
   }
@@ -733,9 +734,9 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
       {
         if (!tested_mask[off+i])
           continue;
-        double diff = std::abs(double(*(grad1.tex(t_n, i)) - *(grad2.tex(t_n, i))));
+        double diff = ::std::abs(double(*(grad1.tex(t_n, i)) - *(grad2.tex(t_n, i))));
         texError += diff;
-        texLengthL1 += std::abs(*(grad1.tex(t_n, i))) + std::abs(*(grad2.tex(t_n, i)));
+        texLengthL1 += ::std::abs(*(grad1.tex(t_n, i))) + ::std::abs(*(grad2.tex(t_n, i)));
       }
     }
   }
@@ -745,12 +746,13 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
 
   if (print)
   {
-  std::cout << "==========================" << std::endl;
-  std::cout << "GradErr[L1](vpos   ) = " << std::setw(10) << std::setprecision(4) << posError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
-  std::cout << "GradErr[L1](color  ) = " << std::setw(10) << std::setprecision(4) << colError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
-  std::cout << "GradErr[L1](texture) = " << std::setw(10) << std::setprecision(4) << texError                               << "\t which is \t" << 100.0*(texError/texLengthL1) << "%" << std::endl;
-  std::cout << "GradErr[L1](average) = " << std::setw(10) << std::setprecision(4) << totalError/double(grad1.full_size())        << "\t which is \t" << 100.0*(totalError/totalLengthL1) << "%" << std::endl;
+  ::std::cout << "==========================" << ::std::endl;
+  ::std::cout << "GradErr[L1](vpos   ) = " << ::std::setw(10) << ::std::setprecision(4) << posError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << ::std::endl;
+  ::std::cout << "GradErr[L1](color  ) = " << ::std::setw(10) << ::std::setprecision(4) << colError/double(grad1.vertex_count()*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << ::std::endl;
+  ::std::cout << "GradErr[L1](texture) = " << ::std::setw(10) << ::std::setprecision(4) << texError                               << "\t which is \t" << 100.0*(texError/texLengthL1) << "%" << ::std::endl;
+  ::std::cout << "GradErr[L1](average) = " << ::std::setw(10) << ::std::setprecision(4) << totalError/double(grad1.full_size())        << "\t which is \t" << 100.0*(totalError/totalLengthL1) << "%" << ::std::endl;
   }
 
   return DerivativesTestResults{posError/posLengthL1, colError/colLengthL1, texError/texLengthL1, totalError/totalLengthL1};
+}
 }

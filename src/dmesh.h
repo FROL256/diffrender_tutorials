@@ -10,7 +10,8 @@
 #include "Image2d.h"
 #include "utils.h"
 #include "scene.h"
-
+namespace diff_render
+{
 enum class SHADING_MODEL {UNDEFINED = 0,
                           SILHOUETTE = 1,
                           VERTEX_COLOR = 2,
@@ -141,11 +142,11 @@ public:
   static constexpr int TRANSFORM_SIZE = 12;
   static constexpr int RESTRICTED_TRANSFORM_SIZE = 7;
 protected:
-  std::vector<GradReal> data;
+  ::std::vector<GradReal> data;
   GradReal *pos_ptr = nullptr;
   GradReal *color_ptr = nullptr;
-  std::vector<int3> tex_params;
-  std::vector<GradReal *> tex_ptrs;
+  ::std::vector<int3> tex_params;
+  ::std::vector<GradReal *> tex_ptrs;
   GradReal *transform_ptr = nullptr;
   GradReal *restricted_transform_ptr = nullptr;
   int vertices = 0;
@@ -156,7 +157,7 @@ class DScene
 {
 public:
   DScene(){};
-  DScene(const Scene &scene, SHADING_MODEL mode, const std::vector<int> &dmesh_ids)
+  DScene(const Scene &scene, SHADING_MODEL mode, const ::std::vector<int> &dmesh_ids)
   {
     reset(scene, mode, dmesh_ids);
   }
@@ -190,7 +191,7 @@ public:
       }
     }
   }
-  void reset(const Scene &scene, SHADING_MODEL mode, const std::vector<int> &dmesh_ids)
+  void reset(const Scene &scene, SHADING_MODEL mode, const ::std::vector<int> &dmesh_ids)
   {
     bool need_reset = (mode != shading_model) || (dmesh_ids.size() != dmeshes.size());
     if (!need_reset)
@@ -208,7 +209,7 @@ public:
 
       for (auto mesh_id : dmesh_ids)
       {
-        max_mesh_id = std::max(max_mesh_id, mesh_id);
+        max_mesh_id = ::std::max(max_mesh_id, mesh_id);
         dmeshes.push_back(DMesh(mode, scene.get_mesh(mesh_id), scene.get_transform(mesh_id).size(), scene.get_instancing_type(mesh_id), mesh_id));
       }
       dmeshes_by_id.resize(max_mesh_id+1, nullptr);
@@ -221,12 +222,12 @@ public:
     }
   }
   DMesh *get_dmesh(int mesh_id) { return dmeshes_by_id[mesh_id]; }
-  const std::vector<DMesh> &get_dmeshes() const { return dmeshes; }
-  std::vector<DMesh> &get_dmeshes() { return dmeshes; }
+  const ::std::vector<DMesh> &get_dmeshes() const { return dmeshes; }
+  ::std::vector<DMesh> &get_dmeshes() { return dmeshes; }
   void clear()
   {
     for (auto &dm : dmeshes)
-      std::fill(dm.data.begin(), dm.data.end(), 0.0f);
+      ::std::fill(dm.data.begin(), dm.data.end(), 0.0f);
   }
   int full_size()
   {
@@ -237,8 +238,8 @@ public:
   }
   SHADING_MODEL get_shading_model() { return shading_model; }
 private:
-  std::vector<DMesh> dmeshes;
-  std::vector<DMesh*> dmeshes_by_id;
+  ::std::vector<DMesh> dmeshes;
+  ::std::vector<DMesh*> dmeshes_by_id;
   SHADING_MODEL shading_model = SHADING_MODEL::UNDEFINED;
 };
 
@@ -256,3 +257,4 @@ static inline float3 SummOfPixels(const Img& a_image)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+}

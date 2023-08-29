@@ -19,6 +19,9 @@ constexpr static int  MAXTHREADS    = 14;
 #include <memory>
 #include <iostream>
 
+void dmat_dtransforms_jac(float const mat[7], float jac[7][12]);
+namespace diff_render
+{
 
 struct Edge 
 {
@@ -51,20 +54,19 @@ struct Edge
 // for sampling edges with inverse transform sampling
 struct Sampler 
 {
-  std::vector<float> pmf; // probability mass function
-  std::vector<float> cdf;
+  ::std::vector<float> pmf; // probability mass function
+  ::std::vector<float> cdf;
 };
 
 // build a discrete CDF using edge length
-Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges);
+Sampler build_edge_sampler(const Scene &scene, const ::std::vector<Edge> &edges);
 
 // binary search for inverting the CDF in the sampler
 int sample(const Sampler &sampler, const float u);
 
 inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr);
+                      ::std::vector<::std::vector<GradReal>> &d_pos, ::std::vector<::std::vector<GradReal>> &d_tr);
 
-void dmat_dtransforms_jac(float const mat[DMesh::RESTRICTED_TRANSFORM_SIZE], float jac[DMesh::RESTRICTED_TRANSFORM_SIZE][DMesh::TRANSFORM_SIZE]);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +102,7 @@ struct DiffRender : public IDiffRender
 
     if(&scene != m_pLastPreparedScene)
     {
-      std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << std::endl;
+      ::std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << ::std::endl;
       return;
     }
     
@@ -145,7 +147,7 @@ struct DiffRender : public IDiffRender
   {  
     if(&scene != m_pLastPreparedScene)
     {
-      std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << std::endl;
+      ::std::cout << "[DiffRender::render]: error, renderer was not prepared for this scene!" << ::std::endl;
       return;
     }
 
@@ -167,7 +169,7 @@ struct DiffRender : public IDiffRender
   virtual float d_render_and_compare(const Scene &scene, const CamInfo* cams, const Img *target_images, int a_viewsNum, 
                                      const int edge_samples_in_total, DScene &d_mesh, Img* outImages = nullptr) override
   {
-    std::vector<Img> local_images(a_viewsNum);
+    ::std::vector<Img> local_images(a_viewsNum);
     Img *images = outImages ? outImages : local_images.data();
     for(int i=0;i<a_viewsNum;i++)
       images[i].resize(cams[i].width,cams[i].height);
@@ -175,7 +177,7 @@ struct DiffRender : public IDiffRender
     commit(scene);
     render(scene, cams, images, a_viewsNum);
 
-    std::vector<Img> adjoints(a_viewsNum);
+    ::std::vector<Img> adjoints(a_viewsNum);
     for(auto& im : adjoints)
       im = Img(images[0].width(), images[0].height(), float3{0, 0, 0});
 
@@ -239,10 +241,10 @@ private:
     // (1) We need to project 3d mesh to screen for correct edje sampling  
     //TODO: scene is prepared, we can project only the prepared arrays
     Scene scene2d_diff, scene2d_full;
-    std::set<Edge> edges_s;
+    ::std::set<Edge> edges_s;
     {
-      std::vector<int> diff_mesh_n = {0};
-      std::vector<bool> diff_mesh_b(scene.get_meshes().size(), false);
+      ::std::vector<int> diff_mesh_n = {0};
+      ::std::vector<bool> diff_mesh_b(scene.get_meshes().size(), false);
       for (int i = 0; i< scene.get_meshes().size(); i++)
       {
         if (d_scene.get_dmesh(i))
@@ -286,15 +288,15 @@ private:
         }
       }
     }
-    std::vector<int> map = scene.get_instance_id_mapping();
-    std::vector<int> map_2d(map.size(), 0);
+    ::std::vector<int> map = scene.get_instance_id_mapping();
+    ::std::vector<int> map_2d(map.size(), 0);
     scene2d_full.set_instance_id_mapping(map_2d);
     scene2d_full.prepare_for_render();
   
     scene2d_diff.set_instance_id_mapping(map_2d);
     scene2d_diff.prepare_for_render();
 
-    std::vector<Edge> edges = std::vector<Edge>(edges_s.begin(), edges_s.end());
+    ::std::vector<Edge> edges = ::std::vector<Edge>(edges_s.begin(), edges_s.end());
 
     // (2) prepare edge sampler
     auto edge_sampler = build_edge_sampler(scene2d_diff, edges);
@@ -302,8 +304,8 @@ private:
     // (3) do edje sampling
     // 
     prng::RandomGen gens[MAXTHREADS];
-    std::vector<std::vector<GradReal>> d_pos[MAXTHREADS];
-    std::vector<std::vector<GradReal>> d_tr[MAXTHREADS];
+    ::std::vector<::std::vector<GradReal>> d_pos[MAXTHREADS];
+    ::std::vector<::std::vector<GradReal>> d_tr[MAXTHREADS];
   
     for(int i=0;i<MAXTHREADS;i++)
     {
@@ -371,7 +373,7 @@ private:
       }
     }    
   
-    //std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << std::endl;
+    //::std::cout << " (VS_X_grad/VS_Y_grad) maxError = " << maxRelativeError*100.0f << "%" << ::std::endl;
   
     // accumulate gradient from different threads (parallel reduction/hist)
     //, logerr("dpos[%d %d] = %f",i,j,d_pos[i][j])
@@ -398,7 +400,7 @@ private:
         //optimize simple transformation parameters (translation + rotation + scale)
         accum_tr = dmesh.restricted_transform(0);
         assert(accum_tr);
-        std::vector<GradReal> accum_tr_mat(DMesh::TRANSFORM_SIZE*dmesh.instance_count(), 0);
+        ::std::vector<GradReal> accum_tr_mat(DMesh::TRANSFORM_SIZE*dmesh.instance_count(), 0);
         GradReal jac[DMesh::RESTRICTED_TRANSFORM_SIZE][DMesh::TRANSFORM_SIZE];
       
         for(int i=0;i<MAXTHREADS;i++) 
@@ -423,13 +425,14 @@ private:
   }
 
 
-  std::shared_ptr<IRayTracer> m_pTracer = nullptr;
+  ::std::shared_ptr<IRayTracer> m_pTracer = nullptr;
   int m_samples_per_pixel;
   AuxData m_aux;
 
   unsigned int m_table[qmc::QRNG_DIMENSIONS][qmc::QRNG_RESOLUTION];
-  std::vector<float> m_hammSamples;
+  ::std::vector<float> m_hammSamples;
 };
 
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings);
+::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings);
+}

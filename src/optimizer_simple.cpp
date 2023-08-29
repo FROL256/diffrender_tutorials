@@ -8,7 +8,8 @@
 #include <sstream>
 
 using namespace LiteMath;
-
+namespace diff_render
+{
 void OptimizerParameters::set_default()
 {
   if (alg == OPT_ALGORITHM::GD_Adam)
@@ -25,14 +26,14 @@ struct OptSimple : public IOptimizer
 {
   OptSimple(){}
 
-  void         Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
+  void         Init(const Scene& a_scene, ::std::shared_ptr<IDiffRender> a_pDRImpl, 
                     const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) override;
 
-  Scene Run (size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump = nullptr) override;
+  Scene Run (size_t a_numIters, float &final_error, ::std::vector<Scene> *iterations_dump = nullptr) override;
 
 protected:
   
-  typedef std::vector<std::vector<std::pair<int, float>>> IntervalLearningRate; //{offset, learning rate} for every diff. mesh
+  typedef ::std::vector<::std::vector<::std::pair<int, float>>> IntervalLearningRate; //{offset, learning rate} for every diff. mesh
 
   float EvalFunction(const Scene& mesh, DScene& gradScene);
   IntervalLearningRate GetLR(DScene& gradScene);
@@ -44,10 +45,10 @@ protected:
   size_t       m_iter = 0;
   OptimizerParameters m_params;
 
-  std::vector<GradReal> m_GSquare; ///<! m_GSquare is a vector of the sum of the squared gradients at or before iteration 'i'
-  std::vector<GradReal> m_vec; 
+  ::std::vector<GradReal> m_GSquare; ///<! m_GSquare is a vector of the sum of the squared gradients at or before iteration 'i'
+  ::std::vector<GradReal> m_vec; 
 
-  std::shared_ptr<IDiffRender> m_pDR = nullptr;
+  ::std::shared_ptr<IDiffRender> m_pDR = nullptr;
   const Img*     m_targets  = nullptr; 
   const CamInfo* m_cams     = nullptr; 
   int            m_numViews = 0;
@@ -219,7 +220,7 @@ void OptSimple::OptStep(DScene &gradScene, const IntervalLearningRate &lr)
       
       //xNext[i] = x[i] - gamma/(sqrt(GSquare[i] + epsilon));
       for (int i=0;i<gradMesh.full_size();i++)
-        grad[i] = grad[i]/( std::sqrt(m_GSquare[i] + GradReal(1e-8f)));
+        grad[i] = grad[i]/( ::std::sqrt(m_GSquare[i] + GradReal(1e-8f)));
     }
     
     for (int i=0;i<lr[lr_n].size();i++)
@@ -235,15 +236,15 @@ void OptSimple::OptStep(DScene &gradScene, const IntervalLearningRate &lr)
 
 float OptSimple::EvalFunction(const Scene& scene, DScene& gradScene)
 {
-  std::vector<Img> images(m_numViews);
+  ::std::vector<Img> images(m_numViews);
   float mse = m_pDR->d_render_and_compare(scene, m_cams, m_targets, m_numViews, m_targets[0].width()*m_targets[0].height(), gradScene, 
                                           m_params.verbose ? images.data() : nullptr);
   if (m_params.verbose)
   {
     for(int i=0;i<m_numViews;i++) 
     {
-      std::stringstream strOut;
-      strOut  << "output/rendered_opt" << i << "/render_" << std::setfill('0') << std::setw(4) << m_iter << ".bmp";
+      ::std::stringstream strOut;
+      strOut  << "output/rendered_opt" << i << "/render_" << ::std::setfill('0') << ::std::setw(4) << m_iter << ".bmp";
       auto temp = strOut.str();
       LiteImage::SaveImage(temp.c_str(), images[i]);
     }
@@ -252,7 +253,7 @@ float OptSimple::EvalFunction(const Scene& scene, DScene& gradScene)
   return mse;
 }
 
-void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImpl, 
+void OptSimple::Init(const Scene& a_scene, ::std::shared_ptr<IDiffRender> a_pDRImpl, 
                      const CamInfo* a_cams, const Img* a_images, int a_numViews, OptimizerParameters a_params) 
 { 
   assert(a_numViews > 0);
@@ -267,7 +268,7 @@ void OptSimple::Init(const Scene& a_scene, std::shared_ptr<IDiffRender> a_pDRImp
   m_params      = a_params;
 }
 
-Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *iterations_dump) 
+Scene OptSimple::Run(size_t a_numIters, float &final_error, ::std::vector<Scene> *iterations_dump) 
 { 
   DScene gradScene;
   gradScene.reset(m_scene, m_pDR->mode, m_params.differentiable_mesh_ids);
@@ -293,7 +294,7 @@ Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *
     error = EvalFunction(m_scene, gradScene);
     psnr = -10*log10(max(1e-9f,error));
     if (m_params.verbose)
-      std::cout << "iter " << trueIter << ", PSNR = " << psnr << std::endl;
+      ::std::cout << "iter " << trueIter << ", PSNR = " << psnr << ::std::endl;
     OptStep(gradScene, lr);
     OptUpdateScene(gradScene, &m_scene);
     StepDecay(iter, lr);
@@ -304,4 +305,5 @@ Scene OptSimple::Run(size_t a_numIters, float &final_error, std::vector<Scene> *
 
   final_error = error;
   return m_scene;
+}
 }

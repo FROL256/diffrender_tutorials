@@ -1,7 +1,8 @@
 #include "dmodels.h"
 #include "shade_common.h"
 #include "utils.h"
-
+namespace diff_render
+{
 static constexpr int MAX_DEPTH = 8;
 static constexpr int RR_DEPTH = 3;
 
@@ -15,9 +16,9 @@ static constexpr float Sqrt2 = 1.41421356237309504880;
 
 inline float CosTheta(const float3 &w) { return w.z; }
 inline float Cos2Theta(const float3 &w) { return w.z * w.z; }
-inline float AbsCosTheta(const float3 &w) { return std::abs(w.z); }
-inline float Sin2Theta(const float3 &w) { return std::max((float)0, (float)1 - Cos2Theta(w)); }
-inline float SinTheta(const float3 &w) { return std::sqrt(Sin2Theta(w)); }
+inline float AbsCosTheta(const float3 &w) { return ::std::abs(w.z); }
+inline float Sin2Theta(const float3 &w) { return ::std::max((float)0, (float)1 - Cos2Theta(w)); }
+inline float SinTheta(const float3 &w) { return ::std::sqrt(Sin2Theta(w)); }
 inline float TanTheta(const float3 &w) { return SinTheta(w) / CosTheta(w); }
 inline float Tan2Theta(const float3 &w) { return Sin2Theta(w) / Cos2Theta(w); }
 
@@ -50,7 +51,7 @@ inline float CosDPhi(const float3 &wa, const float3 &wb)
     float wbxy = wb.x * wb.x + wb.y * wb.y;
     if (waxy == 0 || wbxy == 0)
         return 1;
-    return clamp((wa.x * wb.x + wa.y * wb.y) / std::sqrt(waxy * wbxy), -1.0f, 1.0f);
+    return clamp((wa.x * wb.x + wa.y * wb.y) / ::std::sqrt(waxy * wbxy), -1.0f, 1.0f);
 }
 
 inline float3 Reflect(const float3 &wo, const float3 &n) { return -1.0f*wo + 2 * dot(wo, n) * n; }
@@ -59,13 +60,13 @@ inline bool Refract(const float3 &wi, const float3 &n, float eta, float3 *wt)
 {
   // Compute $\cos \theta_\roman{t}$ using Snell's law
   float cosThetaI = dot(n, wi);
-  float sin2ThetaI = std::max(float(0), float(1 - cosThetaI * cosThetaI));
+  float sin2ThetaI = ::std::max(float(0), float(1 - cosThetaI * cosThetaI));
   float sin2ThetaT = eta * eta * sin2ThetaI;
 
   // Handle total internal reflection for transmission
   if (sin2ThetaT >= 1) 
     return false;
-  float cosThetaT = std::sqrt(1 - sin2ThetaT);
+  float cosThetaT = ::std::sqrt(1 - sin2ThetaT);
   *wt = eta * (-1.0f*wi) + (eta * cosThetaI - cosThetaT) * n;
   return true;
 }
@@ -83,20 +84,20 @@ float2 ConcentricSampleDisk(const float2 &u)
 
     // Apply concentric mapping to point
     float theta, r;
-    if (std::abs(uOffset.x) > std::abs(uOffset.y)) {
+    if (::std::abs(uOffset.x) > ::std::abs(uOffset.y)) {
         r = uOffset.x;
         theta = PiOver4 * (uOffset.y / uOffset.x);
     } else {
         r = uOffset.y;
         theta = PiOver2 - PiOver4 * (uOffset.x / uOffset.y);
     }
-    return r * float2(std::cos(theta), std::sin(theta));
+    return r * float2(::std::cos(theta), ::std::sin(theta));
 }
 
 inline float3 CosineSampleHemisphere(const float2 &u) 
 {
     float2 d = ConcentricSampleDisk(u);
-    float z = std::sqrt(std::max((float)0, 1 - d.x * d.x - d.y * d.y));
+    float z = ::std::sqrt(::std::max((float)0, 1 - d.x * d.x - d.y * d.y));
     return float3(d.x, d.y, z);
 }
 
@@ -114,7 +115,7 @@ struct ExtendedSurfaceInfo
   float3 n_geom;    //geometric normal
   float3 e_x;       //x vector of local coordinate system, lays on surface
   float3 e_y;       //y vector of local coordinate system, lays on surface
-  std::vector<float> sampled_texture;  //sampled texture. Size and content depends on material
+  ::std::vector<float> sampled_texture;  //sampled texture. Size and content depends on material
 
   inline float3 WorldToLocal(const float3 &_v) const 
   {
@@ -178,8 +179,8 @@ float3 bsdf_sample_f_diffuse(const ExtendedSurfaceInfo &sInfo, const float3 &wo,
   return bsdf_val_diffuse(sInfo, wo, *wi);
 }
 
-static const std::vector<PointLight> pl{PointLight({1,0.8,0.5},2.0, {0,0.7,0.7})};
-static std::vector<float> pl_cdf;
+static const ::std::vector<PointLight> pl{PointLight({1,0.8,0.5},2.0, {0,0.7,0.7})};
+static ::std::vector<float> pl_cdf;
 
 float3 sample_light(IRayTracer *m_pTracer, const PointLight &light, 
                     const float3 &pos, float3 &light_dir, float &light_pdf, bool &visibility)
@@ -215,7 +216,7 @@ float3 direct_light(IRayTracer *m_pTracer, const ExtendedSurfaceInfo &sInfo)
     float3 light_dir_local = sInfo.WorldToLocal(light_dir);
     float3 view_dir_local = sInfo.WorldToLocal(sInfo.wo);
 
-    float3 bsdf_val = bsdf_val_diffuse(sInfo, view_dir_local, light_dir_local)*std::max(0.0f,dot(sInfo.n, light_dir));
+    float3 bsdf_val = bsdf_val_diffuse(sInfo, view_dir_local, light_dir_local)*::std::max(0.0f,dot(sInfo.n, light_dir));
     float bsdf_pdf = bsdf_pdf_diffuse(sInfo, view_dir_local, light_dir_local);
 
     L_direct = Li*bsdf_val/light_pdf;
@@ -258,10 +259,10 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer
     float pdf;
     float2 rnd = float2(((float)rand())/RAND_MAX, ((float)rand())/RAND_MAX);
 
-    float3 bsdf_val = bsdf_sample_f_diffuse(sInfo, view_dir_local, &next_ray_dir_local, rnd, &pdf);//*std::max(0.0f,dot(sInfo.n, light_dir));
+    float3 bsdf_val = bsdf_sample_f_diffuse(sInfo, view_dir_local, &next_ray_dir_local, rnd, &pdf);//*::std::max(0.0f,dot(sInfo.n, light_dir));
 
     float3 next_ray_dir = sInfo.LocalToWorld(next_ray_dir_local);
-    beta *= bsdf_val * std::max(0.0f,dot(sInfo.n_geom, next_ray_dir)) / pdf; 
+    beta *= bsdf_val * ::std::max(0.0f,dot(sInfo.n_geom, next_ray_dir)) / pdf; 
     //printf("eee (%f %f %f) %f %f\n",next_ray_dir_local.x, next_ray_dir_local.y, next_ray_dir_local.z, dot(sInfo.n_geom, next_ray_dir), pdf);
 
     ray_dir = next_ray_dir;
@@ -269,7 +270,7 @@ float3 shade<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTracer
 
     if (bounce > RR_DEPTH) 
     {
-      float q = std::max((float).05, 1 - intensity(beta));
+      float q = ::std::max((float).05, 1 - intensity(beta));
       if (((float)rand())/RAND_MAX < q)
         break;
       beta /= 1 - q;
@@ -284,4 +285,5 @@ void shade_grad<SHADING_MODEL::PATH_TEST>(const Scene &scene, IRayTracer *m_pTra
                                           const float3 val, const AuxData aux, DScene &grad)
 {
   shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
+}
 }

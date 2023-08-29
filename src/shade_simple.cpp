@@ -1,7 +1,8 @@
 
 #include "dmodels.h"
 #include "shade_common.h"
-
+namespace diff_render
+{
 template <>
 float3 shade<SHADING_MODEL::SILHOUETTE>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
@@ -171,4 +172,5 @@ void shade_grad<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_
     dm.tex(0, tc1.x, tc1.y, 1) += dtc.x * dtc.y * val.y;
     dm.tex(0, tc1.x, tc1.y, 2) += dtc.x * dtc.y * val.z;
   }
+}
 }

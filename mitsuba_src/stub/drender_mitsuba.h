@@ -1,6 +1,7 @@
 #pragma once
 #include "virtual_drender.h"
-
+namespace diff_render
+{
 struct DiffRenderMitsuba : public IDiffRender
 {
   DiffRenderMitsuba() {};
@@ -32,3 +33,4 @@ struct DiffRenderMitsuba : public IDiffRender
   SHADING_MODEL mode;
 private:
 };
+}

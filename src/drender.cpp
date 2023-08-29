@@ -1,10 +1,11 @@
 #include "drender.h"
-
-// build a discrete CDF using edge length
-Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges) 
+namespace diff_render
 {
-  std::vector<float> pmf;
-  std::vector<float> cdf;
+// build a discrete CDF using edge length
+Sampler build_edge_sampler(const Scene &scene, const ::std::vector<Edge> &edges) 
+{
+  ::std::vector<float> pmf;
+  ::std::vector<float> cdf;
   pmf.reserve(edges.size());
   cdf.reserve(edges.size() + 1);
   cdf.push_back(0);
@@ -15,8 +16,8 @@ Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges)
       cdf.push_back(pmf.back() + cdf.back());
   }
   auto length_sum = cdf.back();
-  std::for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
-  std::for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
+  ::std::for_each(pmf.begin(), pmf.end(), [&](float &p) {p /= length_sum;});
+  ::std::for_each(cdf.begin(), cdf.end(), [&](float &p) {p /= length_sum;});
   return Sampler{pmf, cdf};
 }
 
@@ -24,11 +25,11 @@ Sampler build_edge_sampler(const Scene &scene, const std::vector<Edge> &edges)
 int sample(const Sampler &sampler, const float u) 
 {
   auto cdf = sampler.cdf;
-  return clamp(std::upper_bound(cdf.begin(), cdf.end(), u) - cdf.begin() - 1, 0, cdf.size() - 2);
+  return clamp(::std::upper_bound(cdf.begin(), cdf.end(), u) - cdf.begin() - 1, 0, cdf.size() - 2);
 }
 
 inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, const float2 d_v1, const AuxData aux,
-                      std::vector<std::vector<GradReal>> &d_pos, std::vector<std::vector<GradReal>> &d_tr)
+                      ::std::vector<::std::vector<GradReal>> &d_pos, ::std::vector<::std::vector<GradReal>> &d_tr)
 {
   float3 v0_d[2] = {{0, 0, 0}, {0, 0, 0}};
   float3 v1_d[2] = {{0, 0, 0}, {0, 0, 0}};
@@ -85,55 +86,55 @@ inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, cons
   d_tr[e.mesh_n][12*tr_n + 11]+=         1*dv0_dz +         1*dv1_dz;
 }
 
-std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)
+::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)
 {
   switch (settings.mode)
   {
   case SHADING_MODEL::SILHOUETTE:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::SILHOUETTE>>();
     impl->init(settings);
     return impl;
     }
     break;    
   case SHADING_MODEL::VERTEX_COLOR:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::VERTEX_COLOR>>();
     impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::TEXTURE_COLOR:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::TEXTURE_COLOR>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::TEXTURE_COLOR>>();
     impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::LAMBERT:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::LAMBERT>>();
     impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::PHONG:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::PHONG>>();
     impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::GGX:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::GGX>>();
     impl->init(settings);
     return impl;
     }
     break;
   case SHADING_MODEL::PATH_TEST:
     {
-    auto impl = std::make_shared<DiffRender<SHADING_MODEL::PATH_TEST>>();
+    auto impl = ::std::make_shared<DiffRender<SHADING_MODEL::PATH_TEST>>();
     impl->init(settings);
     return impl;
     }
@@ -143,4 +144,5 @@ std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const 
     break;
   }
   return nullptr;
+}
 }

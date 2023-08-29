@@ -6,9 +6,9 @@
 
 #include <cstdint>
 #include <cmath>
-#include <limits>           // for std::numeric_limits
+#include <limits>           // for ::std::numeric_limits
 #include <cstring>          // for memcpy
-#include <algorithm>        // for std::min/std::max 
+#include <algorithm>        // for ::std::min/::std::max 
 #include <initializer_list> //
 
 #ifdef M_PI
@@ -42,8 +42,8 @@ namespace LiteMath
   typedef unsigned char  uchar;
 
   constexpr float EPSILON      = 1e-6f;
-  constexpr float INF_POSITIVE = +std::numeric_limits<float>::infinity();
-  constexpr float INF_NEGATIVE = -std::numeric_limits<float>::infinity();
+  constexpr float INF_POSITIVE = +::std::numeric_limits<float>::infinity();
+  constexpr float INF_NEGATIVE = -::std::numeric_limits<float>::infinity();
   
   constexpr float DEG_TO_RAD   = float(3.14159265358979323846f) / 180.0f;
   constexpr float M_PI         = float(3.14159265358979323846f);
@@ -51,10 +51,10 @@ namespace LiteMath
   constexpr float INV_PI       = 1.0f/M_PI;
   constexpr float INV_TWOPI    = 1.0f/(2.0f*M_PI);
 
-  using std::min;
-  using std::max;
-  using std::sqrt;
-  using std::abs;
+  using ::std::min;
+  using ::std::max;
+  using ::std::sqrt;
+  using ::std::abs;
 
   static inline int as_int(float x) 
   {
@@ -81,9 +81,9 @@ namespace LiteMath
   static inline uint  as_uint32(float x) { return as_uint(x); }
   static inline float as_float32(int x)  { return as_float(x);  }
 
-  static inline float clamp(float u, float a, float b) { return std::min(std::max(a, u), b); }
-  static inline uint  clamp(uint u,  uint a,  uint b)  { return std::min(std::max(a, u), b); }
-  static inline int   clamp(int u,   int a,   int b)   { return std::min(std::max(a, u), b); }
+  static inline float clamp(float u, float a, float b) { return ::std::min(::std::max(a, u), b); }
+  static inline uint  clamp(uint u,  uint a,  uint b)  { return ::std::min(::std::max(a, u), b); }
+  static inline int   clamp(int u,   int a,   int b)   { return ::std::min(::std::max(a, u), b); }
 
   inline float rnd(float s, float e)
   {
@@ -100,12 +100,12 @@ namespace LiteMath
   static inline float smoothstep(float edge0, float edge1, float x)
   {
     float  tVal = (x - edge0) / (edge1 - edge0);
-    float  t    = std::min(std::max(tVal, 0.0f), 1.0f); 
+    float  t    = ::std::min(::std::max(tVal, 0.0f), 1.0f); 
     return t * t * (3.0f - 2.0f * t);
   }
 
-  static inline float fract(float x)        { return x - std::floor(x); }
-  static inline float mod(float x, float y) { return x - y * std::floor(x/y); }
+  static inline float fract(float x)        { return x - ::std::floor(x); }
+  static inline float mod(float x, float y) { return x - y * ::std::floor(x/y); }
   static inline float sign(float x) // TODO: on some architectures we can try to effitiently check sign bit       
   { 
     if(x == 0.0f)     return 0.0f;
@@ -113,7 +113,7 @@ namespace LiteMath
     else              return +1.0f;
   } 
   
-  static inline float inversesqrt(float x) { return 1.0f/std::sqrt(x); }
+  static inline float inversesqrt(float x) { return 1.0f/::std::sqrt(x); }
   static inline float rcp(float x)         { return 1.0f/x; }
 
   static inline int sign(int x) // TODO: on some architectures we can try to effitiently check sign bit       
@@ -202,8 +202,8 @@ namespace LiteMath
   static inline void store_u(uint* p, const uint4 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(uint)*4); }  
 
 
-  static inline uint4 min  (const uint4 a, const uint4 b) { return uint4{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z), std::min(a.w, b.w)}; }
-  static inline uint4 max  (const uint4 a, const uint4 b) { return uint4{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z), std::max(a.w, b.w)}; }
+  static inline uint4 min  (const uint4 a, const uint4 b) { return uint4{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z), ::std::min(a.w, b.w)}; }
+  static inline uint4 max  (const uint4 a, const uint4 b) { return uint4{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z), ::std::max(a.w, b.w)}; }
   static inline uint4 clamp(const uint4 u, const uint4 a, const uint4 b) { return uint4{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z), clamp(u.w, a.w, b.w)}; }
   static inline uint4 clamp(const uint4 u, uint a, uint b) { return uint4{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b), clamp(u.w, a, b)}; }
   
@@ -224,10 +224,10 @@ namespace LiteMath
   static inline uint4 splat_2(const uint4 a) { return uint4{a.z, a.z, a.z, a.z}; } 
   static inline uint4 splat_3(const uint4 a) { return uint4{a.w, a.w, a.w, a.w}; } 
 
-  static inline uint hmin(const uint4 a)  { return std::min(std::min(a.x, a.y), std::min(a.z, a.w) ); }
-  static inline uint hmax(const uint4 a)  { return std::max(std::max(a.x, a.y), std::max(a.z, a.w) ); }
-  static inline uint hmin3(const uint4 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline uint hmax3(const uint4 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline uint hmin(const uint4 a)  { return ::std::min(::std::min(a.x, a.y), ::std::min(a.z, a.w) ); }
+  static inline uint hmax(const uint4 a)  { return ::std::max(::std::max(a.x, a.y), ::std::max(a.z, a.w) ); }
+  static inline uint hmin3(const uint4 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline uint hmax3(const uint4 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline uint4 shuffle_xzyw(uint4 a) { return uint4{a.x, a.z, a.y, a.w}; }
   static inline uint4 shuffle_yxzw(uint4 a) { return uint4{a.y, a.x, a.z, a.w}; }
@@ -314,12 +314,12 @@ namespace LiteMath
   static inline void store_u(int* p, const int4 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(int)*4); }  
 
 
-  static inline int4 min  (const int4 a, const int4 b) { return int4{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z), std::min(a.w, b.w)}; }
-  static inline int4 max  (const int4 a, const int4 b) { return int4{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z), std::max(a.w, b.w)}; }
+  static inline int4 min  (const int4 a, const int4 b) { return int4{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z), ::std::min(a.w, b.w)}; }
+  static inline int4 max  (const int4 a, const int4 b) { return int4{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z), ::std::max(a.w, b.w)}; }
   static inline int4 clamp(const int4 u, const int4 a, const int4 b) { return int4{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z), clamp(u.w, a.w, b.w)}; }
   static inline int4 clamp(const int4 u, int a, int b) { return int4{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b), clamp(u.w, a, b)}; }
 
-  static inline int4 abs (const int4 a) { return int4{std::abs(a.x), std::abs(a.y), std::abs(a.z), std::abs(a.w)}; } 
+  static inline int4 abs (const int4 a) { return int4{::std::abs(a.x), ::std::abs(a.y), ::std::abs(a.z), ::std::abs(a.w)}; } 
   static inline int4 sign(const int4 a) { return int4{sign(a.x), sign(a.y), sign(a.z), sign(a.w)}; }
   
   static inline  int dot(const int4 a, const int4 b)  { return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w; }
@@ -339,10 +339,10 @@ namespace LiteMath
   static inline int4 splat_2(const int4 a) { return int4{a.z, a.z, a.z, a.z}; } 
   static inline int4 splat_3(const int4 a) { return int4{a.w, a.w, a.w, a.w}; } 
 
-  static inline int hmin(const int4 a)  { return std::min(std::min(a.x, a.y), std::min(a.z, a.w) ); }
-  static inline int hmax(const int4 a)  { return std::max(std::max(a.x, a.y), std::max(a.z, a.w) ); }
-  static inline int hmin3(const int4 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline int hmax3(const int4 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline int hmin(const int4 a)  { return ::std::min(::std::min(a.x, a.y), ::std::min(a.z, a.w) ); }
+  static inline int hmax(const int4 a)  { return ::std::max(::std::max(a.x, a.y), ::std::max(a.z, a.w) ); }
+  static inline int hmin3(const int4 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline int hmax3(const int4 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline int4 shuffle_xzyw(int4 a) { return int4{a.x, a.z, a.y, a.w}; }
   static inline int4 shuffle_yxzw(int4 a) { return int4{a.y, a.x, a.z, a.w}; }
@@ -419,27 +419,27 @@ namespace LiteMath
   static inline void store_u(float* p, const float4 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(float)*4); }  
 
 
-  static inline float4 min  (const float4 a, const float4 b) { return float4{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z), std::min(a.w, b.w)}; }
-  static inline float4 max  (const float4 a, const float4 b) { return float4{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z), std::max(a.w, b.w)}; }
+  static inline float4 min  (const float4 a, const float4 b) { return float4{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z), ::std::min(a.w, b.w)}; }
+  static inline float4 max  (const float4 a, const float4 b) { return float4{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z), ::std::max(a.w, b.w)}; }
   static inline float4 clamp(const float4 u, const float4 a, const float4 b) { return float4{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z), clamp(u.w, a.w, b.w)}; }
   static inline float4 clamp(const float4 u, float a, float b) { return float4{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b), clamp(u.w, a, b)}; }
 
-  static inline float4 abs (const float4 a) { return float4{std::abs(a.x), std::abs(a.y), std::abs(a.z), std::abs(a.w)}; } 
+  static inline float4 abs (const float4 a) { return float4{::std::abs(a.x), ::std::abs(a.y), ::std::abs(a.z), ::std::abs(a.w)}; } 
   static inline float4 sign(const float4 a) { return float4{sign(a.x), sign(a.y), sign(a.z), sign(a.w)}; }
 
   static inline float4 lerp(const float4 a, const float4 b, float t) { return a + t * (b - a); }
   static inline float4 mix (const float4 a, const float4 b, float t) { return a + t * (b - a); }
-  static inline float4 floor(const float4 a)                { return float4{std::floor(a.x), std::floor(a.y), std::floor(a.z), std::floor(a.w)}; }
-  static inline float4 ceil(const float4 a)                 { return float4{std::ceil(a.x), std::ceil(a.y), std::ceil(a.z), std::ceil(a.w)}; }
+  static inline float4 floor(const float4 a)                { return float4{::std::floor(a.x), ::std::floor(a.y), ::std::floor(a.z), ::std::floor(a.w)}; }
+  static inline float4 ceil(const float4 a)                 { return float4{::std::ceil(a.x), ::std::ceil(a.y), ::std::ceil(a.z), ::std::ceil(a.w)}; }
   static inline float4 rcp (const float4 a)                 { return float4{1.0f/a.x, 1.0f/a.y, 1.0f/a.z, 1.0f/a.w}; }
   static inline float4 mod (const float4 x, const float4 y) { return x - y * floor(x/y); }
   static inline float4 fract(const float4 x)                { return x - floor(x); }
-  static inline float4 sqrt(const float4 a)                 { return float4{std::sqrt(a.x), std::sqrt(a.y), std::sqrt(a.z), std::sqrt(a.w)}; }
+  static inline float4 sqrt(const float4 a)                 { return float4{::std::sqrt(a.x), ::std::sqrt(a.y), ::std::sqrt(a.z), ::std::sqrt(a.w)}; }
   static inline float4 inversesqrt(const float4 a)          { return 1.0f/sqrt(a); }
   
   static inline  float dot(const float4 a, const float4 b)  { return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w; }
 
-  static inline  float length(const float4 a) { return std::sqrt(dot(a,a)); }
+  static inline  float length(const float4 a) { return ::std::sqrt(dot(a,a)); }
   static inline  float4 normalize(const float4 a) { float lenInv = float(1)/length(a); return a*lenInv; }
 
 
@@ -450,12 +450,12 @@ namespace LiteMath
   static inline float4 dot3v(const float4 a, const float4 b) { float res = dot3(a,b); return float4(res); }
   static inline float4 dot4v(const float4 a, const float4 b) { float res = dot(a,b);  return float4(res); }
 
-  static inline float length3(const float4 a)  { return std::sqrt(dot3(a,a)); }
-  static inline float length3f(const float4 a) { return std::sqrt(dot3(a,a)); }
-  static inline float length4(const float4 a)  { return std::sqrt(dot4(a,a)); }
-  static inline float length4f(const float4 a) { return std::sqrt(dot4(a,a)); }
-  static inline float4 length3v(const float4 a) { float res = std::sqrt(dot3(a,a)); return float4(res); }
-  static inline float4 length4v(const float4 a) { float res = std::sqrt(dot4(a,a)); return float4(res); }
+  static inline float length3(const float4 a)  { return ::std::sqrt(dot3(a,a)); }
+  static inline float length3f(const float4 a) { return ::std::sqrt(dot3(a,a)); }
+  static inline float length4(const float4 a)  { return ::std::sqrt(dot4(a,a)); }
+  static inline float length4f(const float4 a) { return ::std::sqrt(dot4(a,a)); }
+  static inline float4 length3v(const float4 a) { float res = ::std::sqrt(dot3(a,a)); return float4(res); }
+  static inline float4 length4v(const float4 a) { float res = ::std::sqrt(dot4(a,a)); return float4(res); }
   static inline float4 normalize3(const float4 a) { float lenInv = float(1)/length3(a); return a*lenInv; }
 
   static inline float4 blend(const float4 a, const float4 b, const uint4 mask) { return float4{(mask.x == 0) ? b.x : a.x, (mask.y == 0) ? b.y : a.y, (mask.z == 0) ? b.z : a.z, (mask.w == 0) ? b.w : a.w}; }
@@ -470,10 +470,10 @@ namespace LiteMath
   static inline float4 splat_2(const float4 a) { return float4{a.z, a.z, a.z, a.z}; } 
   static inline float4 splat_3(const float4 a) { return float4{a.w, a.w, a.w, a.w}; } 
 
-  static inline float hmin(const float4 a)  { return std::min(std::min(a.x, a.y), std::min(a.z, a.w) ); }
-  static inline float hmax(const float4 a)  { return std::max(std::max(a.x, a.y), std::max(a.z, a.w) ); }
-  static inline float hmin3(const float4 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline float hmax3(const float4 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline float hmin(const float4 a)  { return ::std::min(::std::min(a.x, a.y), ::std::min(a.z, a.w) ); }
+  static inline float hmax(const float4 a)  { return ::std::max(::std::max(a.x, a.y), ::std::max(a.z, a.w) ); }
+  static inline float hmin3(const float4 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline float hmax3(const float4 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline float4 shuffle_xzyw(float4 a) { return float4{a.x, a.z, a.y, a.w}; }
   static inline float4 shuffle_yxzw(float4 a) { return float4{a.y, a.x, a.z, a.w}; }
@@ -564,8 +564,8 @@ namespace LiteMath
   static inline void store_u(uint* p, const uint3 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(uint)*3); }  
 
 
-  static inline uint3 min  (const uint3 a, const uint3 b) { return uint3{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)}; }
-  static inline uint3 max  (const uint3 a, const uint3 b) { return uint3{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}; }
+  static inline uint3 min  (const uint3 a, const uint3 b) { return uint3{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z)}; }
+  static inline uint3 max  (const uint3 a, const uint3 b) { return uint3{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z)}; }
   static inline uint3 clamp(const uint3 u, const uint3 a, const uint3 b) { return uint3{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z)}; }
   static inline uint3 clamp(const uint3 u, uint a, uint b) { return uint3{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b)}; }
   
@@ -582,8 +582,8 @@ namespace LiteMath
   static inline uint3 splat_1(const uint3 a) { return uint3{a.y, a.y, a.y}; } 
   static inline uint3 splat_2(const uint3 a) { return uint3{a.z, a.z, a.z}; } 
 
-  static inline uint hmin(const uint3 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline uint hmax(const uint3 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline uint hmin(const uint3 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline uint hmax(const uint3 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline uint3 shuffle_xzy(uint3 a) { return uint3{a.x, a.z, a.y}; }
   static inline uint3 shuffle_yxz(uint3 a) { return uint3{a.y, a.x, a.z}; }
@@ -671,12 +671,12 @@ namespace LiteMath
   static inline void store_u(int* p, const int3 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(int)*3); }  
 
 
-  static inline int3 min  (const int3 a, const int3 b) { return int3{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)}; }
-  static inline int3 max  (const int3 a, const int3 b) { return int3{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}; }
+  static inline int3 min  (const int3 a, const int3 b) { return int3{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z)}; }
+  static inline int3 max  (const int3 a, const int3 b) { return int3{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z)}; }
   static inline int3 clamp(const int3 u, const int3 a, const int3 b) { return int3{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z)}; }
   static inline int3 clamp(const int3 u, int a, int b) { return int3{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b)}; }
 
-  static inline int3 abs (const int3 a) { return int3{std::abs(a.x), std::abs(a.y), std::abs(a.z)}; } 
+  static inline int3 abs (const int3 a) { return int3{::std::abs(a.x), ::std::abs(a.y), ::std::abs(a.z)}; } 
   static inline int3 sign(const int3 a) { return int3{sign(a.x), sign(a.y), sign(a.z)}; }
   
   static inline  int dot(const int3 a, const int3 b)  { return a.x*b.x + a.y*b.y + a.z*b.z; }
@@ -692,8 +692,8 @@ namespace LiteMath
   static inline int3 splat_1(const int3 a) { return int3{a.y, a.y, a.y}; } 
   static inline int3 splat_2(const int3 a) { return int3{a.z, a.z, a.z}; } 
 
-  static inline int hmin(const int3 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline int hmax(const int3 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline int hmin(const int3 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline int hmax(const int3 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline int3 shuffle_xzy(int3 a) { return int3{a.x, a.z, a.y}; }
   static inline int3 shuffle_yxz(int3 a) { return int3{a.y, a.x, a.z}; }
@@ -771,27 +771,27 @@ namespace LiteMath
   static inline void store_u(float* p, const float3 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(float)*3); }  
 
 
-  static inline float3 min  (const float3 a, const float3 b) { return float3{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)}; }
-  static inline float3 max  (const float3 a, const float3 b) { return float3{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}; }
+  static inline float3 min  (const float3 a, const float3 b) { return float3{::std::min(a.x, b.x), ::std::min(a.y, b.y), ::std::min(a.z, b.z)}; }
+  static inline float3 max  (const float3 a, const float3 b) { return float3{::std::max(a.x, b.x), ::std::max(a.y, b.y), ::std::max(a.z, b.z)}; }
   static inline float3 clamp(const float3 u, const float3 a, const float3 b) { return float3{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y), clamp(u.z, a.z, b.z)}; }
   static inline float3 clamp(const float3 u, float a, float b) { return float3{clamp(u.x, a, b), clamp(u.y, a, b), clamp(u.z, a, b)}; }
 
-  static inline float3 abs (const float3 a) { return float3{std::abs(a.x), std::abs(a.y), std::abs(a.z)}; } 
+  static inline float3 abs (const float3 a) { return float3{::std::abs(a.x), ::std::abs(a.y), ::std::abs(a.z)}; } 
   static inline float3 sign(const float3 a) { return float3{sign(a.x), sign(a.y), sign(a.z)}; }
 
   static inline float3 lerp(const float3 a, const float3 b, float t) { return a + t * (b - a); }
   static inline float3 mix (const float3 a, const float3 b, float t) { return a + t * (b - a); }
-  static inline float3 floor(const float3 a)                { return float3{std::floor(a.x), std::floor(a.y), std::floor(a.z)}; }
-  static inline float3 ceil(const float3 a)                 { return float3{std::ceil(a.x), std::ceil(a.y), std::ceil(a.z)}; }
+  static inline float3 floor(const float3 a)                { return float3{::std::floor(a.x), ::std::floor(a.y), ::std::floor(a.z)}; }
+  static inline float3 ceil(const float3 a)                 { return float3{::std::ceil(a.x), ::std::ceil(a.y), ::std::ceil(a.z)}; }
   static inline float3 rcp (const float3 a)                 { return float3{1.0f/a.x, 1.0f/a.y, 1.0f/a.z}; }
   static inline float3 mod (const float3 x, const float3 y) { return x - y * floor(x/y); }
   static inline float3 fract(const float3 x)                { return x - floor(x); }
-  static inline float3 sqrt(const float3 a)                 { return float3{std::sqrt(a.x), std::sqrt(a.y), std::sqrt(a.z)}; }
+  static inline float3 sqrt(const float3 a)                 { return float3{::std::sqrt(a.x), ::std::sqrt(a.y), ::std::sqrt(a.z)}; }
   static inline float3 inversesqrt(const float3 a)          { return 1.0f/sqrt(a); }
   
   static inline  float dot(const float3 a, const float3 b)  { return a.x*b.x + a.y*b.y + a.z*b.z; }
 
-  static inline  float length(const float3 a) { return std::sqrt(dot(a,a)); }
+  static inline  float length(const float3 a) { return ::std::sqrt(dot(a,a)); }
   static inline  float3 normalize(const float3 a) { float lenInv = float(1)/length(a); return a*lenInv; }
 
 
@@ -805,8 +805,8 @@ namespace LiteMath
   static inline float3 splat_1(const float3 a) { return float3{a.y, a.y, a.y}; } 
   static inline float3 splat_2(const float3 a) { return float3{a.z, a.z, a.z}; } 
 
-  static inline float hmin(const float3 a) { return std::min(a.x, std::min(a.y, a.z) ); }
-  static inline float hmax(const float3 a) { return std::max(a.x, std::max(a.y, a.z) ); }
+  static inline float hmin(const float3 a) { return ::std::min(a.x, ::std::min(a.y, a.z) ); }
+  static inline float hmax(const float3 a) { return ::std::max(a.x, ::std::max(a.y, a.z) ); }
 
   static inline float3 shuffle_xzy(float3 a) { return float3{a.x, a.z, a.y}; }
   static inline float3 shuffle_yxz(float3 a) { return float3{a.y, a.x, a.z}; }
@@ -890,8 +890,8 @@ namespace LiteMath
   static inline void store_u(uint* p, const uint2 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(uint)*2); }  
 
 
-  static inline uint2 min  (const uint2 a, const uint2 b) { return uint2{std::min(a.x, b.x), std::min(a.y, b.y)}; }
-  static inline uint2 max  (const uint2 a, const uint2 b) { return uint2{std::max(a.x, b.x), std::max(a.y, b.y)}; }
+  static inline uint2 min  (const uint2 a, const uint2 b) { return uint2{::std::min(a.x, b.x), ::std::min(a.y, b.y)}; }
+  static inline uint2 max  (const uint2 a, const uint2 b) { return uint2{::std::max(a.x, b.x), ::std::max(a.y, b.y)}; }
   static inline uint2 clamp(const uint2 u, const uint2 a, const uint2 b) { return uint2{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y)}; }
   static inline uint2 clamp(const uint2 u, uint a, uint b) { return uint2{clamp(u.x, a, b), clamp(u.y, a, b)}; }
   
@@ -906,8 +906,8 @@ namespace LiteMath
   static inline uint2 splat_0(const uint2 a) { return uint2{a.x, a.x}; } 
   static inline uint2 splat_1(const uint2 a) { return uint2{a.y, a.y}; } 
 
-  static inline uint hmin(const uint2 a) { return std::min(a.x, a.y); }
-  static inline uint hmax(const uint2 a) { return std::max(a.x, a.y); }
+  static inline uint hmin(const uint2 a) { return ::std::min(a.x, a.y); }
+  static inline uint hmax(const uint2 a) { return ::std::max(a.x, a.y); }
 
   static inline uint2 shuffle_yx(uint2 a) { return uint2{a.y, a.x}; }
  
@@ -981,12 +981,12 @@ namespace LiteMath
   static inline void store_u(int* p, const int2 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(int)*2); }  
 
 
-  static inline int2 min  (const int2 a, const int2 b) { return int2{std::min(a.x, b.x), std::min(a.y, b.y)}; }
-  static inline int2 max  (const int2 a, const int2 b) { return int2{std::max(a.x, b.x), std::max(a.y, b.y)}; }
+  static inline int2 min  (const int2 a, const int2 b) { return int2{::std::min(a.x, b.x), ::std::min(a.y, b.y)}; }
+  static inline int2 max  (const int2 a, const int2 b) { return int2{::std::max(a.x, b.x), ::std::max(a.y, b.y)}; }
   static inline int2 clamp(const int2 u, const int2 a, const int2 b) { return int2{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y)}; }
   static inline int2 clamp(const int2 u, int a, int b) { return int2{clamp(u.x, a, b), clamp(u.y, a, b)}; }
 
-  static inline int2 abs (const int2 a) { return int2{std::abs(a.x), std::abs(a.y)}; } 
+  static inline int2 abs (const int2 a) { return int2{::std::abs(a.x), ::std::abs(a.y)}; } 
   static inline int2 sign(const int2 a) { return int2{sign(a.x), sign(a.y)}; }
   
   static inline  int dot(const int2 a, const int2 b)  { return a.x*b.x + a.y*b.y; }
@@ -1000,8 +1000,8 @@ namespace LiteMath
   static inline int2 splat_0(const int2 a) { return int2{a.x, a.x}; } 
   static inline int2 splat_1(const int2 a) { return int2{a.y, a.y}; } 
 
-  static inline int hmin(const int2 a) { return std::min(a.x, a.y); }
-  static inline int hmax(const int2 a) { return std::max(a.x, a.y); }
+  static inline int hmin(const int2 a) { return ::std::min(a.x, a.y); }
+  static inline int hmax(const int2 a) { return ::std::max(a.x, a.y); }
 
   static inline int2 shuffle_yx(int2 a) { return int2{a.y, a.x}; }
  
@@ -1065,27 +1065,27 @@ namespace LiteMath
   static inline void store_u(float* p, const float2 a_val) { memcpy((void*)p, (void*)&a_val, sizeof(float)*2); }  
 
 
-  static inline float2 min  (const float2 a, const float2 b) { return float2{std::min(a.x, b.x), std::min(a.y, b.y)}; }
-  static inline float2 max  (const float2 a, const float2 b) { return float2{std::max(a.x, b.x), std::max(a.y, b.y)}; }
+  static inline float2 min  (const float2 a, const float2 b) { return float2{::std::min(a.x, b.x), ::std::min(a.y, b.y)}; }
+  static inline float2 max  (const float2 a, const float2 b) { return float2{::std::max(a.x, b.x), ::std::max(a.y, b.y)}; }
   static inline float2 clamp(const float2 u, const float2 a, const float2 b) { return float2{clamp(u.x, a.x, b.x), clamp(u.y, a.y, b.y)}; }
   static inline float2 clamp(const float2 u, float a, float b) { return float2{clamp(u.x, a, b), clamp(u.y, a, b)}; }
 
-  static inline float2 abs (const float2 a) { return float2{std::abs(a.x), std::abs(a.y)}; } 
+  static inline float2 abs (const float2 a) { return float2{::std::abs(a.x), ::std::abs(a.y)}; } 
   static inline float2 sign(const float2 a) { return float2{sign(a.x), sign(a.y)}; }
 
   static inline float2 lerp(const float2 a, const float2 b, float t) { return a + t * (b - a); }
   static inline float2 mix (const float2 a, const float2 b, float t) { return a + t * (b - a); }
-  static inline float2 floor(const float2 a)                { return float2{std::floor(a.x), std::floor(a.y)}; }
-  static inline float2 ceil(const float2 a)                 { return float2{std::ceil(a.x), std::ceil(a.y)}; }
+  static inline float2 floor(const float2 a)                { return float2{::std::floor(a.x), ::std::floor(a.y)}; }
+  static inline float2 ceil(const float2 a)                 { return float2{::std::ceil(a.x), ::std::ceil(a.y)}; }
   static inline float2 rcp (const float2 a)                 { return float2{1.0f/a.x, 1.0f/a.y}; }
   static inline float2 mod (const float2 x, const float2 y) { return x - y * floor(x/y); }
   static inline float2 fract(const float2 x)                { return x - floor(x); }
-  static inline float2 sqrt(const float2 a)                 { return float2{std::sqrt(a.x), std::sqrt(a.y)}; }
+  static inline float2 sqrt(const float2 a)                 { return float2{::std::sqrt(a.x), ::std::sqrt(a.y)}; }
   static inline float2 inversesqrt(const float2 a)          { return 1.0f/sqrt(a); }
   
   static inline  float dot(const float2 a, const float2 b)  { return a.x*b.x + a.y*b.y; }
 
-  static inline  float length(const float2 a) { return std::sqrt(dot(a,a)); }
+  static inline  float length(const float2 a) { return ::std::sqrt(dot(a,a)); }
   static inline  float2 normalize(const float2 a) { float lenInv = float(1)/length(a); return a*lenInv; }
 
 
@@ -1097,8 +1097,8 @@ namespace LiteMath
   static inline float2 splat_0(const float2 a) { return float2{a.x, a.x}; } 
   static inline float2 splat_1(const float2 a) { return float2{a.y, a.y}; } 
 
-  static inline float hmin(const float2 a) { return std::min(a.x, a.y); }
-  static inline float hmax(const float2 a) { return std::max(a.x, a.y); }
+  static inline float hmin(const float2 a) { return ::std::min(a.x, a.y); }
+  static inline float hmax(const float2 a) { return ::std::max(a.x, a.y); }
 
   static inline float2 shuffle_yx(float2 a) { return float2{a.y, a.x}; }
  
@@ -1140,7 +1140,7 @@ namespace LiteMath
     if (k < float(0.f))
       return float4(0.f);
     else
-      return eta * incidentVec - (eta * N_dot_I + std::sqrt(k)) * normal;
+      return eta * incidentVec - (eta * N_dot_I + ::std::sqrt(k)) * normal;
   }
   // A floating-point, surface normal vector that is facing the view direction
   static inline float4 faceforward(const float4 N, const float4 I, const float4 Ng) { return dot(I, Ng) < float(0) ? N : float(-1)*N; }
@@ -1179,7 +1179,7 @@ namespace LiteMath
     if (k < float(0.f))
       return float3(0.f);
     else
-      return eta * incidentVec - (eta * N_dot_I + std::sqrt(k)) * normal;
+      return eta * incidentVec - (eta * N_dot_I + ::std::sqrt(k)) * normal;
   }
   // A floating-point, surface normal vector that is facing the view direction
   static inline float3 faceforward(const float3 N, const float3 I, const float3 Ng) { return dot(I, Ng) < float(0) ? N : float(-1)*N; }
@@ -1218,7 +1218,7 @@ namespace LiteMath
     if (k < float(0.f))
       return float2(0.f);
     else
-      return eta * incidentVec - (eta * N_dot_I + std::sqrt(k)) * normal;
+      return eta * incidentVec - (eta * N_dot_I + ::std::sqrt(k)) * normal;
   }
   // A floating-point, surface normal vector that is facing the view direction
   static inline float2 faceforward(const float2 N, const float2 I, const float2 Ng) { return dot(I, Ng) < float(0) ? N : float(-1)*N; }
@@ -1816,8 +1816,8 @@ namespace LiteMath
   { 
     inline Box4f()
     {
-      boxMin = float4( +std::numeric_limits<float>::infinity() );
-      boxMax = float4( -std::numeric_limits<float>::infinity() );   
+      boxMin = float4( +::std::numeric_limits<float>::infinity() );
+      boxMax = float4( -::std::numeric_limits<float>::infinity() );   
     }
   
     inline Box4f(const float4 a_bMin, const float4 a_bMax)
@@ -1963,7 +1963,7 @@ namespace LiteMath
   
       // Intersected box
       res_min[axis] = tempBox2.boxMin[axis];
-      res_max[axis] = std::min(tempBox1.boxMax[axis], tempBox2.boxMax[axis]);
+      res_max[axis] = ::std::min(tempBox1.boxMax[axis], tempBox2.boxMax[axis]);
     }
     return Box4f(res_min, res_max);
   }

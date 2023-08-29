@@ -1,13 +1,14 @@
 #include "scene.h"
-
+namespace diff_render
+{
 void Scene::restore_meshes(bool restore_normals, bool restore_tangents, bool transform_to_unindexed_mesh)
 {
   for (auto &mesh : meshes)
   {
     if (restore_normals && mesh.normals.size() != mesh.vertices.size())
     {
-      mesh.normals = std::vector<float3>(mesh.vertices.size(), float3(0,0,0));
-      std::vector<int> vert_mul(mesh.vertices.size(), 0);
+      mesh.normals = ::std::vector<float3>(mesh.vertices.size(), float3(0,0,0));
+      ::std::vector<int> vert_mul(mesh.vertices.size(), 0);
 
       for (int i=0;i<mesh.indices.size(); i+=3)
       {
@@ -45,21 +46,21 @@ void Scene::restore_meshes(bool restore_normals, bool restore_tangents, bool tra
     if (transform_to_unindexed_mesh)
     {
       if (mesh.colors.size() != mesh.vertices.size())
-        mesh.colors = std::vector<float3>(mesh.vertices.size(), float3(0,0,0));
+        mesh.colors = ::std::vector<float3>(mesh.vertices.size(), float3(0,0,0));
       if (mesh.tc.size() != mesh.vertices.size())
-        mesh.tc = std::vector<float2>(mesh.vertices.size(), float2(0,0));
+        mesh.tc = ::std::vector<float2>(mesh.vertices.size(), float2(0,0));
       if (mesh.normals.size() != mesh.vertices.size())
-        mesh.normals = std::vector<float3>(mesh.vertices.size(), float3(1,0,0));
+        mesh.normals = ::std::vector<float3>(mesh.vertices.size(), float3(1,0,0));
       if (mesh.tangents.size() != mesh.vertices.size())
-        mesh.tangents = std::vector<float3>(mesh.vertices.size(), float3(0,1,0));
+        mesh.tangents = ::std::vector<float3>(mesh.vertices.size(), float3(0,1,0));
     
       int v_count = mesh.indices.size();
-      auto vertices = std::vector<float3>(v_count, float3(0,0,0));
-      auto colors = std::vector<float3>(v_count, float3(0,0,0));
-      auto tc = std::vector<float2>(v_count, float2(0,0));
-      auto normals = std::vector<float3>(v_count, float3(0,0,0));
-      auto tangents = std::vector<float3>(v_count, float3(0,0,0));
-      auto indices = std::vector<unsigned int>(v_count, 0);
+      auto vertices = ::std::vector<float3>(v_count, float3(0,0,0));
+      auto colors = ::std::vector<float3>(v_count, float3(0,0,0));
+      auto tc = ::std::vector<float2>(v_count, float2(0,0));
+      auto normals = ::std::vector<float3>(v_count, float3(0,0,0));
+      auto tangents = ::std::vector<float3>(v_count, float3(0,0,0));
+      auto indices = ::std::vector<unsigned int>(v_count, 0);
 
       int i = 0;
       for (int ind : mesh.indices)
@@ -111,7 +112,7 @@ void Scene::prepare_for_render() const
   {
     if (mesh_instancing_types[i] == RESTRICTED_TRANSFORM)
     {
-      transforms[i] = std::vector<float4x4>(restricted_transforms[i].size());
+      transforms[i] = ::std::vector<float4x4>(restricted_transforms[i].size());
       for (int j=0;j<restricted_transforms[i].size();j++)
         transforms[i][j] = restricted_transforms[i][j].to_mat();
     }
@@ -135,12 +136,12 @@ void Scene::prepare_for_render() const
   preparedData.indices.resize(meshes.size());
   for (int i=0;i<meshes.size();i++)
   {
-    preparedData.indices[i] = std::vector<std::vector<unsigned>>{transforms[i].size(), std::vector<unsigned>()};
+    preparedData.indices[i] = ::std::vector<::std::vector<unsigned>>{transforms[i].size(), ::std::vector<unsigned>()};
     for (int j=0;j<transforms[i].size();j++)
     {
       float4x4 tr = transforms[i][j];
       float4x4 n_tr = LiteMath::transpose(LiteMath::inverse4x4(tr));
-      preparedData.indices[i][j] = std::vector<unsigned>(meshes[i].indices.size(), (unsigned)-1);
+      preparedData.indices[i][j] = ::std::vector<unsigned>(meshes[i].indices.size(), (unsigned)-1);
       for (int k = 0; k < meshes[i].indices.size(); k++)
         preparedData.indices[i][j][k] = offset + meshes[i].indices[k];
       
@@ -190,3 +191,4 @@ void Scene::get_prepared_mesh(TriangleMesh &mesh) const
   mesh.tangents = preparedData.tangents;
   mesh.textures = meshes[0].textures;
 }
+} // namespace diff_render

@@ -10,7 +10,8 @@
   #include <ftw.h>
   #include <errno.h>
 #endif
-
+namespace diff_render
+{
 float LossAndDiffLoss(const Img& b, const Img& a, Img& a_outDiff)
 {
   assert(a.width()*a.height() == b.width()*b.height());
@@ -62,7 +63,7 @@ int unlink_cb_fun(const char *fpath, const struct stat *sb, int typeflag, struct
 }
 #endif
 
-void prepare_and_clear_directory(const std::string &dir)
+void prepare_and_clear_directory(const ::std::string &dir)
 {
   #ifdef WIN32
   mkdir(dir.c_str());
@@ -80,4 +81,5 @@ void prepare_and_clear_directory(const std::string &dir)
     logerr("failed to create directory %s : %s", dir.c_str(), strerror(errno));
   }
   #endif
+}
 }

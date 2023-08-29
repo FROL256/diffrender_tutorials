@@ -7,7 +7,8 @@ using LiteMath::float3;
 using LiteMath::normalize;
 using LiteMath::inverse4x4;
 using LiteMath::to_float3;
-
+namespace diff_render
+{
 //#include <iostream>
 
 //static inline float BarU( const float ray_pos[3], const float ray_dir[3], const float A[3], const float B[3], const float C[3])
@@ -74,11 +75,11 @@ struct BruteForce3D : public IRayTracer
   void Init(const Scene* pScene) override 
   {
     m_pScene = pScene;
-    //std::cout << "[BruteForce3D]: Init done" << std::endl;
+    //::std::cout << "[BruteForce3D]: Init done" << ::std::endl;
     int max_instances = 0;
     for (const auto &t : pScene->get_transforms())
-      max_instances = std::max(max_instances, (int)t.size());
-    std::vector<int> instance_ids;
+      max_instances = ::std::max(max_instances, (int)t.size());
+    ::std::vector<int> instance_ids;
     for (int i=0;i<max_instances;i++)
       instance_ids.push_back(i);
     pScene->set_instance_id_mapping(instance_ids);
@@ -130,7 +131,7 @@ struct BruteForce3D : public IRayTracer
           const float3 qvec  = cross(tvec, edge1);
           const float  e1dpv = dot(edge1, pvec);
           const float  signv = sign(e1dpv);                 // put 1.0 to enable triangle clipping
-          const float invDet = signv / std::max(signv*e1dpv, 1e-6f);
+          const float invDet = signv / ::std::max(signv*e1dpv, 1e-6f);
 
           const float v = dot(tvec, pvec)*invDet;
           const float u = dot(qvec, rayDir)*invDet;
@@ -181,8 +182,9 @@ struct BruteForce3D : public IRayTracer
 };
 
 #ifdef USE_EMBREE
-std::shared_ptr<IRayTracer> MakeEmbreeRT3D();
-std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return MakeEmbreeRT3D(); }
+::std::shared_ptr<IRayTracer> MakeEmbreeRT3D();
+::std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return MakeEmbreeRT3D(); }
 #else
-std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return std::make_shared<BruteForce3D>(); }
+::std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className) { return ::std::make_shared<BruteForce3D>(); }
 #endif
+}

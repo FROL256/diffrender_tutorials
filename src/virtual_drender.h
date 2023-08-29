@@ -3,7 +3,8 @@
 #include "dmesh.h"
 #include "camera.h"
 #include "utils.h"
-
+namespace diff_render
+{
 struct DiffRenderSettings
 {
   SHADING_MODEL mode = SHADING_MODEL::SILHOUETTE;
@@ -23,3 +24,4 @@ struct IDiffRender
                                      const int edge_samples_in_total, DScene &d_mesh, Img* outImages = nullptr) = 0;
   SHADING_MODEL mode;
 };
+}

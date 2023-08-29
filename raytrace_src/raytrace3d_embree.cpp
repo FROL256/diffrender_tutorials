@@ -6,7 +6,8 @@
 #include "raytrace.h"
 #include "LiteMath.h"
 #include "CrossRT.h"
-
+namespace diff_render
+{
 using LiteMath::dot;
 using LiteMath::sign;
 using LiteMath::cross;
@@ -25,11 +26,11 @@ struct EmbreeRT3D : public IRayTracer
   {
     m_pScene = pScene;
 
-    m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateSceneRT(""));
+    m_pAccelStruct = ::std::shared_ptr<ISceneObject>(CreateSceneRT(""));
     m_pAccelStruct->ClearGeom();
     m_pAccelStruct->ClearScene();
 
-    std::vector<int> instance_ids;
+    ::std::vector<int> instance_ids;
 
     for (int i=0;i<m_pScene->get_meshes().size();i++)
     {
@@ -47,7 +48,7 @@ struct EmbreeRT3D : public IRayTracer
     }
     m_pScene->set_instance_id_mapping(instance_ids);
     m_pAccelStruct->CommitScene(BUILD_MEDIUM);
-    //std::cout << "[EmbreeRT3D]: Init done" << std::endl;
+    //::std::cout << "[EmbreeRT3D]: Init done" << ::std::endl;
   }
 
   float3 GetCameraPos() const override
@@ -104,7 +105,7 @@ struct EmbreeRT3D : public IRayTracer
   }
 
   const Scene* m_pScene = nullptr;
-  std::shared_ptr<ISceneObject> m_pAccelStruct;
+  ::std::shared_ptr<ISceneObject> m_pAccelStruct;
 
   float4x4 m_ProjInv;
   float4x4 m_worldViewInv;
@@ -113,4 +114,5 @@ struct EmbreeRT3D : public IRayTracer
 
 };
 
-std::shared_ptr<IRayTracer> MakeEmbreeRT3D() { return std::make_shared<EmbreeRT3D>(); }
+::std::shared_ptr<IRayTracer> MakeEmbreeRT3D() { return ::std::make_shared<EmbreeRT3D>(); }
+}

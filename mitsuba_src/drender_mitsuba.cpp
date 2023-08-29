@@ -1,6 +1,8 @@
 #include "drender_mitsuba.h"
 #include "mitsuba_python_interaction.h"
 
+namespace diff_render
+{
 void DiffRenderMitsuba::init(const DiffRenderSettings &_settings)
 {
   settings = _settings;
@@ -26,7 +28,7 @@ void DiffRenderMitsuba::commit(const Scene &scene)
 DFModel DiffRenderMitsuba::scene_to_dfmodel(const Scene &scene)
 {
   PartOffsets po = {{"main_part",0}};
-  std::vector<float> m;
+  ::std::vector<float> m;
   for (int i=0;i<scene.get_meshes().size();i++)
   {
     auto &mesh = scene.get_mesh(i);
@@ -83,7 +85,7 @@ void DiffRenderMitsuba::render(const Scene &scene, const CamInfo* cams, Img *img
     rs.mitsubaVar = MitsubaInterface::MitsubaVariant::CUDA;
     rs.samples_per_pixel = settings.spp;
 
-    std::string filename = "output/mitsuba_images/tmp"+ std::to_string(i)+".png";
+    ::std::string filename = "output/mitsuba_images/tmp"+ ::std::to_string(i)+".png";
     mi.init_scene_and_settings(rs, MitsubaInterface::ModelInfo::simple_mesh("white.png", mi.get_default_material()));
     mi.render_model_to_file(model, filename, camera, mi.get_default_scene_parameters());
     res_image = LiteImage::LoadImage<float3>(filename.c_str());
@@ -104,10 +106,10 @@ float DiffRenderMitsuba::d_render_and_compare(const Scene &scene, const CamInfo*
     optimization_inited = true;
 
     //save target images
-    std::vector<std::string> target_image_dirs;
+    ::std::vector<::std::string> target_image_dirs;
     for (int i = 0; i < a_viewsNum; i++)
     {
-      std::string dir = "output/mitsuba_images/target"+ std::to_string(i)+".png";
+      ::std::string dir = "output/mitsuba_images/target"+ ::std::to_string(i)+".png";
       target_image_dirs.push_back(dir);
       LiteImage::SaveImage(dir.c_str(), target_images[i]);
     }
@@ -125,10 +127,11 @@ float DiffRenderMitsuba::d_render_and_compare(const Scene &scene, const CamInfo*
                          MitsubaInterface::ModelInfo::simple_mesh("white.png", mi.get_default_material()));
   }
   DFModel model = scene_to_dfmodel(scene);
-  std::vector<CamInfo> cameras(cams, cams + a_viewsNum);
+  ::std::vector<CamInfo> cameras(cams, cams + a_viewsNum);
   float mse = mi.render_and_compare(model, cameras, mi.get_default_scene_parameters());
   
   d_mesh.clear();
   mi.get_pos_derivatives(d_mesh.get_dmeshes()[0].pos(0), d_mesh.get_dmeshes()[0].vertex_count());
   return mse;
 }                 
+}

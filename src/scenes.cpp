@@ -1,6 +1,9 @@
 #include "scenes.h"
 #include <iostream>
+#include "cmesh.h"
 
+namespace diff_render
+{
 void scn01_TwoTrisFlat(TriangleMesh& initial, TriangleMesh& target)
 {
   TriangleMesh mesh{
@@ -91,15 +94,15 @@ void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
   transform(initial, mTransform1);
   transform(target, mTransform2);
   
-  //std::cout << "initial: [" << std::endl;
+  //::std::cout << "initial: [" << ::std::endl;
   //for(const auto& v : initial.vertices)
-  //  std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  //std::cout << "]" << std::endl << std::endl;
+  //  ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
+  //::std::cout << "]" << ::std::endl << ::std::endl;
 
-  //std::cout << "target: [" << std::endl;
+  //::std::cout << "target: [" << ::std::endl;
   //for(const auto& v : target.vertices)
-  //  std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  //std::cout << "]" << std::endl << std::endl;
+  //  ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
+  //::std::cout << "]" << ::std::endl << ::std::endl;
 }
 
 void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
@@ -160,15 +163,15 @@ void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
   transform(initial, mTransform1);
   transform(target, mTransform2);
   
-  std::cout << "initial: [" << std::endl;
+  ::std::cout << "initial: [" << ::std::endl;
   for(const auto& v : initial.vertices)
-    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  std::cout << "]" << std::endl << std::endl;
+    ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
+  ::std::cout << "]" << ::std::endl << ::std::endl;
 
-  std::cout << "target: [" << std::endl;
+  ::std::cout << "target: [" << ::std::endl;
   for(const auto& v : target.vertices)
-    std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << std::endl;
-  std::cout << "]" << std::endl << std::endl;
+    ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
+  ::std::cout << "]" << ::std::endl << ::std::endl;
 }
 
 void scn05_Pyramid3D(TriangleMesh& initial, TriangleMesh& target)
@@ -402,7 +405,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   cube.indices[24] = 2; cube.indices[25] = 1; cube.indices[26] = 6;     cube.indices[27] = 2; cube.indices[28] = 6; cube.indices[29] = 5;
   cube.indices[30] = 0; cube.indices[31] = 3; cube.indices[32] = 4;     cube.indices[33] = 0; cube.indices[34] = 4; cube.indices[35] = 7; 
 
-  cube.tc = std::vector<float2>{
+  cube.tc = ::std::vector<float2>{
     {1.0f, 1.0f},    // 0 Top
     {0.0f, 1.0f},   // 1
     {0.0f, 1.0f},    // 2
@@ -440,7 +443,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial = cube;
   target  = cube;
   
-  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //
@@ -546,7 +549,7 @@ CPUTexture WhiteTexture()
   tex.w = w;
   tex.h = h;
   tex.channels = 3;
-  tex.data = std::vector<float>(w*h*3, 0.5);
+  tex.data = ::std::vector<float>(w*h*3, 0.5);
 
   return tex;
 }
@@ -560,14 +563,12 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial = sphere;
   target  = sphere;
   
-  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
   
   //transform(initial, mTranslate);
 }
-
-#include "cmesh.h"
 
 void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
@@ -595,7 +596,7 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial.textures.emplace_back(RedGreenLinesTexture());
 
   target = initial;
-  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //
@@ -621,7 +622,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial.tc.resize(numberVertices);
   initial.indices.resize(numberIndices);
 
-  std::vector<int> missed_normals;
+  ::std::vector<int> missed_normals;
 
   for(size_t i=0;i<numberVertices;i++)
   {
@@ -638,7 +639,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   for(size_t i=0;i<numberIndices;i++)
     initial.indices[i] = tmpMesh.indices[i];
 
-  std::vector<float3> accumulated_normals(missed_normals.size(),{0,0,0});
+  ::std::vector<float3> accumulated_normals(missed_normals.size(),{0,0,0});
   int k = 0;
   for (auto &ni : missed_normals)
   {
@@ -667,7 +668,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial.textures.emplace_back(RedGreenLinesTexture());
 
   target = initial;
-  initial.textures[0].data = std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //
@@ -682,4 +683,5 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   //for(auto& v : target.vertices)
   //  v = mTransform1*v;
 
+}
 }

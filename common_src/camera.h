@@ -1,6 +1,8 @@
 #pragma once
 #include "LiteMath.h"
 
+namespace diff_render
+{
 struct CamInfo
 {
   CamInfo() = default;
@@ -40,3 +42,4 @@ struct CamInfo
     memcpy(mWVP, (float*)&mTransform, 16*sizeof(float));
   }
 };
+} // namespace diff_render

@@ -2,6 +2,8 @@
 #include "virtual_drender.h"
 #include "mitsuba_python_interaction.h"
 
+namespace diff_render
+{
 struct DiffRenderMitsuba : public IDiffRender
 {
   DiffRenderMitsuba();
@@ -23,3 +25,4 @@ private:
   MitsubaInterface mi;
   DiffRenderSettings settings;
 };
+}

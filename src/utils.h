@@ -4,7 +4,8 @@
 #include <stdarg.h>
 #include "LiteMath.h"
 #include "Image2d.h"
-
+namespace diff_render
+{
 using LiteMath::float2;
 using LiteMath::float3;
 using LiteMath::float4;
@@ -35,9 +36,10 @@ static void logerr(const char *__restrict __fmt, ...)
     va_end(args);
     fprintf(stderr,"\n");
 }
-void prepare_and_clear_directory(const std::string &dir);
+void prepare_and_clear_directory(const ::std::string &dir);
 static inline void print(const float4x4 &mat)
 {
     for (int i=0;i<4;i++)
         printf("[%f %f %f %f]\n", mat.get_row(i).x, mat.get_row(i).y, mat.get_row(i).z, mat.get_row(i).w);
+}
 }

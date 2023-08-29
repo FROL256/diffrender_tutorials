@@ -7,9 +7,9 @@
 
 namespace mesh_utils
 {
-std::vector<unsigned int> CreateQuadTriIndices(const int a_sizeX, const int a_sizeY)
+::std::vector<unsigned int> CreateQuadTriIndices(const int a_sizeX, const int a_sizeY)
 {
-  std::vector<unsigned int> indicesData(a_sizeY*a_sizeX * 6);
+  ::std::vector<unsigned int> indicesData(a_sizeY*a_sizeX * 6);
   unsigned int* indexBuf = indicesData.data();
 
   for (int i = 0; i < a_sizeY; i++)
@@ -138,7 +138,7 @@ mesh_utils::SimpleMesh mesh_utils::LoadMeshFromVSGF(AAssetManager* mgr, const ch
 
 mesh_utils::SimpleMesh mesh_utils::LoadMeshFromVSGF(const char* a_fileName)
 {
-  std::ifstream input(a_fileName, std::ios::binary);
+  ::std::ifstream input(a_fileName, ::std::ios::binary);
   if(!input.is_open())
     return SimpleMesh();
 
@@ -171,7 +171,7 @@ mesh_utils::SimpleMesh mesh_utils::LoadMeshFromVSGF(const char* a_fileName)
 
 void mesh_utils::SaveMeshToVSGF(const char* a_fileName, const SimpleMesh& a_mesh)
 {
-  std::ofstream output(a_fileName, std::ios::binary);
+  ::std::ofstream output(a_fileName, ::std::ios::binary);
 
   Header header;
   header.fileSizeInBytes = sizeof(header) + a_mesh.SizeInBytes();

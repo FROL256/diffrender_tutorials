@@ -95,7 +95,7 @@ namespace LiteImage
           Type*              data()         { return m_data.data(); }
     const Type*              data()   const { return m_data.data(); }
 
-    const std::vector<Type>& vector() const { return m_data; }
+    const ::std::vector<Type>& vector() const { return m_data; }
     unsigned int             format() const { return GetVulkanFormat<Type>(m_srgb); } 
   
     void setSRGB(bool a_val) { m_srgb = a_val; }
@@ -147,7 +147,7 @@ namespace LiteImage
   
     unsigned int m_width, m_height;
     float        m_fw,    m_fh;
-    std::vector<Type> m_data; 
+    ::std::vector<Type> m_data; 
     bool m_srgb = false;
   
   };
@@ -177,7 +177,7 @@ namespace LiteImage
     \brief Can have specific effitient implementations for various textures and samplers
   */
   template<typename Type>
-  std::shared_ptr<ICombinedImageSampler> MakeCombinedTexture2D(std::shared_ptr< Image2D<Type> > a_texture, Sampler a_sampler) 
+  ::std::shared_ptr<ICombinedImageSampler> MakeCombinedTexture2D(::std::shared_ptr< Image2D<Type> > a_texture, Sampler a_sampler) 
   { 
     // general implementation
     //
@@ -194,11 +194,11 @@ namespace LiteImage
       Sampler      sampler()     const override { return m_sampler; }
       const void*  data()        const override { return m_pTexture->data(); }
   
-      std::shared_ptr<Image2D<Type> > m_pTexture;
+      ::std::shared_ptr<Image2D<Type> > m_pTexture;
       Sampler                         m_sampler;
     };
   
-    std::shared_ptr<CobminedImageSamplerGeneral> pObj = std::make_shared<CobminedImageSamplerGeneral>();
+    ::std::shared_ptr<CobminedImageSamplerGeneral> pObj = ::std::make_shared<CobminedImageSamplerGeneral>();
     pObj->m_pTexture = a_texture;
     pObj->m_sampler  = a_sampler;
     return pObj;
@@ -222,10 +222,10 @@ namespace LiteImage
     return float(r1*r2 + g1*g2 + b1*b2); 
   }
   
-  template<typename T>    float MSE(const std::vector<T> image1, const std::vector<T> image2)
+  template<typename T>    float MSE(const ::std::vector<T> image1, const ::std::vector<T> image2)
   {
     if (image1.size() != image2.size())
-      return std::max<float>(100000.0f, float(image1.size()+image2.size()));
+      return ::std::max<float>(100000.0f, float(image1.size()+image2.size()));
 
     double summ = 0;
     //#pragma omp parallel for reduction(+:summ)
@@ -280,7 +280,7 @@ namespace LiteImage
           Note that this function in this sample works correctly _ONLY_ for 24 bit RGB ".bmp" images.
           If you want to support gray-scale images or images with palette, please upgrade its implementation.
   */
-  std::vector<unsigned int> LoadBMP(const char* filename, int* pW, int* pH);
+  ::std::vector<unsigned int> LoadBMP(const char* filename, int* pW, int* pH);
 
 }; // end namespace
 

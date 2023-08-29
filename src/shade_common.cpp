@@ -1,6 +1,7 @@
 #include "shade_common.h"
-
-std::vector<float> sample_bilinear_clamp(float2 tc, const CPUTexture &tex)
+namespace diff_render
+{
+::std::vector<float> sample_bilinear_clamp(float2 tc, const CPUTexture &tex)
 {
   tc = clamp(tc, float2(0,0), float2(1,1));
   tc *= float2(tex.w, tex.h);
@@ -12,11 +13,12 @@ std::vector<float> sample_bilinear_clamp(float2 tc, const CPUTexture &tex)
   const float *p10 = tex.get(tc1.x, tc0.y);
   const float *p11 = tex.get(tc1.x, tc1.y);
 
-  std::vector<float> res(tex.channels, 0);
+  ::std::vector<float> res(tex.channels, 0);
   for (int i = 0; i < tex.channels; i++)
   {
     res[i] = (1 - dtc.x) * (1 - dtc.y) * p00[i] + (1 - dtc.x) * dtc.y * p01[i] + dtc.x * (1 - dtc.y) * p10[i] + dtc.x * dtc.y * p11[i];
   }
 
   return res;
+}
 }

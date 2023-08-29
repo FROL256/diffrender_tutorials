@@ -1,6 +1,8 @@
 #include "dmodels.h"
 #include "shade_common.h"
 
+namespace diff_render
+{
 template <>
 float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos)
 {
@@ -28,7 +30,7 @@ float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, 
 
   float3 surf_pos = ray_pos + (surfInfo.t-BIAS)*ray_dir;
   float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).primId == unsigned(-1) ? 1 : 0;
-  return (shade*light_color*std::max(0.0f,dot(n,-1.0f*light_dir)) + ambient_light_color)*diffuse;
+  return (shade*light_color*::std::max(0.0f,dot(n,-1.0f*light_dir)) + ambient_light_color)*diffuse;
 }
 
 template <>
@@ -71,7 +73,7 @@ float3 shade<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer, co
   float shade = m_pTracer->GetNearestHit(surf_pos, -1.0f*light_dir).primId == unsigned(-1) ? 1 : 0;
   float3 view_dir = ray_dir;
   float3 reflect = light_dir - 2.0f*dot(n,light_dir)*n;
-  return (shade*light_color*(Kd*std::max(0.0f,dot(n,-1.0f*light_dir)) + Ks*pow(std::max(0.0f,dot(n,reflect)),spec_pow)) + ambient_light_color*Ka)*diffuse;
+  return (shade*light_color*(Kd*::std::max(0.0f,dot(n,-1.0f*light_dir)) + Ks*pow(::std::max(0.0f,dot(n,reflect)),spec_pow)) + ambient_light_color*Ka)*diffuse;
 }
 
 template <>
@@ -83,7 +85,7 @@ void shade_grad<SHADING_MODEL::PHONG>(const Scene &scene, IRayTracer *m_pTracer,
 
 float saturate(float x)
 {
-  return std::max(0.0f, std::min(1.0f, x));
+  return ::std::max(0.0f, ::std::min(1.0f, x));
 }
 
 float G1V(float dotNV, float k)
@@ -153,7 +155,7 @@ float3 shade<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, cons
   float3 view_dir = ray_dir;
   float3 reflect = light_dir - 2.0f*dot(n,light_dir)*n;
   float ggx_res = LightingFuncGGX(n, -1.0f*view_dir, -1.0f*light_dir, 0.2, 0.8);
-  return (shade*light_color*(std::max(0.0f,dot(n,-1.0f*light_dir)) + ggx_res) + Ka*ambient_light_color)*diffuse;
+  return (shade*light_color*(::std::max(0.0f,dot(n,-1.0f*light_dir)) + ggx_res) + Ka*ambient_light_color)*diffuse;
 }
 
 template <>
@@ -161,4 +163,5 @@ void shade_grad<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, c
                                     const float3 val, const AuxData aux, DScene &grad)
 {
   shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
+}
 }

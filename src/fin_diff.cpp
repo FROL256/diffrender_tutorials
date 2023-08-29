@@ -17,8 +17,10 @@ using namespace LiteMath;
 #include "drender.h"
 
 constexpr static int SAM_PER_PIXEL = 16;
+namespace diff_render
+{
 
-void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
+void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, ::std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
                DScene &d_scene, float dPos = 1.0f, float dCol = 0.01f) 
 {
   int debug_mesh_id = 0;
@@ -132,7 +134,7 @@ void d_finDiff(const Scene &scene, const char* outFolder, const Img& origin, con
 
 }
 
-void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
+void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, const Img& target, ::std::shared_ptr<IDiffRender> a_pDRImpl, const CamInfo& a_camData,
                 DScene &d_scene, float dPos = 1.0f, float dCol = 0.01f) 
 {
   int debug_mesh_id = 0;
@@ -199,7 +201,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
 
     if(outFolder != nullptr)
     {
-      std::stringstream strOut;
+      ::std::stringstream strOut;
       strOut << outFolder << "/" << "pos_xyz_" << i << ".bmp";
       auto path = strOut.str();
       LiteImage::SaveImage(path.c_str(), diffImage);
@@ -266,7 +268,7 @@ void d_finDiff2(const Scene &scene, const char* outFolder, const Img& origin, co
 
     if(outFolder != nullptr)
     {
-      std::stringstream strOut;
+      ::std::stringstream strOut;
       strOut << outFolder << "/" << "col_" << i << ".bmp";
       auto path = strOut.str();
       LiteImage::SaveImage(path.c_str(), diffImage); // 
@@ -293,31 +295,32 @@ void PrintAndCompareGradients(const DScene& grad1, const DScene& grad2)
   {
     for(size_t i=0;i<3*dm1[dmn].vertices;i++) 
     {
-      double diff = std::abs(double(dm1[dmn].pos_ptr[i] - dm2[dmn].pos_ptr[i]));
+      double diff = ::std::abs(double(dm1[dmn].pos_ptr[i] - dm2[dmn].pos_ptr[i]));
       posError    += diff;
       totalError  += diff;
-      posLengthL1 += std::abs(dm2[dmn].pos_ptr[i]);
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm1[dmn].pos_ptr[i] << "\t";  
-      std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm2[dmn].pos_ptr[i] << std::endl;
+      posLengthL1 += ::std::abs(dm2[dmn].pos_ptr[i]);
+      ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << dm1[dmn].pos_ptr[i] << "\t";  
+      ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << dm2[dmn].pos_ptr[i] << ::std::endl;
     }
 
     if (dm1[dmn].color_ptr)
     {
-      std::cout << "--------------------------" << std::endl;
+      ::std::cout << "--------------------------" << ::std::endl;
       for(size_t i=0;i<3*dm1[dmn].vertices;i++) 
       {
-        double diff = std::abs(double(dm1[dmn].color_ptr[i] - dm2[dmn].color_ptr[i]));
+        double diff = ::std::abs(double(dm1[dmn].color_ptr[i] - dm2[dmn].color_ptr[i]));
         colError   += diff;
         totalError += diff;
-        colLengthL1 += std::abs(dm2[dmn].color_ptr[i]);
-        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm1[dmn].color_ptr[i] << "\t";  
-        std::cout << std::fixed << std::setw(8) << std::setprecision(4) << dm2[dmn].color_ptr[i] << std::endl;
+        colLengthL1 += ::std::abs(dm2[dmn].color_ptr[i]);
+        ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << dm1[dmn].color_ptr[i] << "\t";  
+        ::std::cout << ::std::fixed << ::std::setw(8) << ::std::setprecision(4) << dm2[dmn].color_ptr[i] << ::std::endl;
       }
     }
     
-    std::cout << "==========================" << std::endl;
-    std::cout << "GradErr[L1](vpos ) = " << posError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << std::endl;
-    std::cout << "GradErr[L1](color) = " << colError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << std::endl;
-    std::cout << "GradErr[L1](total) = " << totalError/double(dm1[dmn].data.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << std::endl;
+    ::std::cout << "==========================" << ::std::endl;
+    ::std::cout << "GradErr[L1](vpos ) = " << posError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(posError/posLengthL1) << "%" << ::std::endl;
+    ::std::cout << "GradErr[L1](color) = " << colError/double(dm1[dmn].vertices*3)    << "\t which is \t" << 100.0*(colError/colLengthL1) << "%" << ::std::endl;
+    ::std::cout << "GradErr[L1](total) = " << totalError/double(dm1[dmn].data.size()) << "\t which is \t" << 100.0*(totalError/(posLengthL1+colLengthL1)) << "%" << ::std::endl;
   }
+}
 }

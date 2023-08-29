@@ -39,6 +39,8 @@ double dsquare(double x) {
     return __enzyme_autodiff((void*) square, x);
 }
 
+using namespace diff_render;
+
 #ifdef USE_CUSTOM_DIFF_RENDER
 int custom_diff_render_main(int argc, char *argv[])
 #else
@@ -53,7 +55,7 @@ int main(int argc, char *argv[]) //
   prepare_and_clear_directory("output/rendered_opt2");
   prepare_and_clear_directory("output/fin_diff");
 
-  if (argc > 1 && std::string(argv[1]) == "-tests")
+  if (argc > 1 && ::std::string(argv[1]) == "-tests")
   {
     Tester t;
     t.test_base_derivatives();
@@ -136,7 +138,7 @@ int main(int argc, char *argv[]) //
   pDRender->render(targetScene, cameras, targets, camsNum);
 
   for(int i=0;i<camsNum;i++) {
-    std::stringstream strOut;
+    ::std::stringstream strOut;
     strOut  << "output/rendered_opt" << i << "/z_target.bmp";
     auto temp = strOut.str();
     LiteImage::SaveImage(temp.c_str(), targets[i]);
@@ -152,10 +154,10 @@ int main(int argc, char *argv[]) //
 
   float error = 0;
   int iters = 300;
-  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+  ::std::chrono::steady_clock::time_point t1 = ::std::chrono::steady_clock::now();
   Scene res_scene = pOpt->Run(iters, error);
-  std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-  float r = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+  ::std::chrono::steady_clock::time_point t2 = ::std::chrono::steady_clock::now();
+  float r = 1e-3 * ::std::chrono::duration_cast<::std::chrono::microseconds>(t2 - t1).count();
   logerr("optimization took %.1f ms per iteration\n", r/iters);
   
   //img.clear(float3{0,0,0});

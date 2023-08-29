@@ -1,4 +1,5 @@
 #include "drender.h"
+
 int enzyme_dupnoneed;
 int enzyme_dupnoneedv;
 int enzyme_dup;
@@ -7,7 +8,8 @@ int enzyme_width;
 
 void __enzyme_fwddiff(void*, ...);
 void __enzyme_autodiff(void*, ...);
-
+namespace diff_render
+{
 inline void translate(float mat[DMesh::TRANSFORM_SIZE], float x, float y, float z) 
 {
   mat[0*4 + 3] += x;
@@ -73,7 +75,7 @@ inline void rotate_z(float r, float out[DMesh::TRANSFORM_SIZE])
   out[8] = 0.0f; out[9] = 0.0f; out[10]= 1   ; out[11]= 0.0f;  
 }
 
-void f(float x[DMesh::RESTRICTED_TRANSFORM_SIZE], float out[DMesh::TRANSFORM_SIZE]) 
+void dmat_dtransforms_jac_f(float x[DMesh::RESTRICTED_TRANSFORM_SIZE], float out[DMesh::TRANSFORM_SIZE]) 
 {
   float sc   [DMesh::TRANSFORM_SIZE];
   float rot_x[DMesh::TRANSFORM_SIZE];
@@ -91,14 +93,15 @@ void f(float x[DMesh::RESTRICTED_TRANSFORM_SIZE], float out[DMesh::TRANSFORM_SIZ
 
   translate(out, x[0], x[1], x[2]);//out = translate*rot_z*rot_y*rot_x*scale
 }
-void dmat_dtransforms_jac(float const mat[DMesh::RESTRICTED_TRANSFORM_SIZE], float jac[DMesh::RESTRICTED_TRANSFORM_SIZE][DMesh::TRANSFORM_SIZE])
+}
+void dmat_dtransforms_jac(float const mat[diff_render::DMesh::RESTRICTED_TRANSFORM_SIZE], float jac[diff_render::DMesh::RESTRICTED_TRANSFORM_SIZE][diff_render::DMesh::TRANSFORM_SIZE])
 {
-    float out[DMesh::TRANSFORM_SIZE] = {0};
-    float v[DMesh::RESTRICTED_TRANSFORM_SIZE] = {0};
-    for(int i = 0; i < DMesh::RESTRICTED_TRANSFORM_SIZE; i++) 
+    float out[diff_render::DMesh::TRANSFORM_SIZE] = {0};
+    float v[diff_render::DMesh::RESTRICTED_TRANSFORM_SIZE] = {0};
+    for(int i = 0; i < diff_render::DMesh::RESTRICTED_TRANSFORM_SIZE; i++) 
     {
       v[i] = 1;
-      __enzyme_fwddiff((void*)f, mat, v, enzyme_dupnoneed, out, jac[i]);
+      __enzyme_fwddiff((void*)diff_render::dmat_dtransforms_jac_f, mat, v, enzyme_dupnoneed, out, jac[i]);
       v[i] = 0;
     }
 }

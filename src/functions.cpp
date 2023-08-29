@@ -1,6 +1,7 @@
 #include "functions.h"
 #include "LiteMath.h"
-
+namespace diff_render
+{
 /*
 static inline float VS_X(float V[3], const CamInfo& data) // same as VertexShader().x
 {
@@ -706,5 +707,5 @@ void BarU_grad(const float ray_pos[3], const float ray_dir[3], const float A[3],
         _d_A[0] += -_d_edge1X;
     }
 }
-
+}
 

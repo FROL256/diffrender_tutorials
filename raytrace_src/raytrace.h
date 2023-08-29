@@ -4,6 +4,8 @@
 #include "camera.h"
 #include <memory>
 
+namespace diff_render
+{
 // /**
 // \brief API to ray-scene intersection on CPU
 // */
@@ -38,7 +40,7 @@ struct IRayTracer
   virtual SurfaceInfo GetNearestHit(float3 rayPos, float3 rayDir, float tNear = 0.0f, float tFar = 1e9f) = 0;
 };
 
-std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);
+::std::shared_ptr<IRayTracer> MakeRayTracer3D(const char* className);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,4 +73,5 @@ static inline void transform_ray3f(LiteMath::float4x4 a_mWorldViewInv, float3* r
 
   (*ray_pos)  = pos;
   (*ray_dir)  = normalize(diff);
+}
 }

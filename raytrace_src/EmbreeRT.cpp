@@ -37,10 +37,10 @@ protected:
     size_t vByteStride = 0;
   };
 
-  std::vector<RTCScene>    m_blas;
-  std::vector<BlasInfo>    m_blasInfo;
-  std::vector<RTCGeometry> m_inst;
-  std::vector<uint32_t>    m_geomIdByInstId;
+  ::std::vector<RTCScene>    m_blas;
+  ::std::vector<BlasInfo>    m_blasInfo;
+  ::std::vector<RTCGeometry> m_inst;
+  ::std::vector<uint32_t>    m_geomIdByInstId;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,20 +67,20 @@ void error_handler(void* userPtr, const RTCError code, const char* str)
   if (code == RTC_ERROR_NONE)
     return;
   
-  std::cout << ("Embree: ");
+  ::std::cout << ("Embree: ");
   switch (code) {
-  case RTC_ERROR_UNKNOWN          : std::cout << "RTC_ERROR_UNKNOWN"; break;
-  case RTC_ERROR_INVALID_ARGUMENT : std::cout << "RTC_ERROR_INVALID_ARGUMENT"; break;
-  case RTC_ERROR_INVALID_OPERATION: std::cout << "RTC_ERROR_INVALID_OPERATION"; break;
-  case RTC_ERROR_OUT_OF_MEMORY    : std::cout << "RTC_ERROR_OUT_OF_MEMORY"; break;
-  case RTC_ERROR_UNSUPPORTED_CPU  : std::cout << "RTC_ERROR_UNSUPPORTED_CPU"; break;
-  case RTC_ERROR_CANCELLED        : std::cout << "RTC_ERROR_CANCELLED"; break;
-  default                         : std::cout << "invalid error code"; break;
+  case RTC_ERROR_UNKNOWN          : ::std::cout << "RTC_ERROR_UNKNOWN"; break;
+  case RTC_ERROR_INVALID_ARGUMENT : ::std::cout << "RTC_ERROR_INVALID_ARGUMENT"; break;
+  case RTC_ERROR_INVALID_OPERATION: ::std::cout << "RTC_ERROR_INVALID_OPERATION"; break;
+  case RTC_ERROR_OUT_OF_MEMORY    : ::std::cout << "RTC_ERROR_OUT_OF_MEMORY"; break;
+  case RTC_ERROR_UNSUPPORTED_CPU  : ::std::cout << "RTC_ERROR_UNSUPPORTED_CPU"; break;
+  case RTC_ERROR_CANCELLED        : ::std::cout << "RTC_ERROR_CANCELLED"; break;
+  default                         : ::std::cout << "invalid error code"; break;
   }
   if (str) {
-    std::cout << " (";
-    while (*str) std::cout << (*str++);
-    std::cout << ")\n";
+    ::std::cout << " (";
+    while (*str) ::std::cout << (*str++);
+    ::std::cout << ")\n";
   }
   exit(1);
 }
@@ -127,19 +127,19 @@ uint32_t EmbreeRT::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumbe
 
   if(vByteStride % sizeof(float) != 0)
   {
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f; bat vByteStride; it should be multiple of sizeof(float)" << std::endl;  
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f; bat vByteStride; it should be multiple of sizeof(float)" << ::std::endl;  
     return uint32_t(-1);
   }
 
   if(a_vpos3f == nullptr)
   {
-    std::cout << "[EmbreeRT]::AddGeom_Triangles3f, nullptr input: a_vpos3f" << std::endl;
+    ::std::cout << "[EmbreeRT]::AddGeom_Triangles3f, nullptr input: a_vpos3f" << ::std::endl;
     return uint32_t(-1);
   }
 
   if(a_triIndices == nullptr)
   {
-    std::cout << "[EmbreeRT]::AddGeom_Triangles3f, nullptr input: a_triIndices" << std::endl;
+    ::std::cout << "[EmbreeRT]::AddGeom_Triangles3f, nullptr input: a_triIndices" << ::std::endl;
     return uint32_t(-1);
   }
 
@@ -175,30 +175,30 @@ uint32_t EmbreeRT::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumbe
 
 void EmbreeRT::UpdateGeom_Triangles3f(uint32_t a_geomId, const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride)
 {
-  //std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f is not implemented yet!" << std::endl;  
+  //::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f is not implemented yet!" << ::std::endl;  
   //return;
   if(a_geomId >= m_blas.size())
   {
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, nullptr input: a_triIndices" << std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, nullptr input: a_triIndices" << ::std::endl;
     return;
   }
   auto meshInfo = m_blasInfo[a_geomId];
   if(a_indNumber > meshInfo.indicesNum)
   {
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'index buffer', this is not supported" << std::endl;
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.indicesNum << ", new size = " << a_indNumber << std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'index buffer', this is not supported" << ::std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.indicesNum << ", new size = " << a_indNumber << ::std::endl;
     return;
   }
   if(a_vertNumber > meshInfo.verticesNum)
   {
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'vertex buffer', this is not supported" << std::endl;
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.verticesNum << ", new size = " << a_vertNumber << std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't resize 'vertex buffer', this is not supported" << ::std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old size = " << meshInfo.verticesNum << ", new size = " << a_vertNumber << ::std::endl;
     return;
   }
   if(vByteStride != meshInfo.vByteStride)
   {
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't change stride for 'vertex buffer', this is not supported by 'EmbreeRT' impl;" << std::endl;
-    std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old stride = " << meshInfo.vByteStride << ", new stride = " << vByteStride << std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, can't change stride for 'vertex buffer', this is not supported by 'EmbreeRT' impl;" << ::std::endl;
+    ::std::cout << "[EmbreeRT]::UpdateGeom_Triangles3f, old stride = " << meshInfo.vByteStride << ", new stride = " << vByteStride << ::std::endl;
     return;
   }
 
@@ -282,7 +282,7 @@ CRT_Hit  EmbreeRT::RayQuery_NearestHit(LiteMath::float4 posAndNear, LiteMath::fl
   rayhit.ray.dir_x = dirAndFar.x;
   rayhit.ray.dir_y = dirAndFar.y;
   rayhit.ray.dir_z = dirAndFar.z;
-  rayhit.ray.tfar  = dirAndFar.w; // std::numeric_limits<float>::infinity();
+  rayhit.ray.tfar  = dirAndFar.w; // ::std::numeric_limits<float>::infinity();
   
   rayhit.ray.mask   = -1;
   rayhit.ray.flags  = 0;
@@ -337,7 +337,7 @@ bool EmbreeRT::RayQuery_AnyHit(LiteMath::float4 posAndNear, LiteMath::float4 dir
   ray.dir_x = dirAndFar.x;
   ray.dir_y = dirAndFar.y;
   ray.dir_z = dirAndFar.z;
-  ray.tfar  = dirAndFar.w; // std::numeric_limits<float>::infinity();
+  ray.tfar  = dirAndFar.w; // ::std::numeric_limits<float>::infinity();
 
   rtcOccluded1(m_scene, &context, &ray);  
 
