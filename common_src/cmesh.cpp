@@ -5,6 +5,8 @@
 #include <cstring>
 #include <fstream>
 
+namespace mesh_utils
+{
 std::vector<unsigned int> CreateQuadTriIndices(const int a_sizeX, const int a_sizeY)
 {
   std::vector<unsigned int> indicesData(a_sizeY*a_sizeX * 6);
@@ -25,8 +27,8 @@ std::vector<unsigned int> CreateQuadTriIndices(const int a_sizeX, const int a_si
 
   return indicesData;
 }
-
-cmesh::SimpleMesh cmesh::CreateQuad(const int a_sizeX, const int a_sizeY, const float a_size)
+}
+mesh_utils::SimpleMesh mesh_utils::CreateQuad(const int a_sizeX, const int a_sizeY, const float a_size)
 {
   const int vertNumX = a_sizeX + 1;
   const int vertNumY = a_sizeY + 1;
@@ -34,7 +36,7 @@ cmesh::SimpleMesh cmesh::CreateQuad(const int a_sizeX, const int a_sizeY, const 
   const int quadsNum = a_sizeX*a_sizeY;
   const int vertNum  = vertNumX*vertNumY;
 
-  cmesh::SimpleMesh res(vertNum, quadsNum*2*3);
+  mesh_utils::SimpleMesh res(vertNum, quadsNum*2*3);
 
   const float edgeLength  = a_size / float(a_sizeX);
   const float edgeLength2 = sqrtf(2.0f)*edgeLength;
@@ -92,7 +94,7 @@ struct Header
 };
 
 #if defined(__ANDROID__)
-cmesh::SimpleMesh cmesh::LoadMeshFromVSGF(AAssetManager* mgr, const char* a_fileName)
+mesh_utils::SimpleMesh mesh_utils::LoadMeshFromVSGF(AAssetManager* mgr, const char* a_fileName)
 {
   AAsset* asset = AAssetManager_open(mgr, a_fileName, AASSET_MODE_STREAMING);
   if (!asset)
@@ -134,7 +136,7 @@ cmesh::SimpleMesh cmesh::LoadMeshFromVSGF(AAssetManager* mgr, const char* a_file
 
 #else
 
-cmesh::SimpleMesh cmesh::LoadMeshFromVSGF(const char* a_fileName)
+mesh_utils::SimpleMesh mesh_utils::LoadMeshFromVSGF(const char* a_fileName)
 {
   std::ifstream input(a_fileName, std::ios::binary);
   if(!input.is_open())
@@ -167,7 +169,7 @@ cmesh::SimpleMesh cmesh::LoadMeshFromVSGF(const char* a_fileName)
 
 #endif
 
-void cmesh::SaveMeshToVSGF(const char* a_fileName, const SimpleMesh& a_mesh)
+void mesh_utils::SaveMeshToVSGF(const char* a_fileName, const SimpleMesh& a_mesh)
 {
   std::ofstream output(a_fileName, std::ios::binary);
 
@@ -200,7 +202,7 @@ void cmesh::SaveMeshToVSGF(const char* a_fileName, const SimpleMesh& a_mesh)
   output.close();
 }
 
-float cmesh::SimpleMesh::GetAvgTriArea() const
+float mesh_utils::SimpleMesh::GetAvgTriArea() const
 {
   long double res = 0.0f;
   for(size_t i = 0; i < TrianglesNum(); i++)
@@ -228,7 +230,7 @@ float cmesh::SimpleMesh::GetAvgTriArea() const
   return float(res);
 }
 
-float cmesh::SimpleMesh::GetAvgTriPerimeter() const
+float mesh_utils::SimpleMesh::GetAvgTriPerimeter() const
 {
   long double res = 0.0f;
   for(size_t i = 0; i < TrianglesNum(); i++)
@@ -254,7 +256,7 @@ float cmesh::SimpleMesh::GetAvgTriPerimeter() const
 }
 
 
-void cmesh::SimpleMesh::ApplyMatrix(const LiteMath::float4x4& m)
+void mesh_utils::SimpleMesh::ApplyMatrix(const LiteMath::float4x4& m)
 {
   LiteMath::float4x4 mRot;
   

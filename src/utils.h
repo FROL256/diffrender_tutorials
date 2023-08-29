@@ -35,7 +35,7 @@ static void logerr(const char *__restrict __fmt, ...)
     va_end(args);
     fprintf(stderr,"\n");
 }
-void prepare_directory(const std::string &dir);
+void prepare_and_clear_directory(const std::string &dir);
 static inline void print(const float4x4 &mat)
 {
     for (int i=0;i<4;i++)

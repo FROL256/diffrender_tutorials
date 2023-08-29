@@ -2,9 +2,13 @@
 #include "Image2d.h"
 #define USE_STB_IMAGE
 #ifdef USE_STB_IMAGE
-  #define STB_IMAGE_IMPLEMENTATION
+  #ifndef USE_CUSTOM_DIFF_RENDER
+    #define STB_IMAGE_IMPLEMENTATION
+  #endif
   #include "stb_image.h"
-  #define STB_IMAGE_WRITE_IMPLEMENTATION
+  #ifndef USE_CUSTOM_DIFF_RENDER
+    #define STB_IMAGE_WRITE_IMPLEMENTATION
+  #endif
   #include "stb_image_write.h"
 #endif
 

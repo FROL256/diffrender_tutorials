@@ -46,7 +46,7 @@ void CHECK_NaN(float3 f)
 }
 
 #ifndef WIN32
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+int unlink_cb_fun(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
 {
     int rv;
 
@@ -62,7 +62,7 @@ int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 }
 #endif
 
-void prepare_directory(const std::string &dir)
+void prepare_and_clear_directory(const std::string &dir)
 {
   #ifdef WIN32
   mkdir(dir.c_str());
@@ -71,7 +71,7 @@ void prepare_directory(const std::string &dir)
   int res = mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   if (res == 0 || errno == EEXIST)
   {
-    res = nftw(dir.c_str(), unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+    res = nftw(dir.c_str(), unlink_cb_fun, 64, FTW_DEPTH | FTW_PHYS);
     if (res != 0)
       logerr("failed to clear directory %s : %s", dir.c_str(), strerror(errno));
   }

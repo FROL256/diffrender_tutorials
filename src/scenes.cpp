@@ -571,8 +571,8 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
 void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
-  //cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot_16K.vsgf");
-  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/vase.vsgf");
+  //mesh_utils::SimpleMesh tmpMesh   = mesh_utils::LoadMeshFromVSGF("data/meshes/teapot_16K.vsgf");
+  mesh_utils::SimpleMesh tmpMesh   = mesh_utils::LoadMeshFromVSGF("data/meshes/vase.vsgf");
   const size_t numberVertices = tmpMesh.VerticesNum();
   const size_t numberIndices  = tmpMesh.IndicesNum();
 
@@ -610,8 +610,8 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 
 void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
 {
-  cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/teapot.vsgf");
-  //cmesh::SimpleMesh tmpMesh   = cmesh::LoadMeshFromVSGF("data/meshes/vase.vsgf");
+  mesh_utils::SimpleMesh tmpMesh   = mesh_utils::LoadMeshFromVSGF("data/meshes/teapot.vsgf");
+  //mesh_utils::SimpleMesh tmpMesh   = mesh_utils::LoadMeshFromVSGF("data/meshes/vase.vsgf");
   const size_t numberVertices = tmpMesh.VerticesNum();
   const size_t numberIndices  = tmpMesh.IndicesNum();
 

@@ -39,15 +39,19 @@ double dsquare(double x) {
     return __enzyme_autodiff((void*) square, x);
 }
 
+#ifdef USE_CUSTOM_DIFF_RENDER
+int custom_diff_render_main(int argc, char *argv[])
+#else
 int main(int argc, char *argv[]) //
+#endif
 {
-  prepare_directory("output");
-  prepare_directory("output/mitsuba_images");
-  prepare_directory("output/rendered");
-  prepare_directory("output/rendered_opt0");
-  prepare_directory("output/rendered_opt1");
-  prepare_directory("output/rendered_opt2");
-  prepare_directory("output/fin_diff");
+  prepare_and_clear_directory("output");
+  prepare_and_clear_directory("output/mitsuba_images");
+  prepare_and_clear_directory("output/rendered");
+  prepare_and_clear_directory("output/rendered_opt0");
+  prepare_and_clear_directory("output/rendered_opt1");
+  prepare_and_clear_directory("output/rendered_opt2");
+  prepare_and_clear_directory("output/fin_diff");
 
   if (argc > 1 && std::string(argv[1]) == "-tests")
   {

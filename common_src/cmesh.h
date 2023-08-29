@@ -10,7 +10,7 @@
 #include "LiteMath.h"
 //using namespace LiteMath;
 
-namespace cmesh
+namespace mesh_utils
 {
   using LiteMath::float4;
   using LiteMath::float2;
