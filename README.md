@@ -2,7 +2,7 @@
 
 ## Быстрая сборка
 
-Сборка c нуля Enzyme на Ubuntu23 и clang-15:
+Сборка c нуля Enzyme на Ubuntu23 и clang-15 в папке **'external/enzyme/enzyme/build'**:
 * sudo apt install llvm
 * sudo apt install clang
 * sudo apt install llvm-dev
@@ -10,7 +10,7 @@
 * sudo apt install zlib1g zlib1g-dev -y
 * cmake -G Ninja .. -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm -DClang_DIR=/usr/lib/cmake/clang-15
 
-Сборка с нуля самого рендера (после сборки Enzyme):
+Сборка с нуля самого рендера в папке **'cmake-build-release'** (например):
 * sudo apt install libomp-dev
 * cmake .. -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=OFF -DUSE_ENZYME=ON -DCLANG_VERSION=15
 
