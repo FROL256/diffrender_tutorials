@@ -51,25 +51,33 @@ int main(int argc, char *argv[]) //
 
   if (argc > 1 && std::string(argv[1]) == "-tests")
   {
+    std::cout << "begin testing ... " << std::endl;
     Tester t;
     t.test_base_derivatives();
-
+    
+    #ifdef USE_MITSUBA
+    std::cout << "mitsuba tests ... " << std::endl;
     t.test_3_1_mitsuba_triangle();
     t.test_3_2_mitsuba_sphere();
     t.test_3_3_mitsuba_teapot();
     t.test_3_4_mitsuba_cube();
-    
+    #endif
+
+    std::cout << "2.1--2.4 tests ... " << std::endl;
     t.test_2_1_triangle();
     t.test_2_2_pyramid();
     t.test_2_3_sphere();
     t.test_2_4_pyramid_vcol();
-    //t.test_2_5_teapot_diffuse(); Embree crashes
+
+    std::cout << "2.5--2.11 tests ... " << std::endl;
+    t.test_2_5_teapot_diffuse(); // Embree crashes
     t.test_2_7_mesh_on_static_scene();
     t.test_2_8_instancing();
     t.test_2_9_transform();
     t.test_2_10_multiple_meshes();
     t.test_2_11_restricted_transforms();
-
+    
+    std::cout << "end testing ... " << std::endl;
     return 0;
   }
 

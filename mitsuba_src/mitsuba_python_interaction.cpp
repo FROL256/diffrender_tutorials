@@ -1,6 +1,14 @@
 #include "mitsuba_python_interaction.h"
 #include "LiteMath.h"
 #include <chrono>
+#include <iostream>
+#include <fstream>
+
+inline bool FileExists(const std::string& name) 
+{
+  std::ifstream f(name.c_str());
+  return f.good();
+}
 
 //some python libraries (e.g. numpy) requires python context
 //to be initialized only once. It is a know issue and we
@@ -68,6 +76,11 @@ MitsubaInterface::MitsubaInterface(const std::string &scripts_dir, const std::st
   std::string append_path_str = std::string("sys.path.append(\"")+scripts_dir+"\")";
   if (!ever_initialized)
   {
+    if(FileExists("/home/frol/.venv/mi/bin/python3"))
+    {
+      std::cout << "set python3 virtual env: '/home/frol/.venv/mi/bin/python3' " << std::endl;
+      Py_SetProgramName(L"/home/frol/.venv/mi/bin/python3");
+    }
     Py_Initialize();
     ever_initialized = true;
   }

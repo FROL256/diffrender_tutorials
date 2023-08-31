@@ -83,22 +83,7 @@ struct PointLight
   float3 pos;
 };
 
-struct AreaLight
-{
-  AreaLight() = default;
-  AreaLight(const TriangleMesh &_mesh, const float3 &col, float inten, const float3 &_pos)
-  {
-    color = normalize(col);
-    intensity = inten;
-    pos = _pos;
-    mesh = _mesh;
-  }
 
-  float3 color;
-  float intensity;
-  float3 pos;
-  TriangleMesh mesh;
-};
 
 struct TransformR
 {
@@ -244,7 +229,7 @@ protected:
   float3 environment_light_mult = float3(1,1,1);
   CPUTexture environment_light_texture;
   std::vector<PointLight> point_lights;
-  std::vector<AreaLight> area_lights;
+
 
   mutable bool prepared = false;
   mutable struct PreparedData

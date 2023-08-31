@@ -33,7 +33,7 @@ float3 shade<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, 
 
 template <>
 void shade_grad<SHADING_MODEL::LAMBERT>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
-                                     const float3 val, const AuxData aux, DScene &grad)
+                                        const float3 val, const AuxData aux, DScene &grad)
 {
   shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }

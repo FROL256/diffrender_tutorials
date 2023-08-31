@@ -1,6 +1,7 @@
 #pragma once
 #include "Python.h"
 #include "virtual_drender.h"
+#include <array>
 
 typedef std::vector<std::pair<std::string, int>> PartOffsets;
 typedef std::pair<std::vector<float>, PartOffsets> DFModel;

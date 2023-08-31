@@ -1,12 +1,15 @@
 cmake_minimum_required (VERSION 3.8)
 project (diffrender)
+set(CMAKE_CXX_STANDARD 14)
 
 #default build
 #cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9
 #cmake .. -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=OFF -DUSE_ENZYME=ON -DCLANG_VERSION=15 
 #
 set(CLANG_VERSION "9" CACHE STRING "clang and LLVM version to use")
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++-${CLANG_VERSION}")
+set(CMAKE_C_COMPILER   "/usr/bin/clang-${CLANG_VERSION}")   # $ export CC=/usr/bin/clang-15
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++-${CLANG_VERSION}") # $ export CXX=/usr/bin/clang++-15
+
 option(USE_EMBREE "Use Embree RT" OFF)
 option(DEBUG "Debug mode" OFF)
 option(USE_MITSUBA "Use Mitsuba 3" OFF)
@@ -22,7 +25,6 @@ endif()
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-set(CMAKE_CXX_STANDARD 14)
 include_directories("src", "LiteMath", "raytrace_src", "common_src", "external/enzyme")
 
 if(WIN32)
@@ -57,6 +59,7 @@ else()
 endif()
 
 if(USE_MITSUBA)
+  add_definitions(-DUSE_MITSUBA)
   find_package(PythonLibs REQUIRED)
   include_directories( ${PYTHON_INCLUDE_DIR} "external/python", "mitsuba_src")
   set(MITSUBA_LIBS ${PYTHON_LIBRARIES})
