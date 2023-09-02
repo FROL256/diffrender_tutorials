@@ -141,7 +141,7 @@ void optimization_test(const ::std::string &test_name,
 
   ::std::chrono::steady_clock::time_point t2 = ::std::chrono::steady_clock::now();
 
-  auto pDRender = MakeDifferentialRenderer(initialScene, diff_render_settings);
+  auto pDRender = MakeDifferentialRenderer(diff_render_settings);
 
   ::std::chrono::steady_clock::time_point t3 = ::std::chrono::steady_clock::now();
 
@@ -381,7 +381,7 @@ void mitsuba_compare_test(const ::std::string &test_name,
 
   auto pDRender = new DiffRenderMitsuba();
   pDRender->init(diff_render_settings);
-  auto pDRenderOurs = MakeDifferentialRenderer(initialScene, diff_render_settings);
+  auto pDRenderOurs = MakeDifferentialRenderer(diff_render_settings);
 
   Img img(image_w, image_h);
   Img targets[cameras_count];
@@ -643,7 +643,7 @@ Tester::DerivativesTestResults Tester::test_derivatives(const Scene &initial_sce
   Img target = Img(a_camData.width, a_camData.height);
   Img tmp = Img(a_camData.width, a_camData.height);
 
-  auto Render = MakeDifferentialRenderer(target_scene, settings);
+  auto Render = MakeDifferentialRenderer(settings);
 
   Render->commit(target_scene);
   Render->render(target_scene, &a_camData, &target, 1);

@@ -434,5 +434,5 @@ private:
 };
 
 
-::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings);
+::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const DiffRenderSettings &settings);
 }

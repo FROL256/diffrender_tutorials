@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) //
     targetScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
   }
 
-  auto pDRender = MakeDifferentialRenderer(initialScene, {mode, SAM_PER_PIXEL});
+  auto pDRender = MakeDifferentialRenderer({mode, SAM_PER_PIXEL});
   
   Img targets[camsNum];
   for(int i=0;i<camsNum;i++) {

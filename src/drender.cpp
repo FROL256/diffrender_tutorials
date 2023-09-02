@@ -86,7 +86,7 @@ inline void edge_grad(const Scene &scene, const Edge &e, const float2 d_v0, cons
   d_tr[e.mesh_n][12*tr_n + 11]+=         1*dv0_dz +         1*dv1_dz;
 }
 
-::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const Scene &scene, const DiffRenderSettings &settings)
+::std::shared_ptr<IDiffRender> MakeDifferentialRenderer(const DiffRenderSettings &settings)
 {
   switch (settings.mode)
   {
