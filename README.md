@@ -1,5 +1,22 @@
-Проект по созданию кросс-платформенного дифференцируемого рендера
+# Проект по созданию кросс-платформенного дифференцируемого рендера
 
+## Быстрая сборка
+
+Сборка c нуля Enzyme на Ubuntu23 и clang-15 в папке **'external/enzyme/enzyme/build'**:
+* sudo apt install llvm
+* sudo apt install clang
+* sudo apt install llvm-dev
+* sudo apt install libclang-dev
+* sudo apt install zlib1g zlib1g-dev -y
+* cmake -G Ninja .. -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm -DClang_DIR=/usr/lib/cmake/clang-15
+* ninja
+
+Сборка с нуля самого рендера в папке **'cmake-build-release'** (например):
+* sudo apt install libomp-dev
+* cmake .. -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=OFF -DUSE_ENZYME=ON -DCLANG_VERSION=15
+* make -j 8
+
+## Более подробно о зависимостях
 
 Все зависимости проекта на данный момент опциональны. Вы можете собрать программу
 без них.
@@ -23,8 +40,11 @@
    * на Ubuntu 23 можно использовать такую команду: 'cmake -G Ninja .. -DLLVM_DIR=/usr/lib/llvm-16/share/llvm/cmake/ -DClang_DIR=/usr/lib/llvm-16/lib/cmake/clang/'  
  - указать правильную версию clang -DCLANG_VERSION=...
 
-рекомендуемая сборка:
+Рекомендуемая сборка:
 cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=Release -DDEBUG=OFF -DUSE_EMBREE=ON -DUSE_OPENMP=ON -DUSE_MITSUBA=ON -DUSE_ENZYME=ON -DCLANG_VERSION=9
+
+
+## Картиночки
 
 Примеры тестоовых оптимизаций:<br>
 <img src="gifs/cube.gif"/> <br>

@@ -131,7 +131,7 @@ float3 shade<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_pTr
 
 template <>
 void shade_grad<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_pTracer, const float2 screen_pos,
-                                        const float3 val, const AuxData aux, DScene &grad)
+                                              const float3 val, const AuxData aux, DScene &grad)
 {
   SurfaceInfo surfInfo = m_pTracer->CastSingleRay(screen_pos.x, screen_pos.y);
   if (surfInfo.primId == unsigned(-1))

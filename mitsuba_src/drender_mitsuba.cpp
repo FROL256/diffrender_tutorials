@@ -1,6 +1,7 @@
 #include "drender_mitsuba.h"
 #include "mitsuba_python_interaction.h"
-
+#include <chrono>
+#include <thread>
 namespace diff_render
 {
 void DiffRenderMitsuba::init(const DiffRenderSettings &_settings)
@@ -85,9 +86,10 @@ void DiffRenderMitsuba::render(const Scene &scene, const CamInfo* cams, Img *img
     rs.mitsubaVar = MitsubaInterface::MitsubaVariant::CUDA;
     rs.samples_per_pixel = settings.spp;
 
-    ::std::string filename = "output/mitsuba_images/tmp"+ ::std::to_string(i)+".png";
+    ::std::string filename = "output/mitsuba_images/tmp" + std::to_string(i) + ".png";
     mi.init_scene_and_settings(rs, MitsubaInterface::ModelInfo::simple_mesh("white.png", mi.get_default_material()));
     mi.render_model_to_file(model, filename, camera, mi.get_default_scene_parameters());
+    //std::this_thread::sleep_for(std::chrono::seconds(2));
     res_image = LiteImage::LoadImage<float3>(filename.c_str());
   }
 }

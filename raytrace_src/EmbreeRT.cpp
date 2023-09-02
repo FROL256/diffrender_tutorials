@@ -148,6 +148,10 @@ uint32_t EmbreeRT::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumbe
   float* vertices   = (float*)    rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, vByteStride,        a_vertNumber);
   unsigned* indices = (unsigned*) rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX,  0, RTC_FORMAT_UINT3,  3*sizeof(unsigned), a_indNumber/3);
   
+  //std::size_t address = reinterpret_cast<std::size_t>((void*)geom);
+  //std::cout << "geom addr = " << address << std::endl;
+  //std::cout << "[debug]: (a_vertNumber,vByteStride) = (" << a_vertNumber << "," << vByteStride << ")" << std::endl;
+
   memcpy(vertices, a_vpos3f, a_vertNumber*vByteStride);
   memcpy(indices, a_triIndices, a_indNumber*sizeof(unsigned));
 

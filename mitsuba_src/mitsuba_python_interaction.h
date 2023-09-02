@@ -1,6 +1,7 @@
 #pragma once
 #include "Python.h"
 #include "virtual_drender.h"
+#include <array>
 
 namespace diff_render
 {
