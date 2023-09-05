@@ -341,9 +341,9 @@ private:
       auto p = v0 + t * (v1 - v0);
       int xi = int(p.x); 
       int yi = int(p.y); // integer coordinates
-      if (xi < 0 || yi < 0 || xi >= adjoint.width() || yi >= adjoint.height()) {
-          continue;
-      }
+      if (xi < 0 || yi < 0 || xi >= adjoint.width() || yi >= adjoint.height() || length(adjoint[int2(xi,yi)]) < 1e-3)
+        continue;
+
       // sample the two sides of the edge
       auto n = normal2D((v1 - v0) / length(v1 - v0));
       
