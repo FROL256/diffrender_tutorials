@@ -357,65 +357,48 @@ void scn06_Cube3D_VColor(TriangleMesh& initial, TriangleMesh& target)
   transform(target, mTransform2);
 }
 
-void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
+struct GeomStorage
 {
-   TriangleMesh cube{
-    // vertices
-    {{1.0f, 1.0f, -1.0f},    // 0 Top
-     {-1.0f, 1.0f, -1.0f},   // 1
-     {-1.0f, 1.0f, 1.0f},    // 2
-     {1.0f, 1.0f, 1.0f},     // 3
-      
-     {1.0f, -1.0f, 1.0f},    // 4 Bottom
-     {-1.0f, -1.0f, 1.0f},   // 5
-     {-1.0f, -1.0f, -1.0f},  // 6
-     {1.0f, -1.0f, -1.0f},   // 7
-    },
+  std::vector<float>    vpos4f;
+  std::vector<float>    vcol4f;
+  std::vector<float>    vtex2f;
+  std::vector<uint32_t> indices;
+};
 
-    // color
-    {{0.0f, 1.0f, 0.0f},    // Top
-     {0.0f, 1.0f, 0.0f}, 
-   
-     {1.0f, 0.5f, 0.0f},    // Bottom
-     {1.0f, 0.5f, 0.0f}, 
+GeomStorage make_cube()
+{
+  GeomStorage geom;
+  geom.vpos4f  = {-1,-1,1,1, 1,-1,1,1, 1,1,1,1, -1,1,1,1, -1,-1,-1,1, -1,1,-1,1, 1,1,-1,1, 1,-1,-1,1, -1,1,-1,1, -1,1,1,1, 1,1,1,1, 1,1,-1,1, -1,-1,-1,1, 1,-1,-1,1, 1,-1,1,1, -1,-1,1,1, 1,-1,-1,1, 1,1,-1,1, 1,1,1,1, 1,-1,1,1, -1,-1,-1,1, -1,-1,1,1, -1,1,1,1, -1,1,-1,1};
+  geom.vcol4f  = {1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0, 1,1,1,0};
+  geom.vtex2f  = {0,0, 1,0, 1,1, 0,1, 1,0, 1,1, 0,1, 0,0, 0,1, 0,0, 1,0, 1,1, 1,1, 0,1, 0,0, 1,0, 1,0, 1,1, 0,1, 0,0, 0,0, 1,0, 1,1, 0,1};
+  geom.indices = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23};
+  return geom;
+}
 
-     {1.0f, 0.0f, 0.0f},    // Front
-     {1.0f, 0.0f, 0.0f},
+TriangleMesh convert(const GeomStorage& geom)
+{
+  TriangleMesh cube;
 
-     {1.0f, 1.0f, 0.0f},    // Back
-     {1.0f, 1.0f, 0.0f},
+  cube.vertices.resize(geom.vpos4f.size()/4);
+  for(size_t i=0;i<cube.vertices.size();i++)
+    cube.vertices[i] = float3(geom.vpos4f[i*4+0], geom.vpos4f[i*4+1], geom.vpos4f[i*4+2]);
+  
+  cube.colors.resize(geom.vcol4f.size()/4);
+  for(size_t i=0;i<cube.colors.size();i++)
+    cube.colors[i] = float3(geom.vcol4f[i*4+0], geom.vcol4f[i*4+1], geom.vcol4f[i*4+2]);
 
-     {0.0f, 0.0f, 1.0f},    // Left
-     {0.0f, 0.0f, 1.0f},
+  cube.tc.resize(geom.vtex2f.size()/2);
+  for(size_t i=0;i<cube.tc.size();i++)
+    cube.tc[i] = float2(geom.vtex2f[i*2+0], geom.vtex2f[i*2+1]);
 
-     {1.0f, 0.0f, 1.0f},    // Right
-     {1.0f, 0.0f, 1.0f},
-    },
+  cube.indices = geom.indices;
+  return cube;
+}
 
-  };
 
-  cube.indices.resize(6*2*3); // 6 faces, 2 triangles per face, 3 indices per triangle 
-
-  cube.indices[0] = 0; cube.indices[1] = 1; cube.indices[2] = 2;        cube.indices[3] = 0; cube.indices[4] = 2; cube.indices[5] = 3;
-  cube.indices[6] = 4; cube.indices[7] = 5; cube.indices[8] = 6;        cube.indices[9] = 4; cube.indices[10] = 6; cube.indices[11] = 7;
-
-  cube.indices[12] = 1; cube.indices[13] = 6; cube.indices[14] = 7;     cube.indices[15] = 1; cube.indices[16] = 7; cube.indices[17] = 0;
-  cube.indices[18] = 3; cube.indices[19] = 4; cube.indices[20] = 5;     cube.indices[21] = 3; cube.indices[22] = 5; cube.indices[23] = 2; 
-
-  cube.indices[24] = 2; cube.indices[25] = 1; cube.indices[26] = 6;     cube.indices[27] = 2; cube.indices[28] = 6; cube.indices[29] = 5;
-  cube.indices[30] = 0; cube.indices[31] = 3; cube.indices[32] = 4;     cube.indices[33] = 0; cube.indices[34] = 4; cube.indices[35] = 7; 
-
-  cube.tc = ::std::vector<float2>{
-    {1.0f, 1.0f},    // 0 Top
-    {0.0f, 1.0f},   // 1
-    {0.0f, 1.0f},    // 2
-    {1.0f, 1.0f},     // 3
-      
-    {1.0f, 0.0f},    // 4 Bottom
-    {0.0f, 0.0f},   // 5
-    {0.0f, 0.0f},  // 6
-    {1.0f, 0.0f,},   // 7
-  };
+void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
+{  
+  TriangleMesh cube = convert(make_cube());
 
   {
     int w = 256;
@@ -443,7 +426,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial = cube;
   target  = cube;
   
-  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures.back().data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //
@@ -453,7 +436,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   auto mTransform1 = mTranslate*mRotate1;
 
   transform(initial, mTransform1);
-  transform(target, mTransform1);
+  //transform(target, mTransform1);
 }
 
 void CreateSphere(TriangleMesh &sphere, float radius, int numberSlices)

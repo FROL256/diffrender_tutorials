@@ -40,6 +40,7 @@ double dsquare(double x) {
 }
 
 using namespace diff_render;
+using namespace LiteMath;
 
 #ifdef USE_CUSTOM_DIFF_RENDER
 int custom_diff_render_main(int argc, char *argv[])
@@ -98,16 +99,16 @@ int main(int argc, char *argv[]) //
     cameras[i].mProj.identity();
   }
 
-  float4x4 mProj = LiteMath::perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
+  float4x4 mProj = perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
 
   cameras[0].mProj      = mProj;
-  cameras[0].mWorldView = LiteMath::translate4x4(float3(0,0,-3));
+  cameras[0].mWorldView = translate4x4(float3(0,0,-3));
 
   cameras[1].mProj      = mProj;
-  cameras[1].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
+  cameras[1].mWorldView = translate4x4(float3(0,0,-3))*rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
 
   cameras[2].mProj      = mProj;
-  cameras[2].mWorldView = LiteMath::translate4x4(float3(0,0,-3))*LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*LiteMath::rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
+  cameras[2].mWorldView = translate4x4(float3(0,0,-3))*rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
 
   for(int i=0;i<camsNum;i++)
     cameras[i].commit();
@@ -124,14 +125,27 @@ int main(int argc, char *argv[]) //
     //scn03_Triangle3D_White(initialMesh, targetMesh);
     //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
     //scn05_Pyramid3D(initialMesh, targetMesh);
-    //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
-    //scn08_Cube3D_Textured(initialMesh, targetMesh);
-    scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0,-0.1,0))});
-    initialScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
     
-    targetScene.add_mesh(targetMesh, {LiteMath::float4x4()});
-    targetScene.add_mesh(initialMesh, {LiteMath::translate4x4(float3(0.5,0.5,0)), LiteMath::translate4x4(float3(-0.5,0.5,0))});
+    //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
+    //{
+    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
+    //  targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    //}
+
+    scn08_Cube3D_Textured(initialMesh, targetMesh);
+    {
+      initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
+      targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    }
+
+    //scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    //{
+    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
+    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+    //  
+    //  targetScene.add_mesh(targetMesh, {float4x4()});
+    //  targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+    //}
   }
 
   auto pDRender = MakeDifferentialRenderer({mode, SAM_PER_PIXEL});

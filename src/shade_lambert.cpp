@@ -164,4 +164,7 @@ void shade_grad<SHADING_MODEL::GGX>(const Scene &scene, IRayTracer *m_pTracer, c
 {
   shade_grad<SHADING_MODEL::TEXTURE_COLOR>(scene, m_pTracer, screen_pos, val, aux, grad);
 }
+
+
+
 }
