@@ -130,22 +130,28 @@ int main(int argc, char *argv[]) //
     //{
     //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
     //  targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    //  mode = SHADING_MODEL::VERTEX_COLOR;
     //}
 
-    scn08_Cube3D_Textured(initialMesh, targetMesh);
-    {
-      initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
-      targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
-    }
-
-    //scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    //scn08_Cube3D_Textured(initialMesh, targetMesh);
     //{
-    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
-    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
-    //  
-    //  targetScene.add_mesh(targetMesh, {float4x4()});
-    //  targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
+    //  targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    //  mode = SHADING_MODEL::LAMBERT;
     //}
+
+    scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    {
+      //initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
+      //initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+      //
+      //targetScene.add_mesh(targetMesh, {float4x4()});
+      //targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+
+      initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-1))});
+      targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-1))});
+      mode = SHADING_MODEL::LAMBERT;
+    }
   }
 
   auto pDRender = MakeDifferentialRenderer({mode, SAM_PER_PIXEL});
