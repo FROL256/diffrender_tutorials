@@ -100,20 +100,7 @@ int main(int argc, char *argv[]) //
   }
 
   float4x4 mProj = perspectiveMatrix(45.0f, cameras[0].width / cameras[0].height, 0.1f, 100.0f);
-
-  cameras[0].mProj      = mProj;
-  cameras[0].mWorldView = translate4x4(float3(0,0,-3));
-
-  cameras[1].mProj      = mProj;
-  cameras[1].mWorldView = translate4x4(float3(0,0,-3))*rotate4x4Y(LiteMath::DEG_TO_RAD*120.0f)*rotate4x4X(LiteMath::DEG_TO_RAD*45.0f);
-
-  cameras[2].mProj      = mProj;
-  cameras[2].mWorldView = translate4x4(float3(0,0,-3))*rotate4x4Y(LiteMath::DEG_TO_RAD*(-120.0f))*rotate4x4X(LiteMath::DEG_TO_RAD*(-45.0f));
-
-  for(int i=0;i<camsNum;i++)
-    cameras[i].commit();
-
-  auto g_uniforms = cameras[0];
+  float3 camPos = float3(0,0,-5);
 
   Scene initialScene, targetScene;
   SHADING_MODEL mode = SHADING_MODEL::LAMBERT;
@@ -126,18 +113,22 @@ int main(int argc, char *argv[]) //
     //scn04_Triangle3D_Colored(initialMesh, targetMesh); // bad
     //scn05_Pyramid3D(initialMesh, targetMesh);
     
-    //scn06_Cube3D_VColor(initialMesh, targetMesh);      // bad     
+    //scn06_Cube3D_VColor(initialMesh, targetMesh);      // ok!     
     //{
-    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
-    //  targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    //  initialScene.add_mesh(initialMesh, {float4x4()});
+    //  targetScene.add_mesh (targetMesh,  {float4x4()});
     //  mode = SHADING_MODEL::VERTEX_COLOR;
+    //  camPos = float3(0,0,-5);
     //}
 
-    //scn08_Cube3D_Textured(initialMesh, targetMesh);
+    //scn08_Cube3D_Textured(initialMesh, targetMesh); // strange bug, why cube moves?
     //{
-    //  initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-4))});
-    //  targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-4))});
+    //  initialScene.add_mesh(initialMesh, {float4x4()});
+    //  targetScene.add_mesh (targetMesh,  {float4x4()});
+    //  
+    //  //mode = SHADING_MODEL::VERTEX_COLOR;
     //  mode = SHADING_MODEL::LAMBERT;
+    //  camPos = float3(0,0,-5);
     //}
 
     scn09_Sphere3D_Textured(initialMesh, targetMesh);
@@ -145,14 +136,26 @@ int main(int argc, char *argv[]) //
       //initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
       //initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
       //
-      //targetScene.add_mesh(targetMesh, {float4x4()});
+      //targetScene.add_mesh(targetMesh,  {translate4x4(center)});
       //targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
-
-      initialScene.add_mesh(initialMesh, {translate4x4(float3(0,0,-1))});
-      targetScene.add_mesh (targetMesh,  {translate4x4(float3(0,0,-1))});
+    
+      initialScene.add_mesh(initialMesh, {float4x4()});
+      targetScene.add_mesh (targetMesh,  {float4x4()});
       mode = SHADING_MODEL::LAMBERT;
     }
   }
+
+  cameras[0].mProj      = mProj;
+  cameras[0].mWorldView = translate4x4(camPos);
+
+  cameras[1].mProj      = mProj;
+  cameras[1].mWorldView = translate4x4(camPos)*rotate4x4Y(DEG_TO_RAD*120.0f)*rotate4x4X(DEG_TO_RAD*45.0f);
+
+  cameras[2].mProj      = mProj;
+  cameras[2].mWorldView = translate4x4(camPos)*rotate4x4Y(DEG_TO_RAD*(-120.0f))*rotate4x4X(DEG_TO_RAD*(-45.0f));
+
+  for(int i=0;i<camsNum;i++)
+    cameras[i].commit();
 
   auto pDRender = MakeDifferentialRenderer({mode, SAM_PER_PIXEL});
   

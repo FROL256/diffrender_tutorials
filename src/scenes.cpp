@@ -428,14 +428,14 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   
   initial.textures.back().data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
 
-  // testing texture reconstruction, so apply same transforms
+  //// testing texture reconstruction, so apply same transforms
+  ////
+  //LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
+  //LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-15.0f);
   //
-  LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.0f,0.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-35.0f);
-  
-  auto mTransform1 = mTranslate*mRotate1;
-
-  transform(initial, mTransform1);
+  //auto mTransform1 = mTranslate*mRotate1;
+  //
+  //transform(initial, mTransform1);
   //transform(target, mTransform1);
 }
 
