@@ -68,41 +68,54 @@ void scn02_TwoTrisSmooth(TriangleMesh& initial, TriangleMesh& target)
 
 void scn03_Triangle3D_White(TriangleMesh& initial, TriangleMesh& target)
 {
-  TriangleMesh tridata;
-  tridata.vertices = 
-    {{0.0f, 0.0f, 0.0f},    
-    {1.0f, 0.0f, 0.0f},
-    {0.0f, 1.0f, 0.0f}};
-  tridata.normals = 
-   {{0.0f, 0.0f, -1.0f},    
-    {0.0f, 0.0f, -1.0f},
-    {0.0f, 0.0f, -1.0f}};
-  tridata.indices = {0, 1, 2};
+  TriangleMesh tridata{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {1.0f, -1.0f, 1.0f},
+       {-1.0f, -1.0f, 1.0f},  
+       },
+
+      //// color
+      {{1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f},
+       },
+
+      // indices
+      {0, 1, 2}
+  };
+
+  TriangleMesh tridata2{
+      // vertices
+      {{0.0f, 1.0f, 0.0f},    
+       {1.0f, -1.0f, 1.0f},
+       {-1.0f, -1.0f, 1.0f},  
+       },
+
+      // color
+      {{1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f}, 
+       {1.0f, 1.0f, 1.0f},
+       },
+       
+      // indices
+      {0, 1, 2}
+  };
 
   initial = tridata;
-  target  = tridata;
+  target  = tridata2;
   
   // apply transforms
   //
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.5f,0.0f));
-  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-10.0f);
-  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+10.0f);
+  LiteMath::float4x4 mRotate1   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*-40.0f);
+  LiteMath::float4x4 mRotate2   = LiteMath::rotate4x4Y(LiteMath::DEG_TO_RAD*+30.0f);
   
   auto mTransform1 = mTranslate*mRotate1;
   auto mTransform2 = mTranslate*mRotate2;
 
   transform(initial, mTransform1);
   transform(target, mTransform2);
-  
-  //::std::cout << "initial: [" << ::std::endl;
-  //for(const auto& v : initial.vertices)
-  //  ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
-  //::std::cout << "]" << ::std::endl << ::std::endl;
-
-  //::std::cout << "target: [" << ::std::endl;
-  //for(const auto& v : target.vertices)
-  //  ::std::cout << "[" << v[0] << ", " <<  v[1] << ", " << v[2] << "] "  << ::std::endl;
-  //::std::cout << "]" << ::std::endl << ::std::endl;
 }
 
 void scn04_Triangle3D_Colored(TriangleMesh& initial, TriangleMesh& target)
