@@ -101,7 +101,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     assert(dmesh.vertex_count() == mesh.vertex_count());
     
     GradReal *d_pos = dmesh.pos(0);
-    if (d_pos)
+    if (d_pos && (m_params.flags & OptimizerParameters::_OPT_POS) != 0)   
     {
       for(int vertId=0; vertId< mesh.vertex_count(); vertId++)
       {
@@ -112,7 +112,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     }
     
     GradReal *d_tr = dmesh.transform_mat(0);
-    if (d_tr)
+    if (d_tr && (m_params.flags & OptimizerParameters::_OPT_TFM) != 0)
     {
       for (int tr_n=0; tr_n<scene->get_transform_modify(mesh_id).size(); tr_n++)
       {
@@ -138,7 +138,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     else
     {
       d_tr = dmesh.restricted_transform(0);
-      if (d_tr)
+      if (d_tr && (m_params.flags & OptimizerParameters::_OPT_TFM) != 0)
       {
         for (int tr_n=0; tr_n<scene->get_restricted_transform_modify(mesh_id).size(); tr_n++)
         {
@@ -159,7 +159,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     }
 
     GradReal *d_col = dmesh.color(0);
-    if (d_col)
+    if (d_col && (m_params.flags & OptimizerParameters::_OPT_COL) != 0)
     {
       assert(dmesh.vertex_count() == mesh.colors.size());
       for(int faceId=0; faceId < mesh.colors.size(); faceId++)
@@ -171,7 +171,8 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     }
     
     if (gradScene.get_shading_model() != SHADING_MODEL::SILHOUETTE &&
-        gradScene.get_shading_model() != SHADING_MODEL::VERTEX_COLOR)
+        gradScene.get_shading_model() != SHADING_MODEL::VERTEX_COLOR && 
+        (m_params.flags & OptimizerParameters::_OPT_TEX) != 0)
     {
       for (int i=0;i<dmesh.tex_count();i++)
       {

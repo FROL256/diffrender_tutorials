@@ -5,9 +5,18 @@
 
 namespace diff_render
 {
+
 struct OptimizerParameters
 { 
   enum OPT_ALGORITHM {GD_Naive=1, GD_AdaGrad=2, GD_RMSProp=3, GD_Adam=4};
+  static constexpr int _OPT_POS = 1;
+  static constexpr int _OPT_TFM = 2;
+  static constexpr int _OPT_COL = 4;
+  static constexpr int _OPT_TEX = 8;
+  static constexpr int OPT_POS = _OPT_POS | _OPT_TFM;
+  static constexpr int OPT_TEX = _OPT_COL | _OPT_TEX;
+  static constexpr int OPT_ALL = OPT_POS | OPT_TEX;
+
   OptimizerParameters() = default;
   OptimizerParameters(OPT_ALGORITHM _alg)
   {
@@ -33,6 +42,7 @@ struct OptimizerParameters
   float position_lr = 0.1;
   float textures_lr = 0.1;
   float transforms_lr = 0.1;
+  int flags = OPT_ALL;
   ::std::vector<int> differentiable_mesh_ids = {0};
   bool verbose = true;
 private:

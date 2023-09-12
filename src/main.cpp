@@ -93,18 +93,22 @@ int main(int argc, char *argv[]) //
   float3 camPos = float3(0,0,-5);
   Scene initialScene, targetScene;
   SHADING_MODEL mode = SHADING_MODEL::LAMBERT;
+  auto optFlags = OptimizerParameters::OPT_ALL;
+  float position_lr = 0.0f;
   {
     TriangleMesh initialMesh, targetMesh;
     TriangleMesh initialMesh2, targetMesh2;
     //scn01_TwoTrisFlat(initialMesh, targetMesh);
     //scn02_TwoTrisSmooth(initialMesh, targetMesh);
     
-    //scn03_Triangle3D_White(initialMesh, targetMesh);     // bad :)
+    //scn03_Triangle3D_White(initialMesh, targetMesh);     // bad on third view
     //{
     //  initialScene.add_mesh(initialMesh, {float4x4()});
     //  targetScene.add_mesh (targetMesh,  {float4x4()});
     //  mode = SHADING_MODEL::VERTEX_COLOR;
     //  camPos = float3(0,0,-5);
+    //  optFlags = OptimizerParameters::OPT_POS;
+    //  position_lr = 0.2f;
     //}
 
     //scn04_Triangle3D_Colored(initialMesh, targetMesh); // ok!
@@ -113,6 +117,7 @@ int main(int argc, char *argv[]) //
     //  targetScene.add_mesh (targetMesh,  {float4x4()});
     //  mode = SHADING_MODEL::VERTEX_COLOR;
     //  camPos = float3(0,0,-5);
+    //  optFlags = OptimizerParameters::OPT_ALL;
     //}
 
     scn05_Pyramid3D(initialMesh, targetMesh);
@@ -121,6 +126,7 @@ int main(int argc, char *argv[]) //
       targetScene.add_mesh (targetMesh,  {float4x4()});
       mode = SHADING_MODEL::VERTEX_COLOR;
       camPos = float3(0,0,-3);
+      optFlags = OptimizerParameters::OPT_ALL;
     }
 
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // ok!     
@@ -129,6 +135,7 @@ int main(int argc, char *argv[]) //
     //  targetScene.add_mesh (targetMesh,  {float4x4()});
     //  mode = SHADING_MODEL::VERTEX_COLOR;
     //  camPos = float3(0,0,-5);
+    //  optFlags = OptimizerParameters::OPT_ALL;
     //}
 
     //scn08_Cube3D_Textured(initialMesh, targetMesh); // 
@@ -139,6 +146,7 @@ int main(int argc, char *argv[]) //
     //  //mode = SHADING_MODEL::VERTEX_COLOR;
     //  mode = SHADING_MODEL::LAMBERT;
     //  camPos = float3(0,0,-5);
+    //  optFlags = OptimizerParameters::OPT_TEX;
     //}
 
     //scn09_Sphere3D_Textured(initialMesh, targetMesh);
@@ -152,6 +160,7 @@ int main(int argc, char *argv[]) //
     //  initialScene.add_mesh(initialMesh, {float4x4()});
     //  targetScene.add_mesh (targetMesh,  {float4x4()});
     //  mode = SHADING_MODEL::LAMBERT;
+    //  optFlags = OptimizerParameters::OPT_TEX;
     //}
   }
   
@@ -200,9 +209,10 @@ int main(int argc, char *argv[]) //
   IOptimizer* pOpt = CreateSimpleOptimizer();
 
   OptimizerParameters op = OptimizerParameters(OptimizerParameters::GD_Adam);
-  op.position_lr = 0.0;
-  op.textures_lr = 0.2;
+  op.position_lr   = position_lr;
+  op.textures_lr   = 0.2;
   op.transforms_lr = 0.1;
+  op.flags         = optFlags;
   pOpt->Init(initialScene, pDRender, cameras, targets, 3, op);
 
   float error = 0;
