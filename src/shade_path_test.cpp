@@ -115,7 +115,7 @@ struct ExtendedSurfaceInfo
   float3 n_geom;    //geometric normal
   float3 e_x;       //x vector of local coordinate system, lays on surface
   float3 e_y;       //y vector of local coordinate system, lays on surface
-  ::std::vector<float> sampled_texture;  //sampled texture. Size and content depends on material
+  float3 sampled_texture;  //sampled texture. Size and content depends on material
 
   inline float3 WorldToLocal(const float3 &_v) const 
   {
@@ -154,7 +154,8 @@ ExtendedSurfaceInfo get_extended_surface_info(const Scene &scene, const SurfaceI
   res.pos = pos + 1e-4*res.n_geom;
   res.e_x = normalize(cross(n,tangent));
   res.e_y = normalize(cross(n,res.e_x)); 
-  res.sampled_texture = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
+  const auto& tex = scene.get_tex(surfInfo.geomId, 0);
+  res.sampled_texture = sample_bilinear_clamp_3f(tc, tex.w, tex.h, tex.data());
 
   return res;
 }

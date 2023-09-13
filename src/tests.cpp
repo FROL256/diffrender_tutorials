@@ -630,7 +630,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
       for (int ch =0; ch < tex.channels; ch++)
       {
         int off = tex.pixel_to_offset(i.x, i.y) + ch;
-        pFinDiff(tex.data.data() + tex.pixel_to_offset(i.x, i.y) + ch, d_mesh.tex_by_id(tex_n) + off, pos_x, 0.1, false);
+        pFinDiff(tex.m_data.data() + tex.pixel_to_offset(i.x, i.y) + ch, d_mesh.tex_by_id(tex_n) + off, pos_x, 0.1, false);
       }
     }
   }

@@ -16,7 +16,7 @@ struct CPUTexture
     w = img.width();
     h = img.height();
     channels = 3;
-    data = ::std::vector<float>((float*)img.data(), (float*)img.data() + w*h*channels);
+    m_data = ::std::vector<float>((float*)img.data(), (float*)img.data() + w*h*channels);
   }
 
   inline int pixel_to_offset(int x, int y) const { return channels*(y*w + x); }
@@ -25,11 +25,12 @@ struct CPUTexture
   \brief UNSAFE ACCESS!!!
 
   */
-  const float *get(int x, int y) const
-  {
-    return data.data() + pixel_to_offset(x,y); 
-  }
-  ::std::vector<float> data;
+  const float *get(int x, int y) const {return m_data.data() + pixel_to_offset(x,y); }
+  
+  const float *data() const { return m_data.data(); }
+        float *data()       { return m_data.data(); }
+  
+  ::std::vector<float> m_data;
   int w,h,channels;
 };
 

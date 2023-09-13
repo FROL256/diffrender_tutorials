@@ -125,8 +125,8 @@ float3 shade<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_pTr
   const float v = surfInfo.v;
 
   float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
-  auto res = sample_bilinear_clamp(tc, scene.get_tex(surfInfo.geomId, 0));
-  return float3(res[0], res[1], res[2]);
+  const auto& tex = scene.get_tex(surfInfo.geomId, 0);
+  return sample_bilinear_clamp_3f(tc, tex.w, tex.h, tex.data());
 }
 
 template <>
@@ -157,29 +157,7 @@ void shade_grad<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_
     assert(chan == 3);
 
     const float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
-    const float2 px = tc*float2(w, h);
-
-    const int2 tc0   = clamp(int2(px), int2(0, 0), int2(w - 1, h - 1));
-    const int2 tc1   = clamp(int2(px) + int2(1, 1), int2(0, 0), int2(w - 1, h - 1));
-    const float2 dtc = px - float2(tc0);
-    
-    // optimized loop for chan==3
-    //
-    texdata[chan*(tc0.y*w + tc0.x) + 0] += (1 - dtc.x) * (1 - dtc.y) * val.x;
-    texdata[chan*(tc0.y*w + tc0.x) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
-    texdata[chan*(tc0.y*w + tc0.x) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z; 
-
-    texdata[chan*(tc1.y*w + tc0.x) + 0] += (1 - dtc.x) * dtc.y * val.x;
-    texdata[chan*(tc1.y*w + tc0.x) + 1] += (1 - dtc.x) * dtc.y * val.y;
-    texdata[chan*(tc1.y*w + tc0.x) + 2] += (1 - dtc.x) * dtc.y * val.z;
-
-    texdata[chan*(tc0.y*w + tc1.x) + 0] += dtc.x * (1 - dtc.y) * val.x;
-    texdata[chan*(tc0.y*w + tc1.x) + 1] += dtc.x * (1 - dtc.y) * val.y;
-    texdata[chan*(tc0.y*w + tc1.x) + 2] += dtc.x * (1 - dtc.y) * val.z;
-
-    texdata[chan*(tc1.y*w + tc1.x) + 0] += dtc.x * dtc.y * val.x;
-    texdata[chan*(tc1.y*w + tc1.x) + 1] += dtc.x * dtc.y * val.y;
-    texdata[chan*(tc1.y*w + tc1.x) + 2] += dtc.x * dtc.y * val.z;
+    diff_render::sample_bilinear_clamp_3f_grad(val, tc, w, h, texdata);
   }
 }
 

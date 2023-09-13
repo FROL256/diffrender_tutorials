@@ -420,7 +420,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
     cube.textures.back().w = w;
     cube.textures.back().h = h;
     cube.textures.back().channels = 3;
-    cube.textures.back().data.resize(w*h*3);
+    cube.textures.back().m_data.resize(w*h*3);
     for (int j=0;j<h;j++)
     {
       for (int i=0;i<w;i++)
@@ -428,9 +428,9 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
         float v = 0;
         if ((i/16)%2 != (j/16)%2)
           v = 1;
-        cube.textures.back().data[3*(j*w+i)] = v;
-        cube.textures.back().data[3*(j*w+i)+1] = 1-v;
-        cube.textures.back().data[3*(j*w+i)+2] = 0;
+        cube.textures.back().m_data[3*(j*w+i)] = v;
+        cube.textures.back().m_data[3*(j*w+i)+1] = 1-v;
+        cube.textures.back().m_data[3*(j*w+i)+2] = 0;
       }
     }
 
@@ -439,7 +439,7 @@ void scn08_Cube3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial = cube;
   target  = cube;
   
-  initial.textures.back().data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures.back().m_data = ::std::vector<float>(target.textures[0].m_data.size(), 0.5);
 
   //// testing texture reconstruction, so apply same transforms
   ////
@@ -519,7 +519,7 @@ CPUTexture RedGreenLinesTexture()
   tex.w = w;
   tex.h = h;
   tex.channels = 3;
-  tex.data.resize(w*h*3);
+  tex.m_data.resize(w*h*3);
   
   for (int j=0;j<h;j++)
   {
@@ -528,9 +528,9 @@ CPUTexture RedGreenLinesTexture()
       float v = 0;
       if ((i/16)%2 != (j/16)%2)
         v = 1;
-      tex.data[3*(j*w+i)] = v;
-      tex.data[3*(j*w+i)+1] = 1-v;
-      tex.data[3*(j*w+i)+2] = 0;
+      tex.m_data[3*(j*w+i)] = v;
+      tex.m_data[3*(j*w+i)+1] = 1-v;
+      tex.m_data[3*(j*w+i)+2] = 0;
     }
   }
   return tex;
@@ -545,7 +545,7 @@ CPUTexture WhiteTexture()
   tex.w = w;
   tex.h = h;
   tex.channels = 3;
-  tex.data = ::std::vector<float>(w*h*3, 0.5);
+  tex.m_data = ::std::vector<float>(w*h*3, 0.5);
 
   return tex;
 }
@@ -559,7 +559,7 @@ void scn09_Sphere3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial = sphere;
   target  = sphere;
   
-  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].m_data = ::std::vector<float>(target.textures[0].m_data.size(), 0.5);
 
   LiteMath::float4x4 mTranslate = LiteMath::translate4x4(float3(0,+0.2f,0.0f));
   
@@ -592,7 +592,7 @@ void scn10_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial.textures.emplace_back(RedGreenLinesTexture());
 
   target = initial;
-  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].m_data = ::std::vector<float>(target.textures[0].m_data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //
@@ -664,7 +664,7 @@ void scn11_Teapot3D_Textured(TriangleMesh& initial, TriangleMesh& target)
   initial.textures.emplace_back(RedGreenLinesTexture());
 
   target = initial;
-  initial.textures[0].data = ::std::vector<float>(target.textures[0].data.size(), 0.5);
+  initial.textures[0].m_data = ::std::vector<float>(target.textures[0].m_data.size(), 0.5);
 
   // testing texture reconstruction, so apply same transforms
   //

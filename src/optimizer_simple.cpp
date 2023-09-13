@@ -176,10 +176,10 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
     {
       for (int i=0;i<dmesh.tex_count();i++)
       {
-        int sz = mesh.textures[i].data.size();
+        int sz = mesh.textures[i].m_data.size();
         GradReal *d_tex = dmesh.tex_by_id(i);
         for (int j=0;j<sz;j++)
-          mesh.textures[i].data[j] -= d_tex[j];
+          mesh.textures[i].m_data[j] -= d_tex[j];
       }
     }
   }
