@@ -137,40 +137,52 @@ void shade_grad<SHADING_MODEL::TEXTURE_COLOR>(const Scene &scene, IRayTracer *m_
   if (surfInfo.primId == unsigned(-1))
     return;
   
-  const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
-  const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
-  const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
-
-  const float u = surfInfo.u;
-  const float v = surfInfo.v;
-
-  auto &tex = scene.get_tex(surfInfo.geomId, 0);
-
-  float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
-  tc *= float2(tex.w, tex.h);
-  int2 tc0 = clamp(int2(tc), int2(0, 0), int2(tex.w - 1, tex.h - 1));
-  int2 tc1 = clamp(int2(tc) + int2(1, 1), int2(0, 0), int2(tex.w - 1, tex.h - 1));
-  float2 dtc = tc - float2(tc0);
-
   auto *dm_ptr = grad.get_dmesh(surfInfo.geomId);
   if (dm_ptr)
   {
     auto &dm = *dm_ptr;
-    dm.tex(0, tc0.x, tc0.y, 0) += (1 - dtc.x) * (1 - dtc.y) * val.x;
-    dm.tex(0, tc0.x, tc0.y, 1) += (1 - dtc.x) * (1 - dtc.y) * val.y;
-    dm.tex(0, tc0.x, tc0.y, 2) += (1 - dtc.x) * (1 - dtc.y) * val.z;
+    GradReal*  texdata = dm.tex_by_id(0);
+    const int3 texinfo = dm.tex_info_by_id(0);
 
-    dm.tex(0, tc0.x, tc1.y, 0) += (1 - dtc.x) * dtc.y * val.x;
-    dm.tex(0, tc0.x, tc1.y, 1) += (1 - dtc.x) * dtc.y * val.y;
-    dm.tex(0, tc0.x, tc1.y, 2) += (1 - dtc.x) * dtc.y * val.z;
+    const auto A = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 0);
+    const auto B = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 1);
+    const auto C = scene.get_index(surfInfo.geomId, surfInfo.instId, surfInfo.primId * 3 + 2);
+  
+    const float u = surfInfo.u;
+    const float v = surfInfo.v;
+                                          // we actually need 'tex' only to get width and height for our texture
+    const int    w  = texinfo.x;
+    const int    h  = texinfo.y;
+    const int  chan = texinfo.z;
+    assert(chan == 3);
 
-    dm.tex(0, tc1.x, tc0.y, 0) += dtc.x * (1 - dtc.y) * val.x;
-    dm.tex(0, tc1.x, tc0.y, 1) += dtc.x * (1 - dtc.y) * val.y;
-    dm.tex(0, tc1.x, tc0.y, 2) += dtc.x * (1 - dtc.y) * val.z;
+    const float2 tc = scene.get_tc(A) * (1.0f - u - v) + scene.get_tc(B) * v + u * scene.get_tc(C);
+    const float2 px = tc*float2(w, h);
 
-    dm.tex(0, tc1.x, tc1.y, 0) += dtc.x * dtc.y * val.x;
-    dm.tex(0, tc1.x, tc1.y, 1) += dtc.x * dtc.y * val.y;
-    dm.tex(0, tc1.x, tc1.y, 2) += dtc.x * dtc.y * val.z;
+    const int2 tc0   = clamp(int2(px), int2(0, 0), int2(w - 1, h - 1));
+    const int2 tc1   = clamp(int2(px) + int2(1, 1), int2(0, 0), int2(w - 1, h - 1));
+    const float2 dtc = px - float2(tc0);
+    
+    // optimized loop for chan==3
+    //
+    texdata[chan*(tc0.y*w + tc0.x) + 0] += (1 - dtc.x) * (1 - dtc.y) * val.x;
+    texdata[chan*(tc0.y*w + tc0.x) + 1] += (1 - dtc.x) * (1 - dtc.y) * val.y;
+    texdata[chan*(tc0.y*w + tc0.x) + 2] += (1 - dtc.x) * (1 - dtc.y) * val.z; 
+
+    texdata[chan*(tc1.y*w + tc0.x) + 0] += (1 - dtc.x) * dtc.y * val.x;
+    texdata[chan*(tc1.y*w + tc0.x) + 1] += (1 - dtc.x) * dtc.y * val.y;
+    texdata[chan*(tc1.y*w + tc0.x) + 2] += (1 - dtc.x) * dtc.y * val.z;
+
+    texdata[chan*(tc0.y*w + tc1.x) + 0] += dtc.x * (1 - dtc.y) * val.x;
+    texdata[chan*(tc0.y*w + tc1.x) + 1] += dtc.x * (1 - dtc.y) * val.y;
+    texdata[chan*(tc0.y*w + tc1.x) + 2] += dtc.x * (1 - dtc.y) * val.z;
+
+    texdata[chan*(tc1.y*w + tc1.x) + 0] += dtc.x * dtc.y * val.x;
+    texdata[chan*(tc1.y*w + tc1.x) + 1] += dtc.x * dtc.y * val.y;
+    texdata[chan*(tc1.y*w + tc1.x) + 2] += dtc.x * dtc.y * val.z;
   }
 }
+
+
+
 }

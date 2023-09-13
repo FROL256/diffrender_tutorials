@@ -70,7 +70,7 @@ OptSimple::IntervalLearningRate OptSimple::GetLR(DScene& gradScene)
     if (dmesh.color(0))
       lr.push_back({dmesh.color(0) - ptr, m_params.base_lr});
     if (dmesh.tex_count() > 0)
-      lr.push_back({dmesh.tex(0,0) - ptr, m_params.textures_lr});
+      lr.push_back({dmesh.tex_by_id(0) - ptr, m_params.textures_lr});
     if (dmesh.transform_mat(0))
       lr.push_back({dmesh.transform_mat(0) - ptr, m_params.transforms_lr});
     if (dmesh.restricted_transform(0))
@@ -177,7 +177,7 @@ void OptSimple::OptUpdateScene(DScene &gradScene, Scene* scene)
       for (int i=0;i<dmesh.tex_count();i++)
       {
         int sz = mesh.textures[i].data.size();
-        GradReal *d_tex = dmesh.tex(i, 0);
+        GradReal *d_tex = dmesh.tex_by_id(i);
         for (int j=0;j<sz;j++)
           mesh.textures[i].data[j] -= d_tex[j];
       }

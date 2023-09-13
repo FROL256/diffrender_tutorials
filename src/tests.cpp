@@ -630,7 +630,7 @@ void Tester::test_fin_diff(const Scene &scene, const char* outFolder, const Img&
       for (int ch =0; ch < tex.channels; ch++)
       {
         int off = tex.pixel_to_offset(i.x, i.y) + ch;
-        pFinDiff(tex.data.data() + tex.pixel_to_offset(i.x, i.y) + ch, d_mesh.tex(tex_n, off), pos_x, 0.1, false);
+        pFinDiff(tex.data.data() + tex.pixel_to_offset(i.x, i.y) + ch, d_mesh.tex_by_id(tex_n) + off, pos_x, 0.1, false);
       }
     }
   }
@@ -728,15 +728,15 @@ Tester::DerivativesTestResults Tester::PrintAndCompareGradients(DScene& grad1_sc
   {
     for (int t_n=0;t_n<grad1.tex_count();t_n++)
     {
-      int3 p = grad1.get_tex_info(t_n);
-      int off = grad1.tex(t_n, 0) - grad1.full_data();
+      int3 p = grad1.tex_info_by_id(t_n);
+      int off = grad1.tex_by_id(t_n) - grad1.full_data();
       for (int i=0;i<p.x*p.y*p.z;i++)
       {
         if (!tested_mask[off+i])
           continue;
-        double diff = ::std::abs(double(*(grad1.tex(t_n, i)) - *(grad2.tex(t_n, i))));
+        double diff = ::std::abs(double(*(grad1.tex_by_id(t_n)+i) - *(grad2.tex_by_id(t_n)+i)));
         texError += diff;
-        texLengthL1 += ::std::abs(*(grad1.tex(t_n, i))) + ::std::abs(*(grad2.tex(t_n, i)));
+        texLengthL1 += ::std::abs(*(grad1.tex_by_id(t_n)+i)) + ::std::abs(*(grad2.tex_by_id(t_n)+i));
       }
     }
   }

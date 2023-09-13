@@ -7,6 +7,7 @@
 #include "utils.h"
 namespace diff_render
 {
+  
 struct CPUTexture
 {
   CPUTexture() = default;
@@ -227,9 +228,6 @@ protected:
   mutable ::std::vector<int> instance_id_mapping;
 
   float3 ambient_light_color = float3(0,0,0);
-  float3 environment_light_mult = float3(1,1,1);
-  CPUTexture environment_light_texture;
-  ::std::vector<PointLight> point_lights;
 
 
   mutable bool prepared = false;

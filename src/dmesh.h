@@ -5,6 +5,7 @@
 #include <cstring> // for memset
 #include <random>  // for random gen 
 #include <cassert> 
+#include <iostream> 
 
 #include "LiteMath.h"
 #include "Image2d.h"
@@ -123,12 +124,10 @@ public:
 
   inline GradReal *pos(int index) { return pos_ptr + 3*index; }
   inline GradReal *color(int index) { return color_ptr + 3*index; }
-  inline GradReal &tex(int tex_n, int px, int py, int channel) 
-  { 
-    return *(tex_ptrs[tex_n] + tex_params[tex_n].z*(tex_params[tex_n].x*py + px) + channel);
-  }
-  inline GradReal *tex(int tex_n, int offset) { return tex_ptrs[tex_n] + offset; }
-  inline int3 get_tex_info(int tex_n) const { return tex_params[tex_n]; } //(x,y,channels)
+  
+  inline GradReal *tex_by_id(int tex_n) { return tex_ptrs[tex_n]; }
+  inline int3      tex_info_by_id(int tex_n) const { return tex_params[tex_n]; } //(x,y,channels)
+
   inline GradReal *transform_mat(int instance_n) { return transform_ptr ? transform_ptr + TRANSFORM_SIZE*instance_n : nullptr; }
   inline GradReal *restricted_transform(int instance_n) { return restricted_transform_ptr ? restricted_transform_ptr + RESTRICTED_TRANSFORM_SIZE*instance_n : nullptr; }
 

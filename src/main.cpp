@@ -120,14 +120,14 @@ int main(int argc, char *argv[]) //
     //  optFlags = OptimizerParameters::OPT_ALL;
     //}
 
-    scn05_Pyramid3D(initialMesh, targetMesh);
-    {
-      initialScene.add_mesh(initialMesh, {float4x4()});
-      targetScene.add_mesh (targetMesh,  {float4x4()});
-      mode = SHADING_MODEL::VERTEX_COLOR;
-      camPos = float3(0,0,-3);
-      optFlags = OptimizerParameters::OPT_ALL;
-    }
+    //scn05_Pyramid3D(initialMesh, targetMesh);
+    //{
+    //  initialScene.add_mesh(initialMesh, {float4x4()});
+    //  targetScene.add_mesh (targetMesh,  {float4x4()});
+    //  mode = SHADING_MODEL::VERTEX_COLOR;
+    //  camPos = float3(0,0,-3);
+    //  optFlags = OptimizerParameters::OPT_ALL;
+    //}
 
     //scn06_Cube3D_VColor(initialMesh, targetMesh);      // ok!     
     //{
@@ -149,19 +149,19 @@ int main(int argc, char *argv[]) //
     //  optFlags = OptimizerParameters::OPT_TEX;
     //}
 
-    //scn09_Sphere3D_Textured(initialMesh, targetMesh);
-    //{
-    //  //initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
-    //  //initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
-    //  //
-    //  //targetScene.add_mesh(targetMesh,  {translate4x4(center)});
-    //  //targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
-    //
-    //  initialScene.add_mesh(initialMesh, {float4x4()});
-    //  targetScene.add_mesh (targetMesh,  {float4x4()});
-    //  mode = SHADING_MODEL::LAMBERT;
-    //  optFlags = OptimizerParameters::OPT_TEX;
-    //}
+    scn09_Sphere3D_Textured(initialMesh, targetMesh);
+    {
+      //initialScene.add_mesh(initialMesh, {translate4x4(float3(0,-0.1,0))});
+      //initialScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+      //
+      //targetScene.add_mesh(targetMesh,  {translate4x4(float3(0,-0.1,0))});
+      //targetScene.add_mesh(initialMesh, {translate4x4(float3(0.5,0.5,0)), translate4x4(float3(-0.5,0.5,0))});
+    
+      initialScene.add_mesh(initialMesh, {float4x4()});
+      targetScene.add_mesh (targetMesh,  {float4x4()});
+      mode = SHADING_MODEL::LAMBERT;
+      optFlags = OptimizerParameters::OPT_TEX;
+    }
   }
   
   constexpr int camsNum = 3;
